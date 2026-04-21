@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/screens/cliente/Registro.dart';
+import 'package:brawl_tcg/screens/cliente/forgot_password_screen.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -157,7 +158,9 @@ class LoginFormContent extends StatelessWidget {
         _buildField(Icons.lock_outline, "Password", isPass: true),
         const SizedBox(height: 40),
         _buildLoginButton(),
-        const SizedBox(height: 20),
+        const SizedBox(height: 5),
+        _buildForgotPasswordButton(context),
+        const SizedBox(height: 40),
         _buildRegisterButton(context),
         const SizedBox(height: 20),
 
@@ -238,17 +241,17 @@ class LoginFormContent extends StatelessWidget {
     );
   }
 
-  Widget _buildRegisterButton(BuildContext context) {
+  Widget _buildForgotPasswordButton(BuildContext context) {
     return Center(
       child: TextButton(
         onPressed: () {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => RegisterScreen()),
+            MaterialPageRoute(builder: (context) => ForgotPasswordScreen()),
           );
         },
         child: Text(
-          "¿No tienes cuenta? Regístrate",
+          "¿Olvidaste tu contraseña?",
           style: GoogleFonts.rubik(
             color: Colors.white70,
             fontWeight: FontWeight.bold,
@@ -257,33 +260,51 @@ class LoginFormContent extends StatelessWidget {
       ),
     );
   }
+}
 
-  Widget _buildGoogleButton() {
-    return Container(
-      width: double.infinity,
-      height: 55,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(15),
-        color: Colors.white.withOpacity(0.3),
-      ),
-      child: ElevatedButton.icon(
-        onPressed: () {},
-        icon: Image.asset('assets/images/google_icon.png', height: 24),
-        label: Text(
-          "CONTINUAR CON GOOGLE",
-          style: GoogleFonts.rubik(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color.fromARGB(255, 5, 183, 223),
-          shadowColor: Colors.blue,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
+Widget _buildRegisterButton(BuildContext context) {
+  return Center(
+    child: TextButton(
+      onPressed: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => RegisterScreen()),
+        );
+      },
+      child: Text(
+        "¿No tienes cuenta? Regístrate",
+        style: GoogleFonts.rubik(
+          color: Colors.white70,
+          fontWeight: FontWeight.bold,
         ),
       ),
-    );
-  }
+    ),
+  );
+}
+
+Widget _buildGoogleButton() {
+  return Container(
+    width: double.infinity,
+    height: 55,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(15),
+      color: Colors.white.withOpacity(0.3),
+    ),
+    child: ElevatedButton.icon(
+      onPressed: () {},
+      icon: Image.asset('assets/images/google_icon.png', height: 24),
+      label: Text(
+        "CONTINUAR CON GOOGLE",
+        style: GoogleFonts.rubik(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color.fromARGB(255, 5, 183, 223),
+        shadowColor: Colors.blue,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      ),
+    ),
+  );
 }

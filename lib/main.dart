@@ -1,6 +1,7 @@
 import 'package:brawl_tcg/screens/cliente/Login.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/screens/cliente/event_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,6 +21,7 @@ class MyApp extends StatelessWidget {
 
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
+      // En tu main.dart o donde navegues:
       home: Login(),
     );
   }
