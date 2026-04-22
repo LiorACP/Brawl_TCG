@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/screens/cliente/Registro.dart';
 import 'package:brawl_tcg/screens/cliente/forgot_password_screen.dart';
+import 'package:brawl_tcg/screens/cliente/cliente_shell.dart';
+import 'package:brawl_tcg/navigation/transitions.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -157,7 +159,7 @@ class LoginFormContent extends StatelessWidget {
         const SizedBox(height: 20),
         _buildField(Icons.lock_outline, "Password", isPass: true),
         const SizedBox(height: 40),
-        _buildLoginButton(),
+        _buildLoginButton(context),
         const SizedBox(height: 5),
         _buildForgotPasswordButton(context),
         const SizedBox(height: 40),
@@ -166,17 +168,11 @@ class LoginFormContent extends StatelessWidget {
 
         Row(
           children: [
-            const Expanded(
-              child: Divider(
-                color:
-                    Colors.white24, // Color suave para que no distraiga mucho
-                thickness: 1,
-              ),
-            ),
+            const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                "OR REGISTER WITH", // Queda mejor en mayúsculas para UI de juegos
+                "OR REGISTER WITH",
                 style: GoogleFonts.rubik(
                   color: Colors.white54,
                   fontSize: 12,
@@ -188,7 +184,7 @@ class LoginFormContent extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 30),
-        _buildGoogleButton(),
+        _buildGoogleButton(context),
       ],
     );
   }
@@ -211,7 +207,7 @@ class LoginFormContent extends StatelessWidget {
     );
   }
 
-  Widget _buildLoginButton() {
+  Widget _buildLoginButton(BuildContext context) {
     return Container(
       width: double.infinity,
       height: 55,
@@ -222,7 +218,11 @@ class LoginFormContent extends StatelessWidget {
         ),
       ),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () => Navigator.pushAndRemoveUntil(
+          context,
+          fadeSlideRoute(const ClienteShell()),
+          (route) => false,
+        ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -282,16 +282,20 @@ Widget _buildRegisterButton(BuildContext context) {
   );
 }
 
-Widget _buildGoogleButton() {
+Widget _buildGoogleButton(BuildContext context) {
   return Container(
     width: double.infinity,
     height: 55,
     decoration: BoxDecoration(
       borderRadius: BorderRadius.circular(15),
-      color: Colors.white.withOpacity(0.3),
+      color: Colors.white.withValues(alpha: 0.3),
     ),
     child: ElevatedButton.icon(
-      onPressed: () {},
+      onPressed: () => Navigator.pushAndRemoveUntil(
+        context,
+        fadeSlideRoute(const ClienteShell()),
+        (route) => false,
+      ),
       icon: Image.asset('assets/images/google_icon.png', height: 24),
       label: Text(
         "CONTINUAR CON GOOGLE",
