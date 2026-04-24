@@ -28,17 +28,74 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
     TcgGame.mtg,
     TcgGame.pok,
     TcgGame.ygo,
-    TcgGame.lor,
+    TcgGame.fab,
     TcgGame.one,
-    TcgGame.dbs,
+    TcgGame.lor,
   ];
 
-  static const _formats = [
-    _FormatOption('Pioneer', 'Swiss · 5 rondas · Top 8'),
-    _FormatOption('Modern', 'Swiss · 4 rondas'),
-    _FormatOption('Commander', 'Mesas de 4 · 3 rondas'),
-    _FormatOption('Draft', 'Pods de 8 · sellado'),
-  ];
+  static const _formatsByGame = <TcgGame, List<_FormatOption>>{
+    TcgGame.mtg: [
+      _FormatOption('Standard', 'Swiss · rotativo'),
+      _FormatOption('Pioneer', 'Swiss · 5 rondas · Top 8'),
+      _FormatOption('Modern', 'Swiss · 4 rondas'),
+      _FormatOption('Legacy', 'Swiss · eternal'),
+      _FormatOption('Vintage', 'Swiss · eternal irrestricto'),
+      _FormatOption('Pauper', 'Solo comunes'),
+      _FormatOption('Commander', 'Mesas de 4 · 3 rondas'),
+      _FormatOption('Brawl', 'Mesas de 4 · estándar'),
+      _FormatOption('Historic', 'Swiss · digital'),
+      _FormatOption('Draft', 'Pods de 8 · sellado'),
+      _FormatOption('Sealed', '6 sobres · construcción'),
+      _FormatOption('Two-Headed Giant', 'Parejas · 2v2'),
+    ],
+    TcgGame.pok: [
+      _FormatOption('Standard', 'Swiss · rotativo'),
+      _FormatOption('Expanded', 'Swiss · B&W en adelante'),
+      _FormatOption('Unlimited', 'Swiss · sin restricciones'),
+      _FormatOption('Draft', 'Pods de 8 · sellado'),
+      _FormatOption('Sealed', '6 sobres · construcción'),
+      _FormatOption('Theme Deck', 'Mazos predefinidos'),
+      _FormatOption('Gym Leader Challenge', '60 cartas · sin repetidos'),
+    ],
+    TcgGame.ygo: [
+      _FormatOption('Advanced', 'Swiss · ban list vigente'),
+      _FormatOption('Traditional', 'Swiss · sin ban list'),
+      _FormatOption('Speed Duel', 'Formato reducido oficial'),
+      _FormatOption('Rush Duel', 'Formato Rush'),
+      _FormatOption('Draft', 'Pods de 8 · sellado'),
+      _FormatOption('Sealed', '6 sobres · construcción'),
+      _FormatOption('Goat', 'Swiss · formato 2005'),
+      _FormatOption('Edison', 'Swiss · formato 2010'),
+      _FormatOption('Tag Duel', 'Parejas · 2v2'),
+    ],
+    TcgGame.fab: [
+      _FormatOption('Classic Constructed', 'Swiss · formato principal'),
+      _FormatOption('Blitz', 'Swiss · partidas rápidas'),
+      _FormatOption('Living Legend', 'Swiss · héroes retirados'),
+      _FormatOption('Draft', 'Pods de 8 · sellado'),
+      _FormatOption('Sealed', '6 sobres · construcción'),
+      _FormatOption('UPF', 'Multijugador · último en pie'),
+      _FormatOption('Commoner', 'Solo comunes'),
+      _FormatOption('Clash', 'Formato casual'),
+    ],
+    TcgGame.one: [
+      _FormatOption('Constructed', 'Swiss · formato principal'),
+      _FormatOption('Block', 'Swiss · por saga'),
+      _FormatOption('Sealed Battle', '6 sobres · construcción'),
+      _FormatOption('Buddy Battle', 'Parejas · 2v2'),
+    ],
+    TcgGame.lor: [
+      _FormatOption('Core Constructed', 'Swiss · formato principal'),
+      _FormatOption('Infinity', 'Swiss · sin restricciones'),
+      _FormatOption('Sealed', '6 sobres · construcción'),
+      _FormatOption('Draft', 'Pods de 8 · sellado'),
+      _FormatOption('Multiplayer', 'Mesas de 4 o más'),
+      _FormatOption('Pack Rush', 'Apertura competitiva'),
+    ],
+  };
+
+  List<_FormatOption> get _formats =>
+      _formatsByGame[_selectedGame] ?? [];
 
   @override
   Widget build(BuildContext context) {
@@ -145,16 +202,19 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         crossAxisCount: 3,
-                        mainAxisSpacing: 8,
-                        crossAxisSpacing: 8,
-                        childAspectRatio: 1.0,
+                        mainAxisSpacing: 6,
+                        crossAxisSpacing: 6,
+                        childAspectRatio: 1.5,
                         children: _games.map((game) {
                           final active = game == _selectedGame;
                           return GestureDetector(
-                            onTap: () => setState(() => _selectedGame = game),
+                            onTap: () => setState(() {
+                              _selectedGame = game;
+                              _selectedFormat = 0;
+                            }),
                             child: BrawlCard(
-                              padding: const EdgeInsets.all(12),
-                              radius: 18,
+                              padding: const EdgeInsets.all(8),
+                              radius: 14,
                               tint: active
                                   ? AppColors.violet.withValues(alpha: 0.18)
                                   : AppColors.surface,
@@ -164,15 +224,17 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  GameBadge(game: game.code, size: 32),
-                                  const SizedBox(height: 8),
+                                  GameBadge(game: game.code, size: 22),
+                                  const SizedBox(height: 5),
                                   Text(
                                     game.shortName,
                                     style: GoogleFonts.rubik(
-                                        fontSize: 11.5,
+                                        fontSize: 10,
                                         fontWeight: FontWeight.w600,
                                         color: AppColors.text),
                                     textAlign: TextAlign.center,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ],
                               ),

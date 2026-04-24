@@ -7,7 +7,7 @@ extension TcgGameX on TcgGame {
         TcgGame.mtg => 'MTG',
         TcgGame.pok => 'POK',
         TcgGame.ygo => 'YGO',
-        TcgGame.lor => 'LOR',
+        TcgGame.lor => 'LRC',
         TcgGame.fab => 'FAB',
         TcgGame.one => 'ONE',
         TcgGame.dbs => 'DBS',
@@ -17,7 +17,7 @@ extension TcgGameX on TcgGame {
         TcgGame.mtg => 'Magic',
         TcgGame.pok => 'Pokémon',
         TcgGame.ygo => 'YuGiOh',
-        TcgGame.lor => 'Runeterra',
+        TcgGame.lor => 'Lorcana',
         TcgGame.fab => 'Flesh & Blood',
         TcgGame.one => 'One Piece',
         TcgGame.dbs => 'Dragon Ball',
@@ -27,10 +27,10 @@ extension TcgGameX on TcgGame {
         TcgGame.mtg => 'Magic: The Gathering',
         TcgGame.pok => 'Pokémon TCG',
         TcgGame.ygo => 'Yu-Gi-Oh!',
-        TcgGame.lor => 'Runeterra',
-        TcgGame.fab => 'Flesh & Blood',
+        TcgGame.lor => 'Disney Lorcana',
+        TcgGame.fab => 'Flesh and Blood',
         TcgGame.one => 'One Piece TCG',
-        TcgGame.dbs => 'Dragon Ball Fusion',
+        TcgGame.dbs => 'Dragon Ball Super',
       };
 }
 
