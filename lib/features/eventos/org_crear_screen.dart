@@ -4,6 +4,13 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/premios/org_premios_screen.dart';
+import 'data/tournament.dart';
+
+class _FormatOption {
+  final String name;
+  final String description;
+  const _FormatOption(this.name, this.description);
+}
 
 class OrgCrearScreen extends StatefulWidget {
   const OrgCrearScreen({super.key});
@@ -13,24 +20,24 @@ class OrgCrearScreen extends StatefulWidget {
 }
 
 class _OrgCrearScreenState extends State<OrgCrearScreen> {
-  int _selectedGame = 0;
+  TcgGame _selectedGame = TcgGame.mtg;
   int _selectedFormat = 0;
   int _plazas = 32;
 
-  final _games = const [
-    ('MTG', 'Magic'),
-    ('POK', 'Pokémon'),
-    ('YGO', 'YuGiOh'),
-    ('LOR', 'Runeterra'),
-    ('ONE', 'One Piece'),
-    ('DBS', 'Dragon Ball'),
+  static const _games = [
+    TcgGame.mtg,
+    TcgGame.pok,
+    TcgGame.ygo,
+    TcgGame.lor,
+    TcgGame.one,
+    TcgGame.dbs,
   ];
 
-  final _formats = const [
-    ('Pioneer', 'Swiss · 5 rondas · Top 8'),
-    ('Modern', 'Swiss · 4 rondas'),
-    ('Commander', 'Mesas de 4 · 3 rondas'),
-    ('Draft', 'Pods de 8 · sellado'),
+  static const _formats = [
+    _FormatOption('Pioneer', 'Swiss · 5 rondas · Top 8'),
+    _FormatOption('Modern', 'Swiss · 4 rondas'),
+    _FormatOption('Commander', 'Mesas de 4 · 3 rondas'),
+    _FormatOption('Draft', 'Pods de 8 · sellado'),
   ];
 
   @override
@@ -72,7 +79,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                             const SnackBar(content: Text('Borrador guardado')),
                           ),
                           child: Text('Guardar',
-                              style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim)),
+                              style: GoogleFonts.rubik(
+                                  fontSize: 12, color: AppColors.textDim)),
                         ),
                       ],
                     ),
@@ -126,7 +134,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                     color: AppColors.text)),
                             const SizedBox(height: 4),
                             Text('32 caracteres · público',
-                                style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim)),
+                                style: GoogleFonts.rubik(
+                                    fontSize: 12, color: AppColors.textDim)),
                           ],
                         ),
                       ),
@@ -139,11 +148,10 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         mainAxisSpacing: 8,
                         crossAxisSpacing: 8,
                         childAspectRatio: 1.0,
-                        children: List.generate(_games.length, (i) {
-                          final (code, name) = _games[i];
-                          final active = i == _selectedGame;
+                        children: _games.map((game) {
+                          final active = game == _selectedGame;
                           return GestureDetector(
-                            onTap: () => setState(() => _selectedGame = i),
+                            onTap: () => setState(() => _selectedGame = game),
                             child: BrawlCard(
                               padding: const EdgeInsets.all(12),
                               radius: 18,
@@ -156,24 +164,26 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  GameBadge(game: code, size: 32),
+                                  GameBadge(game: game.code, size: 32),
                                   const SizedBox(height: 8),
-                                  Text(name,
-                                      style: GoogleFonts.rubik(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.text),
-                                      textAlign: TextAlign.center),
+                                  Text(
+                                    game.shortName,
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.text),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ],
                               ),
                             ),
                           );
-                        }),
+                        }).toList(),
                       ),
                       const SectionLabel('Formato',
                           margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       ...List.generate(_formats.length, (i) {
-                        final (name, desc) = _formats[i];
+                        final fmt = _formats[i];
                         final active = i == _selectedFormat;
                         return Padding(
                           padding: const EdgeInsets.only(bottom: 8),
@@ -201,12 +211,14 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                           : null,
                                       border: active
                                           ? null
-                                          : Border.all(color: AppColors.strokeHi, width: 2),
+                                          : Border.all(
+                                              color: AppColors.strokeHi, width: 2),
                                     ),
                                     child: active
                                         ? const Center(
                                             child: CircleAvatar(
-                                                radius: 4, backgroundColor: Colors.white))
+                                                radius: 4,
+                                                backgroundColor: Colors.white))
                                         : null,
                                   ),
                                   const SizedBox(width: 14),
@@ -214,15 +226,16 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text(name,
+                                        Text(fmt.name,
                                             style: GoogleFonts.rubik(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.w600,
                                                 color: AppColors.text)),
                                         const SizedBox(height: 2),
-                                        Text(desc,
+                                        Text(fmt.description,
                                             style: GoogleFonts.rubik(
-                                                fontSize: 11.5, color: AppColors.textDim)),
+                                                fontSize: 11.5,
+                                                color: AppColors.textDim)),
                                       ],
                                     ),
                                   ),
@@ -272,7 +285,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                         child: Center(
                                           child: Text('$_plazas',
                                               style: GoogleFonts.rubikMonoOne(
-                                                  fontSize: 22, color: AppColors.text)),
+                                                  fontSize: 22,
+                                                  color: AppColors.text)),
                                         ),
                                       ),
                                       GestureDetector(
@@ -289,7 +303,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                           child: const Center(
                                               child: Text('＋',
                                                   style: TextStyle(
-                                                      fontSize: 18, color: Colors.white))),
+                                                      fontSize: 18,
+                                                      color: Colors.white))),
                                         ),
                                       ),
                                     ],
@@ -324,7 +339,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                         TextSpan(
                                           text: ',00',
                                           style: GoogleFonts.rubik(
-                                              fontSize: 13, color: AppColors.textMute),
+                                              fontSize: 13,
+                                              color: AppColors.textMute),
                                         ),
                                       ],
                                     ),
@@ -369,8 +385,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         size: GradBtnSize.lg,
                         gradient: AppColors.organizadorGradient,
                         width: double.infinity,
-                        onTap: () =>
-                            Navigator.push(context, fadeSlideRoute(const OrgPremiosScreen())),
+                        onTap: () => Navigator.push(
+                            context, fadeSlideRoute(const OrgPremiosScreen())),
                         child: const Text('Siguiente · Premios →'),
                       ),
                     ),

@@ -5,6 +5,9 @@ import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/notificaciones/shared_notis_screen.dart';
 import 'package:brawl_tcg/features/codigo/cliente_codigo_screen.dart';
+import 'data/tournament.dart';
+import 'data/enrollment.dart';
+import 'viewmodels/cliente_eventos_viewmodel.dart';
 
 class ClienteEventosScreen extends StatefulWidget {
   const ClienteEventosScreen({super.key});
@@ -15,6 +18,7 @@ class ClienteEventosScreen extends StatefulWidget {
 
 class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
   String _tab = 'apuntados';
+  final _vm = ClienteEventosViewModel.mock();
 
   void _openNotis() =>
       Navigator.push(context, fadeSlideRoute(const SharedNotisScreen()));
@@ -43,7 +47,7 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'HOLA, MARCO',
+                              'HOLA, ${_vm.userName}',
                               style: GoogleFonts.rubik(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -162,8 +166,11 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
                   child: _tab == 'apuntados'
-                      ? _ApuntadosTab()
-                      : _ParticipadosTab(),
+                      ? _ApuntadosTab(vm: _vm)
+                      : _ParticipadosTab(
+                          stats: _vm.stats,
+                          results: _vm.results,
+                        ),
                 ),
               ),
               const BrawlNavBarSpacer(),
@@ -225,176 +232,156 @@ class _TabPill extends StatelessWidget {
 }
 
 class _ApuntadosTab extends StatelessWidget {
+  final ClienteEventosViewModel vm;
+  const _ApuntadosTab({required this.vm});
+
   @override
   Widget build(BuildContext context) {
+    final active = vm.activeEnrollment;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        BrawlCard(
-          padding: EdgeInsets.zero,
-          radius: 26,
-          tint: const Color(0xFF0F0C1A),
-          border: Colors.transparent,
-          child: Column(
-            children: [
-              Container(
-                height: 130,
-                decoration: const BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      top: -30,
-                      right: -40,
-                      child: Container(
-                        width: 200,
-                        height: 200,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              AppColors.cyan.withValues(alpha: 0.5),
-                              AppColors.violet.withValues(alpha: 0.3),
-                              Colors.transparent,
-                            ],
+        if (active != null) ...[
+          BrawlCard(
+            padding: EdgeInsets.zero,
+            radius: 26,
+            tint: const Color(0xFF0F0C1A),
+            border: Colors.transparent,
+            child: Column(
+              children: [
+                Container(
+                  height: 130,
+                  decoration: const BoxDecoration(
+                    borderRadius:
+                        BorderRadius.vertical(top: Radius.circular(26)),
+                  ),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        top: -30,
+                        right: -40,
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: RadialGradient(
+                              colors: [
+                                AppColors.cyan.withValues(alpha: 0.5),
+                                AppColors.violet.withValues(alpha: 0.3),
+                                Colors.transparent,
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const Positioned(
-                      bottom: 14,
-                      left: 14,
-                      child: GameBadge(game: 'MTG', size: 36),
-                    ),
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Standard FNM — Pioneer',
-                      style: GoogleFonts.rubik(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.text,
-                        letterSpacing: -0.3,
+                      Positioned(
+                        bottom: 14,
+                        left: 14,
+                        child: GameBadge(game: active.game.code, size: 36),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Dragón Rojo Store · Barcelona',
-                      style: GoogleFonts.rubik(
-                        fontSize: 13,
-                        color: AppColors.textDim,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Row(
-                          children: [
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'HOY',
-                                  style: GoogleFonts.rubik(
-                                    fontSize: 10,
-                                    color: AppColors.textMute,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                Text(
-                                  '18:30',
-                                  style: GoogleFonts.rubik(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.text,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(width: 18),
-                            Container(
-                              width: 1,
-                              height: 36,
-                              color: AppColors.stroke,
-                            ),
-                            const SizedBox(width: 18),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'MESA',
-                                  style: GoogleFonts.rubik(
-                                    fontSize: 10,
-                                    color: AppColors.textMute,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                                Text(
-                                  '#07',
-                                  style: GoogleFonts.rubik(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.text,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        GradBtn(
-                          size: GradBtnSize.sm,
-                          child: const Text('Ver →'),
-                        ),
-                      ],
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SectionLabel(
-          'Próximos (3)',
-          margin: EdgeInsets.only(left: 4, top: 18, bottom: 10),
-        ),
-        ...const [
-          _EventRow(
-            game: 'POK',
-            title: 'Copa de Primavera',
-            store: 'Puzzle Games · Madrid',
-            date: 'Sáb 25 Abr',
-            time: '10:00',
-            tag: 'Clasificación',
-            tagColor: AppColors.violet,
-          ),
-          _EventRow(
-            game: 'YGO',
-            title: 'Torneo Master Duel',
-            store: 'El Refugio · Valencia',
-            date: 'Dom 26 Abr',
-            time: '17:00',
-            tag: 'Amistoso',
-            tagColor: AppColors.violet,
-          ),
-          _EventRow(
-            game: 'LOR',
-            title: 'Riot Runeterra Open',
-            store: 'Online',
-            date: 'Vie 1 May',
-            time: '19:30',
-            tag: 'Online',
-            tagColor: AppColors.cyan,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        active.tournamentName,
+                        style: GoogleFonts.rubik(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.text,
+                          letterSpacing: -0.3,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        active.storeName,
+                        style: GoogleFonts.rubik(
+                          fontSize: 13,
+                          color: AppColors.textDim,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Row(
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    active.dateLabel,
+                                    style: GoogleFonts.rubik(
+                                      fontSize: 10,
+                                      color: AppColors.textMute,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    active.timeLabel,
+                                    style: GoogleFonts.rubik(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.text,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(width: 18),
+                              Container(
+                                width: 1,
+                                height: 36,
+                                color: AppColors.stroke,
+                              ),
+                              const SizedBox(width: 18),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'MESA',
+                                    style: GoogleFonts.rubik(
+                                      fontSize: 10,
+                                      color: AppColors.textMute,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  Text(
+                                    active.tableLabel,
+                                    style: GoogleFonts.rubik(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.text,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          GradBtn(
+                            size: GradBtnSize.sm,
+                            child: const Text('Ver →'),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
+        SectionLabel(
+          'Próximos (${vm.upcomingEnrollments.length})',
+          margin: const EdgeInsets.only(left: 4, top: 18, bottom: 10),
+        ),
+        ...vm.upcomingEnrollments.map((e) => _EventRow(enrollment: e)),
         const SizedBox(height: 20),
       ],
     );
@@ -402,17 +389,8 @@ class _ApuntadosTab extends StatelessWidget {
 }
 
 class _EventRow extends StatelessWidget {
-  final String game, title, store, date, time, tag;
-  final Color tagColor;
-  const _EventRow({
-    required this.game,
-    required this.title,
-    required this.store,
-    required this.date,
-    required this.time,
-    required this.tag,
-    required this.tagColor,
-  });
+  final Enrollment enrollment;
+  const _EventRow({required this.enrollment});
 
   @override
   Widget build(BuildContext context) {
@@ -423,14 +401,14 @@ class _EventRow extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            GameBadge(game: game, size: 44),
+            GameBadge(game: enrollment.game.code, size: 44),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    enrollment.tournamentName,
                     style: GoogleFonts.rubik(
                       fontSize: 14.5,
                       fontWeight: FontWeight.w600,
@@ -439,7 +417,7 @@ class _EventRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 1),
                   Text(
-                    store,
+                    enrollment.storeName,
                     style: GoogleFonts.rubik(
                       fontSize: 12,
                       color: AppColors.textDim,
@@ -448,10 +426,15 @@ class _EventRow extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      BrawlTag(label: tag, color: tagColor),
-                      const SizedBox(width: 8),
+                      if (enrollment.tagLabel != null)
+                        BrawlTag(
+                          label: enrollment.tagLabel!,
+                          color: enrollment.tagColor ?? AppColors.textMute,
+                        ),
+                      if (enrollment.tagLabel != null)
+                        const SizedBox(width: 8),
                       Text(
-                        '$date · $time',
+                        '${enrollment.dateLabel} · ${enrollment.timeLabel}',
                         style: GoogleFonts.rubik(
                           fontSize: 11,
                           color: AppColors.textMute,
@@ -470,6 +453,10 @@ class _EventRow extends StatelessWidget {
 }
 
 class _ParticipadosTab extends StatelessWidget {
+  final PlayerStats stats;
+  final List<TournamentResult> results;
+  const _ParticipadosTab({required this.stats, required this.results});
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -477,44 +464,15 @@ class _ParticipadosTab extends StatelessWidget {
       children: [
         Row(
           children: [
-            _StatCard(number: '27', label: 'Jugados'),
+            _StatCard(number: stats.played.toString(), label: 'Jugados'),
             const SizedBox(width: 10),
-            _StatCard(number: '8', label: 'Podios'),
+            _StatCard(number: stats.podiums.toString(), label: 'Podios'),
             const SizedBox(width: 10),
-            _StatCard(number: '2', label: 'Títulos'),
+            _StatCard(number: stats.titles.toString(), label: 'Títulos'),
           ],
         ),
         const SizedBox(height: 14),
-        ...const [
-          _ResultRow(
-            game: 'MTG',
-            title: 'Pioneer Challenge #14',
-            pos: '2º / 32',
-            date: '18 Abr',
-            win: true,
-          ),
-          _ResultRow(
-            game: 'YGO',
-            title: 'Liga local primavera',
-            pos: '5º / 24',
-            date: '12 Abr',
-            win: false,
-          ),
-          _ResultRow(
-            game: 'POK',
-            title: 'Prerelease Scarlet',
-            pos: '🏆 1º / 18',
-            date: '6 Abr',
-            win: true,
-          ),
-          _ResultRow(
-            game: 'MTG',
-            title: 'Commander Night',
-            pos: '8º / 16',
-            date: '29 Mar',
-            win: false,
-          ),
-        ],
+        ...results.map((r) => _ResultRow(result: r)),
         const SizedBox(height: 20),
       ],
     );
@@ -558,15 +516,8 @@ class _StatCard extends StatelessWidget {
 }
 
 class _ResultRow extends StatelessWidget {
-  final String game, title, pos, date;
-  final bool win;
-  const _ResultRow({
-    required this.game,
-    required this.title,
-    required this.pos,
-    required this.date,
-    required this.win,
-  });
+  final TournamentResult result;
+  const _ResultRow({required this.result});
 
   @override
   Widget build(BuildContext context) {
@@ -577,14 +528,14 @@ class _ResultRow extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
-            GameBadge(game: game, size: 40),
+            GameBadge(game: result.game.code, size: 40),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    result.tournamentName,
                     style: GoogleFonts.rubik(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -593,7 +544,7 @@ class _ResultRow extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    date,
+                    result.dateLabel,
                     style: GoogleFonts.rubik(
                       fontSize: 11,
                       color: AppColors.textMute,
@@ -603,11 +554,11 @@ class _ResultRow extends StatelessWidget {
               ),
             ),
             Text(
-              pos,
+              result.positionLabel,
               style: GoogleFonts.rubik(
                 fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: win ? AppColors.cyan : AppColors.text,
+                color: result.isTop ? AppColors.cyan : AppColors.text,
               ),
             ),
           ],

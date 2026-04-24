@@ -6,6 +6,8 @@ import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/notificaciones/shared_notis_screen.dart';
 import 'package:brawl_tcg/features/eventos/org_info_screen.dart';
 import 'package:brawl_tcg/features/anuncios/org_anuncios_screen.dart';
+import 'data/tournament.dart';
+import 'viewmodels/org_eventos_viewmodel.dart';
 
 class OrgEventosScreen extends StatefulWidget {
   const OrgEventosScreen({super.key});
@@ -16,6 +18,7 @@ class OrgEventosScreen extends StatefulWidget {
 
 class _OrgEventosScreenState extends State<OrgEventosScreen> {
   String _activeTab = 'encurso';
+  final _vm = OrgEventosViewModel.mock();
 
   void _openNotis() =>
       Navigator.push(context, fadeSlideRoute(const SharedNotisScreen()));
@@ -123,11 +126,22 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                     const SizedBox(height: 16),
                     Row(
                       children: [
-                        _KpiCard(label: 'Hoy', value: '2', suffix: 'torneos'),
+                        _KpiCard(
+                          label: 'Hoy',
+                          value: _vm.kpi.todayCount.toString(),
+                          suffix: 'torneos',
+                        ),
                         const SizedBox(width: 8),
-                        _KpiCard(label: 'Inscritos', value: '48', badge: '+6'),
+                        _KpiCard(
+                          label: 'Inscritos',
+                          value: _vm.kpi.totalEnrolled.toString(),
+                          badge: '+${_vm.kpi.newEnrollments}',
+                        ),
                         const SizedBox(width: 8),
-                        _KpiCard(label: 'Este mes', value: '€ 1.240'),
+                        _KpiCard(
+                          label: 'Este mes',
+                          value: _vm.kpi.revenueLabel,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -137,7 +151,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                           onTap: () => setState(() => _activeTab = 'encurso'),
                           child: _UnderlineTab(
                             label: 'En curso',
-                            count: 2,
+                            count: _vm.enCursoCount,
                             active: _activeTab == 'encurso',
                           ),
                         ),
@@ -147,7 +161,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                               setState(() => _activeTab = 'borradores'),
                           child: _UnderlineTab(
                             label: 'Borradores',
-                            count: 1,
+                            count: _vm.draftCount,
                             active: _activeTab == 'borradores',
                           ),
                         ),
@@ -157,7 +171,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                               setState(() => _activeTab = 'finalizados'),
                           child: _UnderlineTab(
                             label: 'Finalizados',
-                            count: 14,
+                            count: _vm.finishedCount,
                             active: _activeTab == 'finalizados',
                           ),
                         ),
@@ -176,6 +190,8 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                         ? _EnCursoContent(
                             key: const ValueKey('encurso'),
                             onCrear: _openCrear,
+                            liveTournament: _vm.liveTournament,
+                            upcomingTournaments: _vm.upcomingTournaments,
                           )
                         : _PlaceholderContent(
                             key: ValueKey(_activeTab),
@@ -197,170 +213,162 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
 
 class _EnCursoContent extends StatelessWidget {
   final VoidCallback onCrear;
-  const _EnCursoContent({super.key, required this.onCrear});
+  final Tournament liveTournament;
+  final List<Tournament> upcomingTournaments;
+
+  const _EnCursoContent({
+    super.key,
+    required this.onCrear,
+    required this.liveTournament,
+    required this.upcomingTournaments,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        BrawlCard(
-          padding: EdgeInsets.zero,
-          radius: 24,
-          tint: const Color(0xFF110D1E),
-          border: AppColors.pink.withValues(alpha: 0.3),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                child: Row(
+        _LiveCard(tournament: liveTournament),
+        const SizedBox(height: 12),
+        ...upcomingTournaments.map((t) => _UpcomingCard(tournament: t)),
+        const SizedBox(height: 20),
+      ],
+    );
+  }
+}
+
+class _LiveCard extends StatelessWidget {
+  final Tournament tournament;
+  const _LiveCard({required this.tournament});
+
+  @override
+  Widget build(BuildContext context) {
+    final progress = tournament.roundProgress ?? [];
+    final currentRound = tournament.currentRound ?? 0;
+    final totalRounds = tournament.totalRounds ?? 0;
+
+    return BrawlCard(
+      padding: EdgeInsets.zero,
+      radius: 24,
+      tint: const Color(0xFF110D1E),
+      border: AppColors.pink.withValues(alpha: 0.3),
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            child: Row(
+              children: [
+                _PulseDot(color: AppColors.pink),
+                const SizedBox(width: 10),
+                Text(
+                  'EN VIVO · RONDA $currentRound / $totalRounds',
+                  style: GoogleFonts.rubik(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pink,
+                    letterSpacing: 0.6,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '⏱ ${tournament.liveTimer ?? '—'}',
+                  style: GoogleFonts.rubikMonoOne(
+                    fontSize: 11,
+                    color: AppColors.textDim,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(height: 1, color: AppColors.stroke),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    _PulseDot(color: AppColors.pink),
-                    const SizedBox(width: 10),
-                    Text(
-                      'EN VIVO · RONDA 3 / 5',
-                      style: GoogleFonts.rubik(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.pink,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                    const Spacer(),
-                    Text(
-                      '⏱ 22:14',
-                      style: GoogleFonts.rubikMonoOne(
-                        fontSize: 11,
-                        color: AppColors.textDim,
+                    GameBadge(game: tournament.game.code, size: 42),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            tournament.name,
+                            style: GoogleFonts.rubik(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${tournament.enrolledCount} inscritos · ${tournament.activeTables ?? 0} mesas activas',
+                            style: GoogleFonts.rubik(
+                              fontSize: 12,
+                              color: AppColors.textDim,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
-              ),
-              Container(height: 1, color: AppColors.stroke),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const GameBadge(game: 'MTG', size: 42),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Pioneer FNM Abril',
-                                style: GoogleFonts.rubik(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.text,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '32 inscritos · 16 mesas activas',
-                                style: GoogleFonts.rubik(
-                                  fontSize: 12,
-                                  color: AppColors.textDim,
-                                ),
-                              ),
-                            ],
+                const SizedBox(height: 14),
+                Row(
+                  children: List.generate(progress.length, (i) {
+                    final v = progress[i];
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 4),
+                        child: Container(
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceHi,
+                            borderRadius: BorderRadius.circular(3),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Row(
-                      children: List.generate(5, (i) {
-                        final v = [1.0, 1.0, 1.0, 0.6, 0.0][i];
-                        return Expanded(
-                          child: Padding(
-                            padding: const EdgeInsets.only(right: 4),
+                          child: FractionallySizedBox(
+                            widthFactor: v,
+                            alignment: Alignment.centerLeft,
                             child: Container(
-                              height: 6,
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceHi,
+                                color: v == 1.0
+                                    ? AppColors.cyan
+                                    : AppColors.orange,
                                 borderRadius: BorderRadius.circular(3),
-                              ),
-                              child: FractionallySizedBox(
-                                widthFactor: v,
-                                alignment: Alignment.centerLeft,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: v == 1.0
-                                        ? AppColors.cyan
-                                        : AppColors.orange,
-                                    borderRadius: BorderRadius.circular(3),
-                                  ),
-                                ),
                               ),
                             ),
                           ),
-                        );
-                      }),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Ronda $currentRound en juego',
+                      style: GoogleFonts.rubik(
+                        fontSize: 11,
+                        color: AppColors.textMute,
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Ronda 3 en juego',
-                          style: GoogleFonts.rubik(
-                            fontSize: 11,
-                            color: AppColors.textMute,
-                          ),
-                        ),
-                        Text(
-                          '18 resultados pendientes',
-                          style: GoogleFonts.rubik(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.cyan,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '${tournament.pendingResults ?? 0} resultados pendientes',
+                      style: GoogleFonts.rubik(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.cyan,
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
-        _UpcomingCard(
-          game: 'POK',
-          title: 'Prerelease Stellar',
-          detail: 'Sáb · 10:00 · 16 plazas',
-          fill: 0.75,
-          current: 12,
-          total: 16,
-          tag: 'Mañana',
-          tagColor: AppColors.yellow,
-        ),
-        _UpcomingCard(
-          game: 'YGO',
-          title: 'Liga Master Duel — J3',
-          detail: 'Dom · 17:00 · 24 plazas',
-          fill: 0.33,
-          current: 8,
-          total: 24,
-          tag: 'Dom',
-          tagColor: AppColors.violet,
-        ),
-        _UpcomingCard(
-          game: 'LOR',
-          title: 'Runeterra Showdown',
-          detail: 'Vie 1 May · 19:30 · Online',
-          fill: 0.12,
-          current: 4,
-          total: 32,
-          tag: 'En 6 días',
-          tagColor: AppColors.cyan,
-          opacity: 0.8,
-        ),
-        const SizedBox(height: 20),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -572,35 +580,21 @@ class _PulseDotState extends State<_PulseDot>
 }
 
 class _UpcomingCard extends StatelessWidget {
-  final String game, title, detail, tag;
-  final Color tagColor;
-  final double fill;
-  final int current, total;
-  final double opacity;
-  const _UpcomingCard({
-    required this.game,
-    required this.title,
-    required this.detail,
-    required this.tag,
-    required this.tagColor,
-    required this.fill,
-    required this.current,
-    required this.total,
-    this.opacity = 1.0,
-  });
+  final Tournament tournament;
+  const _UpcomingCard({required this.tournament});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Opacity(
-        opacity: opacity,
+        opacity: tournament.opacity,
         child: BrawlCard(
           padding: const EdgeInsets.all(16),
           radius: 24,
           child: Row(
             children: [
-              GameBadge(game: game, size: 42),
+              GameBadge(game: tournament.game.code, size: 42),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -610,7 +604,7 @@ class _UpcomingCard extends StatelessWidget {
                       children: [
                         Expanded(
                           child: Text(
-                            title,
+                            tournament.name,
                             style: GoogleFonts.rubik(
                               fontSize: 15,
                               fontWeight: FontWeight.w700,
@@ -618,13 +612,18 @@ class _UpcomingCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                        BrawlTag(label: tag, color: tagColor),
+                        if (tournament.tagLabel != null) ...[
+                          const SizedBox(width: 8),
+                          BrawlTag(
+                            label: tournament.tagLabel!,
+                            color: tournament.tagColor ?? AppColors.textMute,
+                          ),
+                        ],
                       ],
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      detail,
+                      tournament.detailLabel,
                       style: GoogleFonts.rubik(
                         fontSize: 12,
                         color: AppColors.textDim,
@@ -640,7 +639,7 @@ class _UpcomingCard extends StatelessWidget {
                               height: 5,
                               color: AppColors.surfaceHi,
                               child: FractionallySizedBox(
-                                widthFactor: fill,
+                                widthFactor: tournament.fillFraction,
                                 alignment: Alignment.centerLeft,
                                 child: Container(
                                   decoration: BoxDecoration(
@@ -656,7 +655,7 @@ class _UpcomingCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 14),
                         Text(
-                          '$current/$total',
+                          '${tournament.enrolledCount}/${tournament.totalSlots}',
                           style: GoogleFonts.rubikMonoOne(
                             fontSize: 11,
                             color: AppColors.text,
