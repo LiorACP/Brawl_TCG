@@ -124,29 +124,31 @@ class SharedReglasScreen extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 12),
                   ],
                 ),
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
+                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionLabel('Juegos soportados'),
+                      const SectionLabel('Juegos soportados',
+                          margin: EdgeInsets.only(left: 4, bottom: 10)),
                       ...vm.games.map((g) => _GameRuleRow(rule: g)),
-                      const SectionLabel('Recursos rápidos'),
+                      const SectionLabel('Recursos rápidos',
+                          margin: EdgeInsets.only(left: 4, top: 6, bottom: 10)),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final isWide = constraints.maxWidth >= 600;
                           return GridView.count(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: isWide ? 4 : 2,
-                            mainAxisSpacing: isWide ? 8 : 10,
-                            crossAxisSpacing: isWide ? 8 : 10,
-                            childAspectRatio: isWide ? 2.0 : 1.5,
+                            crossAxisCount: isWide ? 3 : 3,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: isWide ? 2.0 : 1.4,
                             children: [
                               _ResourceTile(
                                 title: 'Glosario',
@@ -160,13 +162,6 @@ class SharedReglasScreen extends StatelessWidget {
                                 sub: 'Situaciones comunes',
                                 color: AppColors.cyan,
                                 icon: '?',
-                                onTap: () {},
-                              ),
-                              _ResourceTile(
-                                title: 'Decklists',
-                                sub: 'Meta actual',
-                                color: AppColors.pink,
-                                icon: '◈',
                                 onTap: () {},
                               ),
                               _ResourceTile(

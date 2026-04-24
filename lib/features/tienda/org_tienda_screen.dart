@@ -97,16 +97,21 @@ class OrgTiendaScreen extends StatelessWidget {
                         ],
                       ),
                       const SectionLabel('Administración'),
-                      GridView.count(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        crossAxisCount: 2,
-                        mainAxisSpacing: 10,
-                        crossAxisSpacing: 10,
-                        childAspectRatio: 1.4,
-                        children: vm.adminSections
-                            .map((s) => _AdminTile(section: s))
-                            .toList(),
+                      LayoutBuilder(
+                        builder: (context, constraints) {
+                          final isWide = constraints.maxWidth >= 600;
+                          return GridView.count(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            crossAxisCount: isWide ? 4 : 2,
+                            mainAxisSpacing: 10,
+                            crossAxisSpacing: 10,
+                            childAspectRatio: isWide ? 1.6 : 1.4,
+                            children: vm.adminSections
+                                .map((s) => _AdminTile(section: s))
+                                .toList(),
+                          );
+                        },
                       ),
                       const SectionLabel('Últimas reseñas'),
                       BrawlCard(
