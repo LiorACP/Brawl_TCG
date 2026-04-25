@@ -139,7 +139,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
     String rol = 'Cliente';
     try {
       final doc = await FirebaseFirestore.instance
-          .collection('usuarios')
+          .collection('User')
           .doc(uid)
           .get();
       rol = doc.data()?['rol'] as String? ?? 'Cliente';
