@@ -1,22 +1,9 @@
+import 'package:brawl_tcg/models/event_model.dart';
+import 'package:brawl_tcg/utils/event_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-// 1. MODELO DE DATOS (Lo dejamos aquí arriba para que no falle nada)
-class Evento {
-  final String nombre;
-  final String subtitulo;
-  final String jugadores;
-  final String formato;
-  final int ranking;
-
-  Evento({
-    required this.nombre,
-    required this.subtitulo,
-    required this.jugadores,
-    required this.formato,
-    required this.ranking,
-  });
-}
 
 class EventScreen extends StatefulWidget {
   const EventScreen({super.key});
@@ -28,61 +15,53 @@ class EventScreen extends StatefulWidget {
 class _EventScreenState extends State<EventScreen> {
   String _filtro = 'Eventos Inscritos';
 
-  // 2. DATOS DE PRUEBA (Hardcoded aquí dentro para que funcione YA)
-  final List<Evento> inscritosDemo = [
-    Evento(
-      nombre: "Brawl TCG Major",
-      subtitulo: "Torneo de Invierno",
-      jugadores: "128",
-      formato: "Moderno",
-      ranking: 1,
-    ),
-    Evento(
-      nombre: "Regional Cup",
-      subtitulo: "Qualifiers Madrid",
-      jugadores: "64",
-      formato: "Estándar",
-      ranking: 12,
-    ),
-  ];
-
-  final List<Evento> participadosDemo = [
-    Evento(
-      nombre: "Old School Battle",
-      subtitulo: "Evento Retro",
-      jugadores: "16",
-      formato: "Legacy",
-      ranking: 3,
-    ),
-  ];
+  Stream<List<Evento>> _getEventos() {
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    final campo =
+        _filtro == 'Eventos Inscritos' ? 'inscritos' : 'participados';
+    return FirebaseFirestore.instance
+        .collection('eventos')
+        .where(campo, arrayContains: uid)
+        .snapshots()
+        .map((s) => s.docs.map(Evento.fromFirestore).toList());
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Seleccionamos la lista según el filtro
-    final listaActual = _filtro == 'Eventos Inscritos'
-        ? inscritosDemo
-        : participadosDemo;
-
     return Scaffold(
       backgroundColor: const Color(0xFF1A1C20),
       floatingActionButton: _buildFab(),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          bool esPC = constraints.maxWidth > 900;
-          return Column(
-            children: [
-              _buildHeader(esPC),
-              Expanded(
-                child: esPC ? _buildGrid(listaActual) : _buildList(listaActual),
-              ),
-            ],
+      body: StreamBuilder<List<Evento>>(
+        stream: _getEventos(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0XFFF8BF54)),
+            );
+          }
+          final eventos = snapshot.data ?? [];
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              final esPC = constraints.maxWidth > 900;
+              return Column(
+                children: [
+                  _buildHeader(esPC),
+                  Expanded(
+                    child: eventos.isEmpty
+                        ? _buildEmpty()
+                        : esPC
+                            ? _buildGrid(eventos)
+                            : _buildList(eventos),
+                  ),
+                ],
+              );
+            },
           );
         },
       ),
     );
   }
 
-  // --- CABECERA ---
   Widget _buildHeader(bool esPC) {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: esPC ? 100 : 20, vertical: 30),
@@ -116,17 +95,34 @@ class _EventScreenState extends State<EventScreen> {
           value: _filtro,
           dropdownColor: const Color(0xFF1E1E1E),
           style: GoogleFonts.rubik(color: Colors.white),
-          items: [
-            'Eventos Inscritos',
-            'Ya Participados',
-          ].map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+          items: ['Eventos Inscritos', 'Ya Participados']
+              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .toList(),
           onChanged: (val) => setState(() => _filtro = val!),
         ),
       ),
     );
   }
 
-  // --- LISTADOS ---
+  Widget _buildEmpty() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.event_busy, color: Colors.white24, size: 60),
+          const SizedBox(height: 16),
+          Text(
+            _filtro == 'Eventos Inscritos'
+                ? 'No estás inscrito en ningún evento'
+                : 'Todavía no has participado en ningún evento',
+            style: GoogleFonts.rubik(color: Colors.white38, fontSize: 15),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGrid(List<Evento> eventos) {
     return GridView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 100),
@@ -152,7 +148,6 @@ class _EventScreenState extends State<EventScreen> {
     );
   }
 
-  // --- BOTÓN FLOTANTE ---
   Widget _buildFab() {
     return Container(
       height: 60,
@@ -164,7 +159,7 @@ class _EventScreenState extends State<EventScreen> {
         ),
       ),
       child: FloatingActionButton(
-        onPressed: () => _showDialog(),
+        onPressed: _showJoinDialog,
         backgroundColor: Colors.transparent,
         elevation: 0,
         child: const Icon(Icons.add, color: Colors.white, size: 30),
@@ -172,125 +167,79 @@ class _EventScreenState extends State<EventScreen> {
     );
   }
 
-  void _showDialog() {
+  void _showJoinDialog() {
+    final codigoController = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1C20),
         title: const Text(
           "CÓDIGO DE TORNEO",
           style: TextStyle(color: Colors.white),
         ),
         content: TextField(
+          controller: codigoController,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
             hintText: "Introduce el código",
             hintStyle: const TextStyle(color: Colors.white24),
             filled: true,
             fillColor: Colors.black26,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            border:
+                OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
           ),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              codigoController.dispose();
+              Navigator.pop(ctx);
+            },
             child: const Text("CANCELAR"),
           ),
-          ElevatedButton(onPressed: () {}, child: const Text("UNIRME")),
+          ElevatedButton(
+            onPressed: () async {
+              final codigo = codigoController.text.trim();
+              codigoController.dispose();
+              Navigator.pop(ctx);
+              await _unirseConCodigo(codigo);
+            },
+            child: const Text("UNIRME"),
+          ),
         ],
       ),
     );
   }
-}
 
-// 3. WIDGET DE LA TARJETA (Todo en el mismo archivo para evitar líos)
-class EventCard extends StatelessWidget {
-  final Evento evento;
-  const EventCard({super.key, required this.evento});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 110,
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white.withOpacity(0.05)),
-      ),
-      child: Row(
-        children: [
-          const SizedBox(width: 15),
-          const CircleAvatar(
-            radius: 30,
-            backgroundColor: Colors.white10,
-            child: Icon(Icons.emoji_events, color: Colors.white24),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  evento.nombre,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  evento.subtitulo,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.people, size: 14, color: Color(0XFFF8BF54)),
-                    const SizedBox(width: 4),
-                    Text(
-                      evento.jugadores,
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 70,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFFEC5544), Color(0xFF9120A6)],
-              ),
-              borderRadius: BorderRadius.only(
-                topRight: Radius.circular(15),
-                bottomRight: Radius.circular(15),
-              ),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  "${evento.ranking}",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Text(
-                  "RANK",
-                  style: TextStyle(color: Colors.white70, fontSize: 9),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  Future<void> _unirseConCodigo(String codigo) async {
+    if (codigo.isEmpty) return;
+    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
+    try {
+      final query = await FirebaseFirestore.instance
+          .collection('eventos')
+          .where('codigo', isEqualTo: codigo)
+          .limit(1)
+          .get();
+      if (query.docs.isEmpty) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Código de torneo no encontrado')),
+        );
+        return;
+      }
+      await query.docs.first.reference.update({
+        'inscritos': FieldValue.arrayUnion([uid]),
+        'jugadores': FieldValue.increment(1),
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('¡Te has unido al torneo!')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al unirse: $e')),
+      );
+    }
   }
 }

@@ -20,7 +20,13 @@ class EventCard extends StatelessWidget {
           const SizedBox(width: 15),
           CircleAvatar(
             radius: 35,
-            backgroundImage: AssetImage(evento.avatarUrl),
+            backgroundColor: Colors.white10,
+            backgroundImage: evento.avatarUrl.isNotEmpty
+                ? AssetImage(evento.avatarUrl)
+                : null,
+            child: evento.avatarUrl.isEmpty
+                ? const Icon(Icons.emoji_events, color: Colors.white24, size: 30)
+                : null,
           ),
           const SizedBox(width: 15),
           Expanded(

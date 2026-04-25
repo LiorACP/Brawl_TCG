@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -10,7 +11,39 @@ class ForgotPasswordContent extends StatefulWidget {
 }
 
 class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
-  bool _mailSent = false; // Controla si ya enviamos el correo
+  bool _mailSent = false;
+  bool _isLoading = false;
+  final _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendReset() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Introduce tu email')),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      setState(() => _mailSent = true);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.code == 'user-not-found'
+          ? 'No existe una cuenta con ese email'
+          : 'Error al enviar el correo';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,12 +84,14 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
 
         const SizedBox(height: 40),
 
-        _buildGradientButton(
-          text: "ENVIAR INSTRUCCIONES",
-          onPressed: () {
-            setState(() => _mailSent = true);
-          },
-        ),
+        _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0XFFF8BF54)),
+              )
+            : _buildGradientButton(
+                text: "ENVIAR INSTRUCCIONES",
+                onPressed: _sendReset,
+              ),
       ],
     );
   }
@@ -93,14 +128,8 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         ),
         const SizedBox(height: 40),
 
-        // Botón de reenvío
         OutlinedButton(
-          onPressed: () {
-            // Lógica de reenvío aquí
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text("Correo reenviado")));
-          },
+          onPressed: _sendReset,
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 55),
             side: const BorderSide(color: Colors.white24),
@@ -128,7 +157,6 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
     );
   }
 
-  // Reutilizamos el estilo de tus campos de texto
   Widget _buildField(IconData icon, String hint) {
     return Container(
       decoration: BoxDecoration(
@@ -137,6 +165,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: TextField(
+        controller: _emailController,
         style: GoogleFonts.rubik(color: Colors.white),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.white70, size: 20),
