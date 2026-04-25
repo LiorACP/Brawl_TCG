@@ -83,7 +83,8 @@ class _RoleRouterState extends State<_RoleRouter> {
           .collection('User')
           .doc(widget.uid)
           .get();
-      return doc.data()?['rol'] as String? ?? 'Cliente';
+      final isOrganizer = doc.data()?['organizer'] as bool? ?? false;
+      return isOrganizer ? 'Organizador' : 'Cliente';
     } catch (_) {
       return 'Cliente';
     }
