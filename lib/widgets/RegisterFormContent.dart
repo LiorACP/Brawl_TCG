@@ -59,7 +59,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
       );
 
       await FirebaseFirestore.instance
-          .collection('usuarios')
+          .collection('User')
           .doc(credential.user!.uid)
           .set({
         'nombre': nombre,
@@ -88,6 +88,11 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
         _ => 'Error al crear la cuenta',
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al guardar el perfil en la base de datos')),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
