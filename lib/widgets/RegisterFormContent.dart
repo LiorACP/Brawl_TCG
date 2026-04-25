@@ -2,8 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:brawl_tcg/shell/cliente_shell.dart';
-import 'package:brawl_tcg/shell/org_shell.dart';
+import 'package:brawl_tcg/screens/cliente/Login.dart';
 
 class RegisterFormContent extends StatefulWidget {
   final bool isDesktop;
@@ -39,44 +38,41 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
     final password = _passwordController.text;
 
     if (nombre.isEmpty || email.isEmpty || ciudad.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rellena todos los campos')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Rellena todos los campos')));
       return;
     }
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La contraseña debe tener al menos 6 caracteres')),
+        const SnackBar(
+          content: Text('La contraseña debe tener al menos 6 caracteres'),
+        ),
       );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      final credential = await FirebaseAuth.instance
+          .createUserWithEmailAndPassword(email: email, password: password);
 
       await FirebaseFirestore.instance
-          .collection('usuarios')
+          .collection('User')
           .doc(credential.user!.uid)
           .set({
-        'nombre': nombre,
-        'email': email,
-        'ciudad': ciudad,
-        'rol': _selectedRole,
-        'creadoEn': FieldValue.serverTimestamp(),
-      });
+            'name': nombre,
+            'email': email,
+            'localidad': ciudad,
+            'organizer': _selectedRole == 'Organizador',
+            'creadoEn': FieldValue.serverTimestamp(),
+          });
 
+      await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => _selectedRole == 'Organizador'
-              ? const OrgShell()
-              : const ClienteShell(),
-        ),
+        MaterialPageRoute(builder: (_) => const Login()),
         (_) => false,
       );
     } on FirebaseAuthException catch (e) {
@@ -97,8 +93,9 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          widget.isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
+      crossAxisAlignment: widget.isDesktop
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.center,
       children: [
         Center(
           child: Text(
@@ -136,16 +133,26 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
         //selector de rol
         _buildRoleSelector(),
         const SizedBox(height: 30),
-        _buildField(Icons.person_outline, "Nombre de Usuario",
-            controller: _nombreController),
+        _buildField(
+          Icons.person_outline,
+          "Nombre de Usuario",
+          controller: _nombreController,
+        ),
         const SizedBox(height: 20),
-        _buildField(Icons.email_outlined, "Correo Electrónico",
-            controller: _emailController),
+        _buildField(
+          Icons.email_outlined,
+          "Correo Electrónico",
+          controller: _emailController,
+        ),
         const SizedBox(height: 20),
         _buildField(Icons.public, "Ciudad", controller: _ciudadController),
         const SizedBox(height: 20),
-        _buildField(Icons.lock_outline, "Contraseña",
-            isPass: true, controller: _passwordController),
+        _buildField(
+          Icons.lock_outline,
+          "Contraseña",
+          isPass: true,
+          controller: _passwordController,
+        ),
         const SizedBox(height: 40),
         _isLoading
             ? const Center(
@@ -190,7 +197,8 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
                   ? Alignment.centerLeft
                   : Alignment.centerRight,
               child: Container(
-                width: (widget.isDesktop
+                width:
+                    (widget.isDesktop
                         ? 400
                         : MediaQuery.of(context).size.width - 60) /
                     2,
@@ -252,8 +260,10 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
           border: InputBorder.none,
-          contentPadding:
-              const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 18,
+            horizontal: 20,
+          ),
         ),
       ),
     );

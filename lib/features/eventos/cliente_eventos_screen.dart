@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
@@ -7,7 +9,7 @@ import 'package:brawl_tcg/features/notificaciones/shared_notis_screen.dart';
 import 'package:brawl_tcg/features/codigo/cliente_codigo_screen.dart';
 import 'data/tournament.dart';
 import 'data/enrollment.dart';
-import 'viewmodels/cliente_eventos_viewmodel.dart';
+import 'services/eventos_service.dart';
 
 class ClienteEventosScreen extends StatefulWidget {
   const ClienteEventosScreen({super.key});
@@ -18,7 +20,35 @@ class ClienteEventosScreen extends StatefulWidget {
 
 class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
   String _tab = 'apuntados';
-  final _vm = ClienteEventosViewModel.mock();
+  String _userName = '...';
+  String? _uid;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    setState(() => _uid = user.uid);
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('User')
+          .doc(user.uid)
+          .get();
+      final name = doc.data()?['name'] as String? ??
+          user.email?.split('@').first ??
+          'JUGADOR';
+      if (mounted) setState(() => _userName = name.toUpperCase());
+    } catch (_) {
+      if (mounted) {
+        setState(() => _userName =
+            user.email?.split('@').first.toUpperCase() ?? 'JUGADOR');
+      }
+    }
+  }
 
   void _openNotis() =>
       Navigator.push(context, fadeSlideRoute(const SharedNotisScreen()));
@@ -47,7 +77,7 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'HOLA, ${_vm.userName}',
+                              'HOLA, $_userName',
                               style: GoogleFonts.rubik(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -79,28 +109,12 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                                   borderRadius: BorderRadius.circular(14),
                                   border: Border.all(color: AppColors.stroke),
                                 ),
-                                child: Stack(
+                                child: const Stack(
                                   children: [
-                                    const Center(
+                                    Center(
                                       child: Text(
                                         '🔔',
                                         style: TextStyle(fontSize: 17),
-                                      ),
-                                    ),
-                                    Positioned(
-                                      top: 6,
-                                      right: 7,
-                                      child: Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: AppColors.pink,
-                                          border: Border.all(
-                                            color: AppColors.bg,
-                                            width: 1.5,
-                                          ),
-                                        ),
                                       ),
                                     ),
                                   ],
@@ -153,7 +167,8 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                           _TabPill(
                             label: 'Participados',
                             active: _tab == 'participados',
-                            onTap: () => setState(() => _tab = 'participados'),
+                            onTap: () =>
+                                setState(() => _tab = 'participados'),
                           ),
                         ],
                       ),
@@ -163,15 +178,17 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
-                  child: _tab == 'apuntados'
-                      ? _ApuntadosTab(vm: _vm)
-                      : _ParticipadosTab(
-                          stats: _vm.stats,
-                          results: _vm.results,
-                        ),
-                ),
+                child: _uid == null
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.cyan),
+                      )
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
+                        child: _tab == 'apuntados'
+                            ? _ApuntadosStream(uid: _uid!)
+                            : _ParticipadosStream(uid: _uid!),
+                      ),
               ),
               const BrawlNavBarSpacer(),
             ],
@@ -182,15 +199,62 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
   }
 }
 
+// ── Stream wrappers ────────────────────────────────────────────────────────────
+
+class _ApuntadosStream extends StatelessWidget {
+  final String uid;
+  const _ApuntadosStream({required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<(Enrollment? active, List<Enrollment> upcoming)>(
+      stream: EventosService.watchClienteApuntados(uid),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const _LoadingSliver();
+        }
+        if (snap.hasError) {
+          return _ErrorSliver(message: snap.error.toString());
+        }
+        final (active, upcoming) = snap.data ?? (null, <Enrollment>[]);
+        return _ApuntadosTab(active: active, upcoming: upcoming);
+      },
+    );
+  }
+}
+
+class _ParticipadosStream extends StatelessWidget {
+  final String uid;
+  const _ParticipadosStream({required this.uid});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<(PlayerStats stats, List<TournamentResult> results)>(
+      stream: EventosService.watchClienteParticipados(uid),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const _LoadingSliver();
+        }
+        if (snap.hasError) {
+          return _ErrorSliver(message: snap.error.toString());
+        }
+        final (stats, results) = snap.data ??
+            (const PlayerStats(played: 0, podiums: 0, titles: 0),
+                <TournamentResult>[]);
+        return _ParticipadosTab(stats: stats, results: results);
+      },
+    );
+  }
+}
+
+// ── Tab content ───────────────────────────────────────────────────────────────
+
 class _TabPill extends StatelessWidget {
   final String label;
   final bool active;
   final VoidCallback onTap;
-  const _TabPill({
-    required this.label,
-    required this.active,
-    required this.onTap,
-  });
+  const _TabPill(
+      {required this.label, required this.active, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -232,13 +296,12 @@ class _TabPill extends StatelessWidget {
 }
 
 class _ApuntadosTab extends StatelessWidget {
-  final ClienteEventosViewModel vm;
-  const _ApuntadosTab({required this.vm});
+  final Enrollment? active;
+  final List<Enrollment> upcoming;
+  const _ApuntadosTab({required this.active, required this.upcoming});
 
   @override
   Widget build(BuildContext context) {
-    final active = vm.activeEnrollment;
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,7 +342,7 @@ class _ApuntadosTab extends StatelessWidget {
                       Positioned(
                         bottom: 14,
                         left: 14,
-                        child: GameBadge(game: active.game.code, size: 36),
+                        child: GameBadge(game: active!.game.code, size: 36),
                       ),
                     ],
                   ),
@@ -290,7 +353,7 @@ class _ApuntadosTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        active.tournamentName,
+                        active!.tournamentName,
                         style: GoogleFonts.rubik(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -300,7 +363,7 @@ class _ApuntadosTab extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        active.storeName,
+                        active!.storeName,
                         style: GoogleFonts.rubik(
                           fontSize: 13,
                           color: AppColors.textDim,
@@ -317,7 +380,7 @@ class _ApuntadosTab extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    active.dateLabel,
+                                    active!.dateLabel,
                                     style: GoogleFonts.rubik(
                                       fontSize: 10,
                                       color: AppColors.textMute,
@@ -325,7 +388,7 @@ class _ApuntadosTab extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    active.timeLabel,
+                                    active!.timeLabel,
                                     style: GoogleFonts.rubik(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -336,10 +399,9 @@ class _ApuntadosTab extends StatelessWidget {
                               ),
                               const SizedBox(width: 18),
                               Container(
-                                width: 1,
-                                height: 36,
-                                color: AppColors.stroke,
-                              ),
+                                  width: 1,
+                                  height: 36,
+                                  color: AppColors.stroke),
                               const SizedBox(width: 18),
                               Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,7 +415,7 @@ class _ApuntadosTab extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    active.tableLabel,
+                                    active!.tableLabel,
                                     style: GoogleFonts.rubik(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w700,
@@ -376,12 +438,28 @@ class _ApuntadosTab extends StatelessWidget {
               ],
             ),
           ),
+        ] else ...[
+          _EmptyState(
+            icon: '📅',
+            message: 'No tienes torneos próximos',
+            sub: 'Usa el botón ＋ para inscribirte con un código',
+          ),
         ],
         SectionLabel(
-          'Próximos (${vm.upcomingEnrollments.length})',
+          'Próximos (${upcoming.length})',
           margin: const EdgeInsets.only(left: 4, top: 18, bottom: 10),
         ),
-        ...vm.upcomingEnrollments.map((e) => _EventRow(enrollment: e)),
+        if (upcoming.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 20),
+            child: Text(
+              'Aquí aparecerán tus próximas inscripciones aceptadas.',
+              style: GoogleFonts.rubik(
+                  fontSize: 13, color: AppColors.textMute),
+            ),
+          )
+        else
+          ...upcoming.map((e) => _EventRow(enrollment: e)),
         const SizedBox(height: 20),
       ],
     );
@@ -419,26 +497,22 @@ class _EventRow extends StatelessWidget {
                   Text(
                     enrollment.storeName,
                     style: GoogleFonts.rubik(
-                      fontSize: 12,
-                      color: AppColors.textDim,
-                    ),
+                        fontSize: 12, color: AppColors.textDim),
                   ),
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      if (enrollment.tagLabel != null)
+                      if (enrollment.tagLabel != null) ...[
                         BrawlTag(
                           label: enrollment.tagLabel!,
                           color: enrollment.tagColor ?? AppColors.textMute,
                         ),
-                      if (enrollment.tagLabel != null)
                         const SizedBox(width: 8),
+                      ],
                       Text(
                         '${enrollment.dateLabel} · ${enrollment.timeLabel}',
                         style: GoogleFonts.rubik(
-                          fontSize: 11,
-                          color: AppColors.textMute,
-                        ),
+                            fontSize: 11, color: AppColors.textMute),
                       ),
                     ],
                   ),
@@ -455,10 +529,18 @@ class _EventRow extends StatelessWidget {
 class _ParticipadosTab extends StatelessWidget {
   final PlayerStats stats;
   final List<TournamentResult> results;
-  const _ParticipadosTab({required this.stats, required this.results});
+  const _ParticipadosTab(
+      {required this.stats, required this.results});
 
   @override
   Widget build(BuildContext context) {
+    if (stats.played == 0) {
+      return _EmptyState(
+        icon: '🏆',
+        message: 'Aún no has participado',
+        sub: 'Tus resultados de torneos aparecerán aquí',
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -546,9 +628,7 @@ class _ResultRow extends StatelessWidget {
                   Text(
                     result.dateLabel,
                     style: GoogleFonts.rubik(
-                      fontSize: 11,
-                      color: AppColors.textMute,
-                    ),
+                        fontSize: 11, color: AppColors.textMute),
                   ),
                 ],
               ),
@@ -566,4 +646,70 @@ class _ResultRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Shared helpers ─────────────────────────────────────────────────────────────
+
+class _LoadingSliver extends StatelessWidget {
+  const _LoadingSliver();
+
+  @override
+  Widget build(BuildContext context) => const SizedBox(
+        height: 200,
+        child: Center(
+            child: CircularProgressIndicator(color: AppColors.cyan)),
+      );
+}
+
+class _ErrorSliver extends StatelessWidget {
+  final String message;
+  const _ErrorSliver({required this.message});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        height: 200,
+        child: Center(
+          child: Text(
+            'Error al cargar datos',
+            style: GoogleFonts.rubik(
+                fontSize: 13, color: AppColors.textMute),
+          ),
+        ),
+      );
+}
+
+class _EmptyState extends StatelessWidget {
+  final String icon, message, sub;
+  const _EmptyState(
+      {required this.icon, required this.message, required this.sub});
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: BrawlCard(
+          padding: const EdgeInsets.all(24),
+          radius: 22,
+          child: Column(
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 36)),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: GoogleFonts.rubik(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.text,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                sub,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.rubik(
+                    fontSize: 12, color: AppColors.textMute),
+              ),
+            ],
+          ),
+        ),
+      );
 }

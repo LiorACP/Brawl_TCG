@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
@@ -34,9 +36,10 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   };
 
   // Account state
-  String _nombre = 'Marco Ferrer';
-  String _email = 'marco@brawl.gg';
-  String _telefono = '+34 612 345 678';
+  String _nombre = '';
+  String _email = '';
+  String _telefono = '';
+  String _joinYear = '';
   Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
 
   // Preferences state
@@ -49,6 +52,48 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   void initState() {
     super.initState();
     _isOrg = widget.isOrg;
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final creationTime = FirebaseAuth.instance.currentUser?.metadata.creationTime;
+    final authEmail = FirebaseAuth.instance.currentUser?.email ?? '';
+
+    try {
+      final doc = await FirebaseFirestore.instance.collection('User').doc(uid).get();
+      final data = doc.data();
+      if (!mounted) return;
+      setState(() {
+        _nombre = data?['name'] as String? ?? '';
+        _email = data?['email'] as String? ?? authEmail;
+        _telefono = data?['telefono'] as String? ?? '';
+        _joinYear = creationTime != null ? creationTime.year.toString() : '';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _email = authEmail;
+        _joinYear = creationTime != null ? creationTime.year.toString() : '';
+      });
+    }
+  }
+
+  Future<void> _savePersonalData(String nombre, String email, String telefono) async {
+    setState(() {
+      _nombre = nombre;
+      _email = email;
+      _telefono = telefono;
+    });
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await FirebaseFirestore.instance.collection('User').doc(uid).update({
+      'name': nombre,
+      'email': email,
+      if (telefono.isNotEmpty) 'telefono': telefono,
+    });
   }
 
   void _switchToCliente() {
@@ -67,7 +112,9 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     );
   }
 
-  void _logout() {
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
       fadeSlideRoute(const Login()),
@@ -138,7 +185,13 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                           fontWeight: FontWeight.w700,
                                           color: AppColors.text)),
                                   const SizedBox(height: 2),
-                                  Text('@marco · desde 2023',
+                                  Text(
+                                      [
+                                        if (_nombre.isNotEmpty)
+                                          '@${_nombre.split(' ').first.toLowerCase()}',
+                                        if (_joinYear.isNotEmpty)
+                                          'desde $_joinYear',
+                                      ].join(' · '),
                                       style: GoogleFonts.rubik(
                                           fontSize: 12, color: AppColors.textDim)),
                                   const SizedBox(height: 6),
@@ -164,12 +217,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                   email: _email,
                                   telefono: _telefono,
                                   accent: accent,
-                                  onSave: (n, e, t) => setState(
-                                      () {
-                                        _nombre = n;
-                                        _email = e;
-                                        _telefono = t;
-                                      }),
+                                  onSave: _savePersonalData,
                                 )),
                               ),
                               child: Container(
@@ -233,11 +281,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                 email: _email,
                                 telefono: _telefono,
                                 accent: accent,
-                                onSave: (n, e, t) => setState(() {
-                                  _nombre = n;
-                                  _email = e;
-                                  _telefono = t;
-                                }),
+                                onSave: _savePersonalData,
                               )),
                             ),
                           ),
@@ -248,7 +292,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             icon: '⚿',
                             onTap: () => Navigator.push(
                               context,
-                              slideRoute(ContrasenaSeguridadScreen(accent: accent)),
+                              slideRoute(ContrasenaSeguridadScreen(
+                                  accent: accent, email: _email)),
                             ),
                           ),
                           _SettingsItem(

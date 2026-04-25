@@ -9,6 +9,7 @@ class Enrollment {
   final String storeName;
   final String dateLabel;
   final String timeLabel;
+  final DateTime date;
   final int? tableNumber;
   final String? tagLabel;
   final Color? tagColor;
@@ -16,7 +17,9 @@ class Enrollment {
   String get tableLabel =>
       tableNumber != null ? '#${tableNumber.toString().padLeft(2, '0')}' : '—';
 
-  const Enrollment({
+  bool get isFuture => date.isAfter(DateTime.now());
+
+  Enrollment({
     required this.id,
     required this.tournamentId,
     required this.tournamentName,
@@ -24,6 +27,7 @@ class Enrollment {
     required this.storeName,
     required this.dateLabel,
     required this.timeLabel,
+    required this.date,
     this.tableNumber,
     this.tagLabel,
     this.tagColor,
@@ -37,14 +41,16 @@ class TournamentResult {
   final String dateLabel;
   final String positionLabel;
   final bool isTop;
+  final DateTime date;
 
-  const TournamentResult({
+  TournamentResult({
     required this.tournamentId,
     required this.tournamentName,
     required this.game,
     required this.dateLabel,
     required this.positionLabel,
     required this.isTop,
+    required this.date,
   });
 }
 

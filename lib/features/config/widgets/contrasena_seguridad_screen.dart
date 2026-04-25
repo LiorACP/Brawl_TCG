@@ -6,7 +6,12 @@ import 'config_field.dart';
 
 class ContrasenaSeguridadScreen extends StatefulWidget {
   final List<Color> accent;
-  const ContrasenaSeguridadScreen({super.key, this.accent = AppColors.clienteGradient});
+  final String email;
+  const ContrasenaSeguridadScreen({
+    super.key,
+    this.accent = AppColors.clienteGradient,
+    this.email = '',
+  });
 
   @override
   State<ContrasenaSeguridadScreen> createState() => _ContrasenaSeguridadScreenState();
@@ -82,6 +87,50 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      if (widget.email.isNotEmpty) ...[
+                        const ConfigSectionHeader('Cuenta'),
+                        BrawlCard(
+                          padding: const EdgeInsets.fromLTRB(14, 13, 14, 13),
+                          radius: 18,
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 30,
+                                height: 30,
+                                decoration: BoxDecoration(
+                                  color: AppColors.cyan.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(9),
+                                  border: Border.all(
+                                      color: AppColors.cyan.withValues(alpha: 0.2)),
+                                ),
+                                child: const Center(
+                                  child: Text('✉',
+                                      style: TextStyle(
+                                          fontSize: 13, color: AppColors.cyan)),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Email registrado',
+                                        style: GoogleFonts.rubik(
+                                            fontSize: 11,
+                                            color: AppColors.textMute)),
+                                    Text(widget.email,
+                                        style: GoogleFonts.rubik(
+                                            fontSize: 13.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.text)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                       const ConfigSectionHeader('Cambiar contraseña'),
                       BrawlCard(
                         padding: const EdgeInsets.all(16),

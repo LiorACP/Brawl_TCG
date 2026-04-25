@@ -136,13 +136,13 @@ class _LoginFormContentState extends State<LoginFormContent> {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || !mounted) return;
 
-    String rol = 'Cliente';
+    bool esOrganizador = false;
     try {
       final doc = await FirebaseFirestore.instance
-          .collection('usuarios')
+          .collection('User')
           .doc(uid)
           .get();
-      rol = doc.data()?['rol'] as String? ?? 'Cliente';
+      esOrganizador = doc.data()?['organizer'] as bool? ?? false;
     } catch (_) {
       // Si Firestore falla, por defecto enviamos a ClienteShell
     }
@@ -152,7 +152,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
       context,
       MaterialPageRoute(
         builder: (_) =>
-            rol == 'Organizador' ? const OrgShell() : const ClienteShell(),
+            esOrganizador ? const OrgShell() : const ClienteShell(),
       ),
       (_) => false,
     );
