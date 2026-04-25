@@ -6,6 +6,14 @@ import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/shell/cliente_shell.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
 import 'package:brawl_tcg/features/auth/login_screen.dart';
+import 'widgets/datos_personales_screen.dart';
+import 'widgets/contrasena_seguridad_screen.dart';
+import 'widgets/juegos_favoritos_screen.dart';
+import 'widgets/idioma_screen.dart';
+import 'widgets/apariencia_screen.dart';
+import 'widgets/unidades_screen.dart';
+import 'widgets/politica_privacidad_screen.dart';
+import 'widgets/terminos_condiciones_screen.dart';
 
 class SharedConfigScreen extends StatefulWidget {
   final bool isOrg;
@@ -17,12 +25,25 @@ class SharedConfigScreen extends StatefulWidget {
 
 class _SharedConfigScreenState extends State<SharedConfigScreen> {
   late bool _isOrg;
+
   final Map<String, bool> _toggles = {
     'Torneos próximos': true,
     'Nuevos eventos cerca': true,
     'Resultados y emparejamiento': true,
     'Promociones de tiendas': false,
   };
+
+  // Account state
+  String _nombre = 'Marco Ferrer';
+  String _email = 'marco@brawl.gg';
+  String _telefono = '+34 612 345 678';
+  Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
+
+  // Preferences state
+  String _idioma = 'es';
+  String _apariencia = 'dark';
+  String _distancia = 'km';
+  String _hora = '24h';
 
   @override
   void initState() {
@@ -54,6 +75,9 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     );
   }
 
+  String get _idiomaLabel => _idioma == 'es' ? 'Español (España)' : 'English (UK)';
+  String get _aparienciaLabel => _apariencia == 'dark' ? 'Oscuro' : 'Claro';
+
   @override
   Widget build(BuildContext context) {
     final accent = _isOrg ? AppColors.organizadorGradient : AppColors.clienteGradient;
@@ -72,7 +96,9 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                     const SizedBox(width: 4),
                     Text('Configuración',
                         style: GoogleFonts.rubik(
-                            fontSize: 20, fontWeight: FontWeight.w700, color: AppColors.text)),
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text)),
                   ],
                 ),
               ),
@@ -81,6 +107,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                   padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
                   child: Column(
                     children: [
+                      // ── Profile card ──────────────────────────────────────
                       BrawlCard(
                         padding: const EdgeInsets.all(18),
                         radius: 24,
@@ -105,39 +132,65 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Marco Ferrer',
+                                  Text(_nombre,
                                       style: GoogleFonts.rubik(
-                                          fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.text)),
+                                          fontSize: 17,
+                                          fontWeight: FontWeight.w700,
+                                          color: AppColors.text)),
                                   const SizedBox(height: 2),
                                   Text('@marco · desde 2023',
-                                      style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim)),
+                                      style: GoogleFonts.rubik(
+                                          fontSize: 12, color: AppColors.textDim)),
                                   const SizedBox(height: 6),
                                   Row(
                                     children: [
                                       BrawlTag(label: 'Cliente', color: AppColors.cyan),
                                       if (_isOrg) ...[
                                         const SizedBox(width: 6),
-                                        BrawlTag(label: 'Organizador', color: AppColors.magenta),
+                                        BrawlTag(
+                                            label: 'Organizador',
+                                            color: AppColors.magenta),
                                       ],
                                     ],
                                   ),
                                 ],
                               ),
                             ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: AppColors.surface,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: AppColors.stroke),
+                            GestureDetector(
+                              onTap: () => Navigator.push(
+                                context,
+                                slideRoute(DatosPersonalesScreen(
+                                  nombre: _nombre,
+                                  email: _email,
+                                  telefono: _telefono,
+                                  accent: accent,
+                                  onSave: (n, e, t) => setState(
+                                      () {
+                                        _nombre = n;
+                                        _email = e;
+                                        _telefono = t;
+                                      }),
+                                )),
                               ),
-                              child: Text('Editar',
-                                  style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim)),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: AppColors.stroke),
+                                ),
+                                child: Text('Editar',
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 12, color: AppColors.textDim)),
+                              ),
                             ),
                           ],
                         ),
                       ),
                       const SizedBox(height: 18),
+
+                      // ── Role switcher ─────────────────────────────────────
                       BrawlCard(
                         padding: const EdgeInsets.all(4),
                         radius: 18,
@@ -163,27 +216,61 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                         ),
                       ),
                       const SizedBox(height: 18),
+
+                      // ── Cuenta ────────────────────────────────────────────
                       _Section(
                         header: 'Cuenta',
-                        items: const [
+                        items: [
                           _SettingsItem(
-                              title: 'Datos personales',
-                              sub: 'Nombre, email, teléfono',
-                              color: AppColors.cyan,
-                              icon: 'i'),
+                            title: 'Datos personales',
+                            sub: '$_nombre · $_email',
+                            color: AppColors.cyan,
+                            icon: 'i',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(DatosPersonalesScreen(
+                                nombre: _nombre,
+                                email: _email,
+                                telefono: _telefono,
+                                accent: accent,
+                                onSave: (n, e, t) => setState(() {
+                                  _nombre = n;
+                                  _email = e;
+                                  _telefono = t;
+                                }),
+                              )),
+                            ),
+                          ),
                           _SettingsItem(
-                              title: 'Contraseña y seguridad',
-                              sub: '2FA activado',
-                              color: AppColors.violet,
-                              icon: '⚿'),
+                            title: 'Contraseña y seguridad',
+                            sub: '2FA desactivado',
+                            color: AppColors.violet,
+                            icon: '⚿',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(ContrasenaSeguridadScreen(accent: accent)),
+                            ),
+                          ),
                           _SettingsItem(
-                              title: 'Mis juegos favoritos',
-                              sub: '3 seleccionados',
-                              color: AppColors.pink,
-                              icon: '♥'),
+                            title: 'Mis juegos favoritos',
+                            sub: '${_selectedGames.length} seleccionados',
+                            color: AppColors.pink,
+                            icon: '♥',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(JuegosFavoritosScreen(
+                                selected: _selectedGames,
+                                accent: accent,
+                                onSave: (games) =>
+                                    setState(() => _selectedGames = games),
+                              )),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 18),
+
+                      // ── Notificaciones ────────────────────────────────────
                       _ToggleSection(
                         header: 'Notificaciones',
                         items: [
@@ -217,37 +304,99 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                         accent: accent,
                       ),
                       const SizedBox(height: 18),
+
+                      // ── Preferencias ──────────────────────────────────────
                       _Section(
                         header: 'Preferencias',
-                        items: const [
+                        items: [
                           _SettingsItem(
-                              title: 'Idioma', sub: 'Español (España)', color: AppColors.violet, icon: '🌐'),
+                            title: 'Idioma',
+                            sub: _idiomaLabel,
+                            color: AppColors.violet,
+                            icon: '🌐',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(IdiomaScreen(
+                                selected: _idioma,
+                                accent: accent,
+                                onSave: (lang) =>
+                                    setState(() => _idioma = lang),
+                              )),
+                            ),
+                          ),
                           _SettingsItem(
-                              title: 'Apariencia', sub: 'Oscuro', color: AppColors.blue, icon: '◐'),
+                            title: 'Apariencia',
+                            sub: _aparienciaLabel,
+                            color: AppColors.blue,
+                            icon: '◐',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(AparienciaScreen(
+                                selected: _apariencia,
+                                accent: accent,
+                                onSave: (a) =>
+                                    setState(() => _apariencia = a),
+                              )),
+                            ),
+                          ),
                           _SettingsItem(
-                              title: 'Unidades', sub: 'Kilómetros · 24h', color: AppColors.cyan, icon: '△'),
+                            title: 'Unidades',
+                            sub: '$_distancia · $_hora',
+                            color: AppColors.cyan,
+                            icon: '△',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(UnidadesScreen(
+                                distancia: _distancia,
+                                hora: _hora,
+                                accent: accent,
+                                onSave: (d, h) => setState(() {
+                                  _distancia = d;
+                                  _hora = h;
+                                }),
+                              )),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 18),
+
+                      // ── Legal ─────────────────────────────────────────────
                       _Section(
                         header: 'Legal',
                         items: [
                           _SettingsItem(
-                              title: 'Política de privacidad', color: AppColors.textMute, icon: '§'),
+                            title: 'Política de privacidad',
+                            color: AppColors.textMute,
+                            icon: '§',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(const PoliticaPrivacidadScreen()),
+                            ),
+                          ),
                           _SettingsItem(
-                              title: 'Términos y condiciones', color: AppColors.textMute, icon: '§'),
+                            title: 'Términos y condiciones',
+                            color: AppColors.textMute,
+                            icon: '§',
+                            onTap: () => Navigator.push(
+                              context,
+                              slideRoute(const TerminosCondicionesScreen()),
+                            ),
+                          ),
                           _SettingsItem(
-                              title: 'Cerrar sesión',
-                              color: AppColors.pink,
-                              icon: '⎋',
-                              danger: true,
-                              onTap: _logout),
+                            title: 'Cerrar sesión',
+                            color: AppColors.pink,
+                            icon: '⎋',
+                            danger: true,
+                            onTap: _logout,
+                          ),
                         ],
                       ),
                       const SizedBox(height: 10),
                       Text('Brawl TCG · v1.4.2',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.rubik(fontSize: 10.5, color: AppColors.textMute)),
+                          style: GoogleFonts.rubik(
+                              fontSize: 10.5, color: AppColors.textMute)),
                       const SizedBox(height: 20),
                     ],
                   ),
@@ -262,13 +411,17 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   }
 }
 
+// ── _RoleTab ──────────────────────────────────────────────────────────────────
 class _RoleTab extends StatelessWidget {
   final String label;
   final bool active;
   final List<Color> gradient;
   final VoidCallback onTap;
   const _RoleTab(
-      {required this.label, required this.active, required this.gradient, required this.onTap});
+      {required this.label,
+      required this.active,
+      required this.gradient,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -285,7 +438,9 @@ class _RoleTab extends StatelessWidget {
           child: Center(
             child: Text(label,
                 style: GoogleFonts.rubik(
-                    fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white)),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white)),
           ),
         ),
       ),
@@ -293,6 +448,7 @@ class _RoleTab extends StatelessWidget {
   }
 }
 
+// ── _SettingsItem ─────────────────────────────────────────────────────────────
 class _SettingsItem {
   final String title, icon;
   final String? sub;
@@ -308,6 +464,7 @@ class _SettingsItem {
       this.onTap});
 }
 
+// ── _ToggleItem ───────────────────────────────────────────────────────────────
 class _ToggleItem {
   final String title, sub, icon, key;
   final Color color;
@@ -319,6 +476,7 @@ class _ToggleItem {
       required this.color});
 }
 
+// ── _Section ──────────────────────────────────────────────────────────────────
 class _Section extends StatelessWidget {
   final String header;
   final List<_SettingsItem> items;
@@ -354,7 +512,8 @@ class _Section extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: r.color.withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(9),
-                            border: Border.all(color: r.color.withValues(alpha: 0.2)),
+                            border: Border.all(
+                                color: r.color.withValues(alpha: 0.2)),
                           ),
                           child: Center(
                             child: Text(r.icon,
@@ -373,15 +532,20 @@ class _Section extends StatelessWidget {
                                   style: GoogleFonts.rubik(
                                       fontSize: 13.5,
                                       fontWeight: FontWeight.w600,
-                                      color: r.danger ? AppColors.pink : AppColors.text)),
+                                      color: r.danger
+                                          ? AppColors.pink
+                                          : AppColors.text)),
                               if (r.sub != null)
                                 Text(r.sub!,
-                                    style:
-                                        GoogleFonts.rubik(fontSize: 11, color: AppColors.textMute)),
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 11,
+                                        color: AppColors.textMute)),
                             ],
                           ),
                         ),
-                        Text('›', style: TextStyle(fontSize: 16, color: AppColors.textMute)),
+                        Text('›',
+                            style: TextStyle(
+                                fontSize: 16, color: AppColors.textMute)),
                       ],
                     ),
                   ),
@@ -395,6 +559,7 @@ class _Section extends StatelessWidget {
   }
 }
 
+// ── _ToggleSection ────────────────────────────────────────────────────────────
 class _ToggleSection extends StatelessWidget {
   final String header;
   final List<_ToggleItem> items;
@@ -437,10 +602,12 @@ class _ToggleSection extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: r.color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(9),
-                          border: Border.all(color: r.color.withValues(alpha: 0.2)),
+                          border:
+                              Border.all(color: r.color.withValues(alpha: 0.2)),
                         ),
                         child: Center(
-                          child: Text(r.icon, style: TextStyle(fontSize: 13, color: r.color)),
+                          child: Text(r.icon,
+                              style: TextStyle(fontSize: 13, color: r.color)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -466,7 +633,8 @@ class _ToggleSection extends StatelessWidget {
                           width: 38,
                           height: 22,
                           decoration: BoxDecoration(
-                            gradient: isOn ? LinearGradient(colors: accent) : null,
+                            gradient:
+                                isOn ? LinearGradient(colors: accent) : null,
                             color: isOn ? null : AppColors.surfaceHi,
                             borderRadius: BorderRadius.circular(11),
                           ),
@@ -481,7 +649,8 @@ class _ToggleSection extends StatelessWidget {
                                   width: 18,
                                   height: 18,
                                   decoration: const BoxDecoration(
-                                      shape: BoxShape.circle, color: Colors.white),
+                                      shape: BoxShape.circle,
+                                      color: Colors.white),
                                 ),
                               ),
                             ],

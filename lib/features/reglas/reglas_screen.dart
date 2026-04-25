@@ -5,6 +5,7 @@ import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/features/eventos/data/tournament.dart';
 import 'data/game_rule.dart';
 import 'viewmodels/reglas_viewmodel.dart';
+import 'widgets/eventos_oficiales_sheet.dart';
 
 class SharedReglasScreen extends StatelessWidget {
   const SharedReglasScreen({super.key});
@@ -169,7 +170,7 @@ class SharedReglasScreen extends StatelessWidget {
                                 sub: 'Calendario IRL',
                                 color: AppColors.orange,
                                 icon: '★',
-                                onTap: () {},
+                                onTap: () => showEventosOficialesSheet(context),
                               ),
                             ],
                           );

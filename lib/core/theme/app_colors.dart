@@ -35,7 +35,8 @@ class AppColors {
     'MTG': [const Color(0xFFF7D048), const Color(0xFFFF8A42)],
     'POK': [const Color(0xFF29E8E0), const Color(0xFF4A6CF7)],
     'YGO': [const Color(0xFF8A4BFF), const Color(0xFFE04AE0)],
-    'LOR': [const Color(0xFFFF5CA8), const Color(0xFFFF8A42)],
+    'LRC': [const Color(0xFF29E8E0), const Color(0xFFFF5CA8)],
+    'FAB': [const Color(0xFFFF5CA8), const Color(0xFF8A4BFF)],
     'ONE': [const Color(0xFFE04AE0), const Color(0xFF8A4BFF)],
     'DBS': [const Color(0xFFFF8A42), const Color(0xFFF7D048)],
   };
