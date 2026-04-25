@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
@@ -28,6 +30,7 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
   late final TextEditingController _nombreCtrl;
   late final TextEditingController _emailCtrl;
   late final TextEditingController _telefonoCtrl;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -45,13 +48,58 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
     super.dispose();
   }
 
-  void _save() {
-    widget.onSave?.call(
-      _nombreCtrl.text.trim(),
-      _emailCtrl.text.trim(),
-      _telefonoCtrl.text.trim(),
-    );
-    Navigator.pop(context);
+  Future<void> _save() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    final nuevoNombre = _nombreCtrl.text.trim();
+    final nuevoEmail = _emailCtrl.text.trim();
+    final nuevoTelefono = _telefonoCtrl.text.trim();
+    final emailCambio = nuevoEmail.isNotEmpty && nuevoEmail != user.email;
+
+    setState(() => _isLoading = true);
+    try {
+      // 1. Actualizar Firestore
+      await FirebaseFirestore.instance
+          .collection('User')
+          .doc(user.uid)
+          .update({
+        'nombre': nuevoNombre,
+        'email': nuevoEmail,
+        'telefono': nuevoTelefono,
+      });
+
+      // 2. Si el email cambió, actualizar Firebase Auth
+      if (emailCambio) {
+        // Manda verificación al nuevo email; el cambio en Auth se aplica al pulsar el enlace
+        await user.verifyBeforeUpdateEmail(nuevoEmail);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Revisa tu nuevo correo para confirmar el cambio de email.'),
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
+
+      widget.onSave?.call(nuevoNombre, nuevoEmail, nuevoTelefono);
+      if (!mounted) return;
+      Navigator.pop(context);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.code == 'requires-recent-login'
+          ? 'Por seguridad, cierra sesión, vuelve a entrar y repite el cambio.'
+          : 'Error al actualizar el email: ${e.message}';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al guardar los cambios.')),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -120,13 +168,18 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
                         keyboardType: TextInputType.phone,
                       ),
                       const SizedBox(height: 32),
-                      GradBtn(
-                        width: double.infinity,
-                        size: GradBtnSize.lg,
-                        gradient: widget.accent,
-                        onTap: _save,
-                        child: const Text('Guardar cambios'),
-                      ),
+                      _isLoading
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.violet),
+                            )
+                          : GradBtn(
+                              width: double.infinity,
+                              size: GradBtnSize.lg,
+                              gradient: widget.accent,
+                              onTap: _save,
+                              child: const Text('Guardar cambios'),
+                            ),
                     ],
                   ),
                 ),
