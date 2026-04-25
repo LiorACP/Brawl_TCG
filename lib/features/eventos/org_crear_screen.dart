@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
@@ -13,7 +15,16 @@ class _FormatOption {
 }
 
 class OrgCrearScreen extends StatefulWidget {
-  const OrgCrearScreen({super.key});
+  final String eventId;
+  final String eventName;
+  final DateTime eventDate;
+
+  const OrgCrearScreen({
+    super.key,
+    required this.eventId,
+    required this.eventName,
+    required this.eventDate,
+  });
 
   @override
   State<OrgCrearScreen> createState() => _OrgCrearScreenState();
@@ -23,6 +34,9 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
   TcgGame _selectedGame = TcgGame.mtg;
   int _selectedFormat = 0;
   int _plazas = 32;
+  bool _isSaving = false;
+
+  final _priceController = TextEditingController(text: '8');
 
   static const _games = [
     TcgGame.mtg,
@@ -98,6 +112,70 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
       _formatsByGame[_selectedGame] ?? [];
 
   @override
+  void dispose() {
+    _priceController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveDraft() async {
+    setState(() => _isSaving = true);
+    try {
+      final formatName = _formats[_selectedFormat].name;
+      final entryFee =
+          double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0.0;
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({
+        'rule_set': '${_selectedGame.fullName}. $formatName',
+        'participants': _plazas,
+        'entryFee': entryFee,
+      });
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _next() async {
+    setState(() => _isSaving = true);
+    try {
+      final formatName = _formats[_selectedFormat].name;
+      final entryFee =
+          double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0.0;
+
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({
+        'rule_set': '${_selectedGame.fullName}. $formatName',
+        'participants': _plazas,
+        'entryFee': entryFee,
+      });
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        fadeSlideRoute(OrgPremiosScreen(
+          eventId: widget.eventId,
+          eventName: widget.eventName,
+          entryFee: entryFee,
+          plazas: _plazas,
+        )),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al guardar el formato')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -132,9 +210,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Borrador guardado')),
-                          ),
+                          onTap: _isSaving ? null : _saveDraft,
                           child: Text('Guardar',
                               style: GoogleFonts.rubik(
                                   fontSize: 12, color: AppColors.textDim)),
@@ -172,30 +248,30 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Torneo ────────────────────────────────────────────
                       BrawlCard(
                         radius: 22,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('NOMBRE',
+                            Text('TORNEO',
                                 style: GoogleFonts.rubik(
                                     fontSize: 11,
                                     color: AppColors.textMute,
                                     fontWeight: FontWeight.w600,
                                     letterSpacing: 0.5)),
                             const SizedBox(height: 6),
-                            Text('Pioneer FNM — Mayo',
-                                style: GoogleFonts.rubik(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: AppColors.text)),
-                            const SizedBox(height: 4),
-                            Text('32 caracteres · público',
-                                style: GoogleFonts.rubik(
-                                    fontSize: 12, color: AppColors.textDim)),
+                            Text(
+                              widget.eventName,
+                              style: GoogleFonts.rubik(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.text),
+                            ),
                           ],
                         ),
                       ),
+                      // ── Juego ─────────────────────────────────────────────
                       const SectionLabel('Juego',
                           margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       GridView.count(
@@ -242,6 +318,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           );
                         }).toList(),
                       ),
+                      // ── Formato ───────────────────────────────────────────
                       const SectionLabel('Formato',
                           margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       ...List.generate(_formats.length, (i) {
@@ -307,6 +384,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ),
                         );
                       }),
+                      // ── Plazas e Inscripción ──────────────────────────────
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -390,22 +468,34 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                           fontWeight: FontWeight.w600,
                                           letterSpacing: 0.4)),
                                   const SizedBox(height: 10),
-                                  RichText(
-                                    text: TextSpan(
-                                      children: [
-                                        TextSpan(
-                                          text: '€ 8',
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Text('€ ',
+                                          style: GoogleFonts.rubikMonoOne(
+                                              fontSize: 22, color: AppColors.text)),
+                                      Expanded(
+                                        child: TextField(
+                                          controller: _priceController,
+                                          keyboardType:
+                                              const TextInputType.numberWithOptions(
+                                                  decimal: true),
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter.allow(
+                                                RegExp(r'^\d+[,.]?\d{0,2}')),
+                                          ],
                                           style: GoogleFonts.rubikMonoOne(
                                               fontSize: 22, color: AppColors.text),
+                                          cursorColor: AppColors.violet,
+                                          decoration: const InputDecoration(
+                                            border: InputBorder.none,
+                                            isDense: true,
+                                            contentPadding: EdgeInsets.zero,
+                                          ),
                                         ),
-                                        TextSpan(
-                                          text: ',00',
-                                          style: GoogleFonts.rubik(
-                                              fontSize: 13,
-                                              color: AppColors.textMute),
-                                        ),
-                                      ],
-                                    ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -443,14 +533,17 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: GradBtn(
-                        size: GradBtnSize.lg,
-                        gradient: AppColors.organizadorGradient,
-                        width: double.infinity,
-                        onTap: () => Navigator.push(
-                            context, fadeSlideRoute(const OrgPremiosScreen())),
-                        child: const Text('Siguiente · Premios →'),
-                      ),
+                      child: _isSaving
+                          ? const Center(
+                              child: CircularProgressIndicator(
+                                  color: AppColors.orange))
+                          : GradBtn(
+                              size: GradBtnSize.lg,
+                              gradient: AppColors.organizadorGradient,
+                              width: double.infinity,
+                              onTap: _next,
+                              child: const Text('Siguiente · Premios →'),
+                            ),
                     ),
                   ],
                 ),

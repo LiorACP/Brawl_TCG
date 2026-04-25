@@ -1,41 +1,140 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
+import 'package:brawl_tcg/shell/org_shell.dart';
 
 class OrgAnunciosScreen extends StatefulWidget {
   final bool isCreationFlow;
-  const OrgAnunciosScreen({super.key, this.isCreationFlow = false});
+  final String? eventId;
+
+  const OrgAnunciosScreen({
+    super.key,
+    this.isCreationFlow = false,
+    this.eventId,
+  });
 
   @override
   State<OrgAnunciosScreen> createState() => _OrgAnunciosScreenState();
 }
 
 class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
-  final Map<String, bool> _channels = {
-    'Feed de la app': true,
-    'Instagram': true,
-    'Discord servidor': true,
-    'X / Twitter': false,
-  };
+  final _textController = TextEditingController();
+  bool _isSaving = false;
+  bool _loading = true;
 
-  void _publish() {
-    final active = _channels.entries.where((e) => e.value).map((e) => e.key).toList();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Publicado en: ${active.join(', ')}'),
-        backgroundColor: AppColors.violet,
-      ),
-    );
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) Navigator.pop(context);
-    });
+  // Event summary data loaded from Firestore
+  String _eventName = '';
+  String _dateTimeLabel = '';
+  String _gameCode = 'MTG';
+  int _plazas = 0;
+  double _entryFee = 0;
+  int _enrolledCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isCreationFlow && widget.eventId != null) {
+      _loadEvent();
+    } else {
+      setState(() => _loading = false);
+    }
   }
 
-  void _schedule() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Programado para 24h antes del torneo')),
-    );
+  Future<void> _loadEvent() async {
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .get();
+      final d = doc.data() ?? {};
+
+      final timestamp = d['date'] as Timestamp?;
+      final date = timestamp?.toDate();
+
+      final ruleSet = d['rule_set'] as String? ?? '';
+      final gameCode = _parseGameCode(ruleSet);
+
+      setState(() {
+        _eventName = d['name'] as String? ?? '';
+        _dateTimeLabel = date != null ? _formatDateTime(date) : '';
+        _gameCode = gameCode;
+        _plazas = (d['participants'] as num?)?.toInt() ?? 0;
+        _entryFee = (d['entryFee'] as num?)?.toDouble() ?? 0;
+        _enrolledCount = (d['enrolledCount'] as num?)?.toInt() ?? 0;
+        _loading = false;
+      });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  static String _parseGameCode(String ruleSet) {
+    final s = ruleSet.toLowerCase();
+    if (s.contains('magic') || s.contains('mtg')) return 'MTG';
+    if (s.contains('pokémon') || s.contains('pokemon')) return 'POK';
+    if (s.contains('yu-gi-oh') || s.contains('yugioh') || s.contains('ygo')) return 'YGO';
+    if (s.contains('lorcana') || s.contains('disney')) return 'LRC';
+    if (s.contains('flesh') || s.contains('blood')) return 'FAB';
+    if (s.contains('one piece')) return 'ONE';
+    if (s.contains('dragon ball')) return 'DBS';
+    return 'MTG';
+  }
+
+  static String _formatDateTime(DateTime d) {
+    const weekdays = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+    final h = d.hour.toString().padLeft(2, '0');
+    final m = d.minute.toString().padLeft(2, '0');
+    return '${weekdays[d.weekday - 1]} · $h:$m';
+  }
+
+  Future<void> _saveDraft() async {
+    if (widget.eventId == null) return;
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({'announcementText': _textController.text.trim()});
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _publish() async {
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({
+        'status': 'Pending',
+        'announcementText': _textController.text.trim(),
+      });
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const OrgShell()),
+        (_) => false,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al publicar el torneo')),
+        );
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
   }
 
   @override
@@ -92,9 +191,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         ),
                         if (widget.isCreationFlow)
                           GestureDetector(
-                            onTap: () => ScaffoldMessenger.of(context)
-                                .showSnackBar(const SnackBar(
-                                    content: Text('Borrador guardado'))),
+                            onTap: _isSaving ? null : _saveDraft,
                             child: Text('Guardar',
                                 style: GoogleFonts.rubik(
                                     fontSize: 12, color: AppColors.textDim)),
@@ -126,309 +223,164 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                 ),
               ),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      BrawlCard(
-                        padding: EdgeInsets.zero,
-                        radius: 24,
-                        tint: const Color(0xFF0E0A1A),
-                        border: Colors.transparent,
-                        child: Column(
-                          children: [
-                            SizedBox(
-                              height: 156,
-                              child: Stack(
-                                children: [
-                                  Positioned(
-                                    top: -60,
-                                    left: -40,
-                                    child: Container(
-                                      width: 260,
-                                      height: 260,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        gradient: RadialGradient(
-                                          colors: [
-                                            AppColors.cyan.withValues(alpha: 0.6),
-                                            AppColors.violet.withValues(alpha: 0.4),
-                                            AppColors.pink.withValues(alpha: 0.2),
-                                            Colors.transparent,
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const Positioned(
-                                    top: 14,
-                                    left: 16,
-                                    child: GameBadge(game: 'MTG', size: 34),
-                                  ),
-                                  Positioned(
-                                    bottom: 14,
-                                    left: 16,
-                                    right: 16,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text('VIERNES · 18:30',
-                                            style: GoogleFonts.rubik(
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w700,
-                                                color: AppColors.yellow,
-                                                letterSpacing: 0.6)),
-                                        const SizedBox(height: 2),
-                                        Text('Pioneer FNM Mayo',
-                                            style: GoogleFonts.rubik(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.w800,
-                                                color: AppColors.text,
-                                                letterSpacing: -0.3)),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('32 plazas · 8 € · Top 8',
-                                      style: GoogleFonts.rubik(
-                                          fontSize: 12, color: AppColors.textDim)),
-                                  Text('12/32',
-                                      style: GoogleFonts.rubik(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.cyan)),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      BrawlCard(
-                        radius: 18,
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.orange))
+                    : SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('TEXTO DEL ANUNCIO',
-                                style: GoogleFonts.rubik(
-                                    fontSize: 10.5,
-                                    color: AppColors.textMute,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5)),
-                            const SizedBox(height: 6),
-                            RichText(
-                              text: TextSpan(
-                                style: GoogleFonts.rubik(
-                                    fontSize: 13.5, color: AppColors.text, height: 1.45),
+                            // ── Resumen del evento ─────────────────────────
+                            if (widget.isCreationFlow)
+                              BrawlCard(
+                                padding: EdgeInsets.zero,
+                                radius: 24,
+                                tint: const Color(0xFF0E0A1A),
+                                border: Colors.transparent,
+                                child: Column(
+                                  children: [
+                                    SizedBox(
+                                      height: 156,
+                                      child: Stack(
+                                        children: [
+                                          Positioned(
+                                            top: -60,
+                                            left: -40,
+                                            child: Container(
+                                              width: 260,
+                                              height: 260,
+                                              decoration: BoxDecoration(
+                                                shape: BoxShape.circle,
+                                                gradient: RadialGradient(
+                                                  colors: [
+                                                    AppColors.cyan.withValues(alpha: 0.6),
+                                                    AppColors.violet.withValues(alpha: 0.4),
+                                                    AppColors.pink.withValues(alpha: 0.2),
+                                                    Colors.transparent,
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                          Positioned(
+                                            top: 14,
+                                            left: 16,
+                                            child: GameBadge(game: _gameCode, size: 34),
+                                          ),
+                                          Positioned(
+                                            bottom: 14,
+                                            left: 16,
+                                            right: 16,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  _dateTimeLabel,
+                                                  style: GoogleFonts.rubik(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w700,
+                                                      color: AppColors.yellow,
+                                                      letterSpacing: 0.6),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  _eventName,
+                                                  style: GoogleFonts.rubik(
+                                                      fontSize: 22,
+                                                      fontWeight: FontWeight.w800,
+                                                      color: AppColors.text,
+                                                      letterSpacing: -0.3),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            '$_plazas plazas · ${_entryFee % 1 == 0 ? _entryFee.toInt() : _entryFee} €',
+                                            style: GoogleFonts.rubik(
+                                                fontSize: 12, color: AppColors.textDim),
+                                          ),
+                                          Text(
+                                            '$_enrolledCount/$_plazas',
+                                            style: GoogleFonts.rubik(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.cyan),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            const SizedBox(height: 14),
+                            // ── Texto del anuncio ──────────────────────────
+                            BrawlCard(
+                              radius: 18,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const TextSpan(
-                                      text:
-                                          '¡Vuelve el Pioneer FNM! 🗡 32 plazas, 5 rondas + Top 8. Premios en producto y promo exclusiva para Top 4. Inscríbete con el código '),
-                                  TextSpan(
-                                    text: 'BR79KP',
-                                    style: GoogleFonts.rubikMonoOne(
-                                        fontSize: 13.5, color: AppColors.magenta),
+                                  Text('TEXTO DEL ANUNCIO',
+                                      style: GoogleFonts.rubik(
+                                          fontSize: 10.5,
+                                          color: AppColors.textMute,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5)),
+                                  const SizedBox(height: 8),
+                                  TextField(
+                                    controller: _textController,
+                                    maxLines: 6,
+                                    maxLength: 280,
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 13.5,
+                                        color: AppColors.text,
+                                        height: 1.45),
+                                    cursorColor: AppColors.violet,
+                                    decoration: InputDecoration(
+                                      hintText:
+                                          '¡Vuelve el torneo! Escribe aquí el texto del anuncio...',
+                                      hintStyle: GoogleFonts.rubik(
+                                          fontSize: 13.5,
+                                          color: AppColors.textMute,
+                                          height: 1.45),
+                                      border: InputBorder.none,
+                                      isDense: true,
+                                      contentPadding: EdgeInsets.zero,
+                                      counterStyle: GoogleFonts.rubik(
+                                          fontSize: 11, color: AppColors.textMute),
+                                    ),
                                   ),
-                                  const TextSpan(text: '.'),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('#MTG #Pioneer #Barcelona',
-                                    style: GoogleFonts.rubik(
-                                        fontSize: 11, color: AppColors.textMute)),
-                                Text('187/280',
-                                    style: GoogleFonts.rubik(
-                                        fontSize: 11, color: AppColors.textMute)),
-                              ],
-                            ),
+                            const SizedBox(height: 80),
                           ],
                         ),
                       ),
-                      const SectionLabel('Publicar en'),
-                      ...[
-                        _ChannelRow(
-                          name: 'Feed de la app',
-                          sub: '312 seguidores · push opcional',
-                          color: AppColors.violet,
-                          icon: '⬢',
-                          active: _channels['Feed de la app']!,
-                          onToggle: (v) =>
-                              setState(() => _channels['Feed de la app'] = v),
-                        ),
-                        _ChannelRow(
-                          name: 'Instagram',
-                          sub: '@dragonrojostore · story + post',
-                          color: AppColors.pink,
-                          icon: '◎',
-                          active: _channels['Instagram']!,
-                          onToggle: (v) => setState(() => _channels['Instagram'] = v),
-                        ),
-                        _ChannelRow(
-                          name: 'Discord servidor',
-                          sub: '#anuncios · 428 miembros',
-                          color: AppColors.blue,
-                          icon: '◆',
-                          active: _channels['Discord servidor']!,
-                          onToggle: (v) =>
-                              setState(() => _channels['Discord servidor'] = v),
-                        ),
-                        _ChannelRow(
-                          name: 'X / Twitter',
-                          sub: '@dragonrojo · sin conectar',
-                          color: AppColors.textMute,
-                          icon: '✕',
-                          active: _channels['X / Twitter']!,
-                          onToggle: (v) => setState(() => _channels['X / Twitter'] = v),
-                        ),
-                      ],
-                      const SizedBox(height: 80),
-                    ],
-                  ),
-                ),
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: _schedule,
-                      child: Container(
-                        height: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 18),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: AppColors.stroke),
-                        ),
-                        child: Center(
-                          child: Text('Programar',
-                              style: GoogleFonts.rubik(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.text)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: GradBtn(
+                child: _isSaving
+                    ? const Center(
+                        child: CircularProgressIndicator(color: AppColors.orange))
+                    : GradBtn(
                         size: GradBtnSize.lg,
                         gradient: AppColors.organizadorGradient,
                         width: double.infinity,
-                        onTap: _publish,
+                        onTap: widget.isCreationFlow ? _publish : null,
                         child: const Text('Publicar ahora ✦'),
                       ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ChannelRow extends StatelessWidget {
-  final String name, sub, icon;
-  final Color color;
-  final bool active;
-  final ValueChanged<bool> onToggle;
-  const _ChannelRow({
-    required this.name,
-    required this.sub,
-    required this.icon,
-    required this.color,
-    required this.active,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: active ? AppColors.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: active ? AppColors.stroke : Colors.transparent),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withValues(alpha: 0.2)),
-              ),
-              child: Center(
-                  child: Text(icon, style: TextStyle(fontSize: 16, color: color))),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                      style: GoogleFonts.rubik(
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.text)),
-                  const SizedBox(height: 1),
-                  Text(sub,
-                      style: GoogleFonts.rubik(fontSize: 11, color: AppColors.textMute)),
-                ],
-              ),
-            ),
-            GestureDetector(
-              onTap: () => onToggle(!active),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 40,
-                height: 24,
-                decoration: BoxDecoration(
-                  gradient: active
-                      ? const LinearGradient(colors: AppColors.organizadorGradient)
-                      : null,
-                  color: active ? null : AppColors.surfaceHi,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Stack(
-                  children: [
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 200),
-                      top: 2,
-                      left: active ? null : 2,
-                      right: active ? 2 : null,
-                      child: Container(
-                        width: 20,
-                        height: 20,
-                        decoration: const BoxDecoration(
-                            shape: BoxShape.circle, color: Colors.white),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
