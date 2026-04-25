@@ -1,20 +1,44 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'data/notification.dart';
-import 'viewmodels/notificaciones_viewmodel.dart';
+import 'services/notificaciones_service.dart';
 
-class SharedNotisScreen extends StatefulWidget {
+class SharedNotisScreen extends StatelessWidget {
   const SharedNotisScreen({super.key});
 
   @override
-  State<SharedNotisScreen> createState() => _SharedNotisScreenState();
+  Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+
+    return Scaffold(
+      backgroundColor: AppColors.bg,
+      body: BrawlBackground(
+        seed: 77,
+        child: SafeArea(
+          child: uid == null
+              ? const Center(
+                  child: CircularProgressIndicator(color: AppColors.cyan),
+                )
+              : _NotisBody(uid: uid),
+        ),
+      ),
+    );
+  }
 }
 
-class _SharedNotisScreenState extends State<SharedNotisScreen> {
+class _NotisBody extends StatefulWidget {
+  final String uid;
+  const _NotisBody({required this.uid});
+
+  @override
+  State<_NotisBody> createState() => _NotisBodyState();
+}
+
+class _NotisBodyState extends State<_NotisBody> {
   String _filter = 'all';
-  final _vm = NotificacionesViewModel.mock;
 
   static const _filters = [
     ('all', 'Todas'),
@@ -24,47 +48,72 @@ class _SharedNotisScreenState extends State<SharedNotisScreen> {
     ('system', 'Sistema'),
   ];
 
+  List<AppNotification> _filtered(List<AppNotification> notis) {
+    if (_filter == 'all') return notis;
+    final type = switch (_filter) {
+      'events' => NotificationType.event,
+      'results' => NotificationType.result,
+      'social' => NotificationType.social,
+      'system' => NotificationType.system,
+      _ => null,
+    };
+    if (type == null) return notis;
+    return notis.where((n) => n.type == type).toList();
+  }
+
+  Future<void> _markAllRead() async {
+    await NotificacionesService.markAllRead(widget.uid);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final todayVisible = _vm.filtered(_filter, _vm.todayNotifications);
-    final yesterdayVisible = _vm.filtered(_filter, _vm.yesterdayNotifications);
+    return StreamBuilder<NotiBundle>(
+      stream: NotificacionesService.watchNotifications(widget.uid),
+      builder: (context, snap) {
+        if (snap.connectionState == ConnectionState.waiting) {
+          return const Center(
+            child: CircularProgressIndicator(color: AppColors.cyan),
+          );
+        }
 
-    return Scaffold(
-      backgroundColor: AppColors.bg,
-      body: BrawlBackground(
-        seed: 77,
-        child: SafeArea(
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        const BackBtn(),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('CENTRO',
-                                  style: GoogleFonts.rubik(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.textMute,
-                                      letterSpacing: 0.5)),
-                              Text('Notificaciones',
-                                  style: GoogleFonts.rubik(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.text,
-                                      letterSpacing: -0.5)),
-                            ],
-                          ),
+        final bundle = snap.data ??
+            (today: <AppNotification>[], yesterday: <AppNotification>[], unreadCount: 0);
+
+        final todayVisible = _filtered(bundle.today);
+        final yesterdayVisible = _filtered(bundle.yesterday);
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const BackBtn(),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('CENTRO',
+                                style: GoogleFonts.rubik(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textMute,
+                                    letterSpacing: 0.5)),
+                            Text('Notificaciones',
+                                style: GoogleFonts.rubik(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.text,
+                                    letterSpacing: -0.5)),
+                          ],
                         ),
+                      ),
+                      if (bundle.unreadCount > 0)
                         GestureDetector(
-                          onTap: () => setState(() {}),
+                          onTap: _markAllRead,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 6),
@@ -83,7 +132,7 @@ class _SharedNotisScreenState extends State<SharedNotisScreen> {
                                       color: AppColors.cyan),
                                 ),
                                 const SizedBox(width: 4),
-                                Text('${_vm.unreadCount} sin leer',
+                                Text('${bundle.unreadCount} sin leer',
                                     style: GoogleFonts.rubik(
                                         fontSize: 11,
                                         color: AppColors.textDim)),
@@ -91,85 +140,86 @@ class _SharedNotisScreenState extends State<SharedNotisScreen> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
-                        children: _filters.map((f) {
-                          final (key, label) = f;
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 6),
-                            child: GestureDetector(
-                              onTap: () => setState(() => _filter = key),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 150),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 14, vertical: 7),
-                                decoration: BoxDecoration(
-                                  gradient: _filter == key
-                                      ? const LinearGradient(
-                                          colors: AppColors.clienteGradient)
-                                      : null,
-                                  color: _filter == key
-                                      ? null
-                                      : AppColors.surface,
-                                  borderRadius: BorderRadius.circular(999),
-                                  border: _filter == key
-                                      ? null
-                                      : Border.all(color: AppColors.stroke),
-                                ),
-                                child: Text(
-                                  label,
-                                  style: GoogleFonts.rubik(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: _filters.map((f) {
+                        final (key, label) = f;
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: GestureDetector(
+                            onTap: () => setState(() => _filter = key),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 7),
+                              decoration: BoxDecoration(
+                                gradient: _filter == key
+                                    ? const LinearGradient(
+                                        colors: AppColors.clienteGradient)
+                                    : null,
+                                color: _filter == key
+                                    ? null
+                                    : AppColors.surface,
+                                borderRadius: BorderRadius.circular(999),
+                                border: _filter == key
+                                    ? null
+                                    : Border.all(color: AppColors.stroke),
+                              ),
+                              child: Text(
+                                label,
+                                style: GoogleFonts.rubik(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
-                          );
-                        }).toList(),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                ],
+              ),
+            ),
+            Expanded(
+              child: todayVisible.isEmpty && yesterdayVisible.isEmpty
+                  ? _EmptyState(filter: _filter)
+                  : SingleChildScrollView(
+                      padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (todayVisible.isNotEmpty) ...[
+                            const SectionLabel('Hoy',
+                                margin:
+                                    EdgeInsets.only(left: 4, bottom: 10, top: 4)),
+                            ...todayVisible.map(
+                              (n) => _NotiItem(notification: n, unread: !n.isRead),
+                            ),
+                          ],
+                          if (yesterdayVisible.isNotEmpty) ...[
+                            const SectionLabel('Ayer',
+                                margin: EdgeInsets.only(
+                                    left: 4, bottom: 10, top: 16)),
+                            ...yesterdayVisible.map(
+                              (n) =>
+                                  _NotiItem(notification: n, unread: false, dim: true),
+                            ),
+                          ],
+                          const SizedBox(height: 20),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 4),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(22, 4, 22, 20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (todayVisible.isNotEmpty) ...[
-                        const SectionLabel('Hoy',
-                            margin:
-                                EdgeInsets.only(left: 4, bottom: 10, top: 4)),
-                        ...todayVisible.map(
-                          (n) => _NotiItem(notification: n, unread: !n.isRead),
-                        ),
-                      ],
-                      if (yesterdayVisible.isNotEmpty) ...[
-                        const SectionLabel('Ayer',
-                            margin: EdgeInsets.only(
-                                left: 4, bottom: 10, top: 16)),
-                        ...yesterdayVisible.map(
-                          (n) => _NotiItem(
-                              notification: n, unread: false, dim: true),
-                        ),
-                      ],
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -231,25 +281,22 @@ class _NotiItem extends StatelessWidget {
                             style: GoogleFonts.rubik(
                               fontSize: 13.5,
                               fontWeight: FontWeight.w600,
-                              color:
-                                  dim ? AppColors.textDim : AppColors.text,
+                              color: dim ? AppColors.textDim : AppColors.text,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(notification.timeLabel,
                             style: GoogleFonts.rubik(
-                                fontSize: 10.5,
-                                color: AppColors.textMute)),
+                                fontSize: 10.5, color: AppColors.textMute)),
                       ],
                     ),
                     const SizedBox(height: 2),
                     Text(notification.body,
                         style: GoogleFonts.rubik(
                           fontSize: 12,
-                          color: dim
-                              ? AppColors.textMute
-                              : AppColors.textDim,
+                          color:
+                              dim ? AppColors.textMute : AppColors.textDim,
                           height: 1.35,
                         )),
                   ],
@@ -262,12 +309,49 @@ class _NotiItem extends StatelessWidget {
                     width: 6,
                     height: 6,
                     decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: notification.color),
+                        shape: BoxShape.circle, color: notification.color),
                   ),
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  final String filter;
+  const _EmptyState({required this.filter});
+
+  @override
+  Widget build(BuildContext context) {
+    final isFiltered = filter != 'all';
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('🔔', style: const TextStyle(fontSize: 40)),
+            const SizedBox(height: 12),
+            Text(
+              isFiltered ? 'Sin notificaciones de este tipo' : 'Todo al día',
+              style: GoogleFonts.rubik(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              isFiltered
+                  ? 'No hay notificaciones recientes en esta categoría'
+                  : 'No tienes notificaciones en las últimas 48h',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textMute),
+            ),
+          ],
         ),
       ),
     );
