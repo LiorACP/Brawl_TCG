@@ -12,19 +12,19 @@ class _MenuVarState extends State<MenuVar> {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: _HomeScreen(),
+      home: HomeScreen(),
     );
   }
 }
 
-class _HomeScreen extends StatefulWidget {
-  const _HomeScreen();
+class HomeScreen extends StatefulWidget {
+  const HomeScreen({super.key});
 
   @override
-  State<_HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<_HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> {
   int selectedIndex = 1;
 
   final icons = [
@@ -43,6 +43,7 @@ class _HomeScreenState extends State<_HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.red,
       body: const Center(child: Text("Contenido")),
+
       bottomNavigationBar: _AnimatedNotchBar(
         selectedIndex: selectedIndex,
         icons: icons,
@@ -71,11 +72,13 @@ class _AnimatedNotchBar extends StatelessWidget {
         builder: (context, constraints) {
           final width = constraints.maxWidth;
           final itemWidth = width / icons.length;
+
           final ballX = itemWidth * selectedIndex + itemWidth / 2;
 
           return Stack(
             clipBehavior: Clip.none,
             children: [
+              // NAV BAR CON NOTCH DINÁMICO
               AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
@@ -84,6 +87,8 @@ class _AnimatedNotchBar extends StatelessWidget {
                   painter: _NavPainter(ballX),
                 ),
               ),
+
+              // ICONOS
               Positioned.fill(
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -94,13 +99,18 @@ class _AnimatedNotchBar extends StatelessWidget {
                         child: Center(
                           child: selectedIndex == i
                               ? const SizedBox(width: 24)
-                              : Icon(icons[i], color: Colors.grey),
+                              : Icon(
+                                  icons[i],
+                                  color: Colors.grey,
+                                ),
                         ),
                       ),
                     );
                   }),
                 ),
               ),
+
+              //BOLITA
               AnimatedPositioned(
                 duration: const Duration(milliseconds: 200),
                 curve: Curves.easeInOut,
@@ -112,9 +122,17 @@ class _AnimatedNotchBar extends StatelessWidget {
                   decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(blurRadius: 12, color: Colors.black26)],
+                    boxShadow: [
+                      BoxShadow(
+                        blurRadius: 12,
+                        color: Colors.black26,
+                      )
+                    ],
                   ),
-                  child: Icon(icons[selectedIndex], color: Colors.black),
+                  child: Icon(
+                    icons[selectedIndex],
+                    color: Colors.black,
+                  ),
                 ),
               ),
             ],
@@ -125,8 +143,10 @@ class _AnimatedNotchBar extends StatelessWidget {
   }
 }
 
+//NOTCH PERSONALIZADO 
 class _NavPainter extends CustomPainter {
   final double x;
+
   _NavPainter(this.x);
 
   @override
@@ -136,17 +156,28 @@ class _NavPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final path = Path();
-    const double r = 30;
+
+    const double r = 30; // radio grande
 
     path.moveTo(0, 0);
+
+    // izquierda
     path.lineTo(x - r * 1.6, 0);
+
+    // curva bajada
     path.quadraticBezierTo(x - r, 0, x - r, r);
+
+    // arco principal
     path.arcToPoint(
       Offset(x + r, r),
       radius: const Radius.circular(r),
       clockwise: false,
     );
+
+    // curva subida
     path.quadraticBezierTo(x + r, 0, x + r * 1.6, 0);
+
+    // resto barra
     path.lineTo(size.width, 0);
     path.lineTo(size.width, size.height);
     path.lineTo(0, size.height);
@@ -157,5 +188,7 @@ class _NavPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _NavPainter oldDelegate) => oldDelegate.x != x;
+  bool shouldRepaint(covariant _NavPainter oldDelegate) {
+    return oldDelegate.x != x;
+  }
 }

@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -11,6 +12,38 @@ class ForgotPasswordContent extends StatefulWidget {
 
 class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
   bool _mailSent = false;
+  bool _isLoading = false;
+  final _emailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _sendReset() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Introduce tu email')),
+      );
+      return;
+    }
+    setState(() => _isLoading = true);
+    try {
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+      if (!mounted) return;
+      setState(() => _mailSent = true);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final msg = e.code == 'user-not-found'
+          ? 'No existe una cuenta con ese email'
+          : 'Error al enviar el correo';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +53,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
     );
   }
 
+  // VISTA 1: Pedir el email
   Widget _buildRequestView() {
     return Column(
       key: const ValueKey(1),
@@ -45,49 +79,73 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
           style: GoogleFonts.rubik(color: Colors.white54, fontSize: 14),
         ),
         const SizedBox(height: 40),
+
         _buildField(Icons.email_outlined, "Tu correo electrónico"),
+
         const SizedBox(height: 40),
-        _buildGradientButton(
-          text: "ENVIAR INSTRUCCIONES",
-          onPressed: () => setState(() => _mailSent = true),
-        ),
+
+        _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0XFFF8BF54)),
+              )
+            : _buildGradientButton(
+                text: "ENVIAR INSTRUCCIONES",
+                onPressed: _sendReset,
+              ),
       ],
     );
   }
 
+  // VISTA 2: Mensaje de éxito
   Widget _buildSuccessView() {
     return Column(
       key: const ValueKey(2),
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(Icons.mark_email_read_outlined, size: 80, color: Color(0XFFF8BF54)),
+        const Icon(
+          Icons.mark_email_read_outlined,
+          size: 80,
+          color: Color(0XFFF8BF54),
+        ),
         const SizedBox(height: 30),
         Text(
           "¡CORREO ENVIADO!",
-          style: GoogleFonts.rubik(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white),
+          style: GoogleFonts.rubik(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 15),
         Text(
           "Revisa tu bandeja de entrada para cambiar la contraseña. No olvides mirar en la carpeta de spam.",
           textAlign: TextAlign.center,
-          style: GoogleFonts.rubik(color: Colors.white54, fontSize: 15, height: 1.5),
+          style: GoogleFonts.rubik(
+            color: Colors.white54,
+            fontSize: 15,
+            height: 1.5,
+          ),
         ),
         const SizedBox(height: 40),
+
         OutlinedButton(
-          onPressed: () {
-            ScaffoldMessenger.of(context)
-                .showSnackBar(const SnackBar(content: Text("Correo reenviado")));
-          },
+          onPressed: _sendReset,
           style: OutlinedButton.styleFrom(
             minimumSize: const Size(double.infinity, 55),
             side: const BorderSide(color: Colors.white24),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(15),
+            ),
           ),
           child: Text(
             "NO HE RECIBIDO NADA, REENVIAR",
-            style: GoogleFonts.rubik(color: Colors.white, fontWeight: FontWeight.bold),
+            style: GoogleFonts.rubik(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ),
+
         TextButton(
           onPressed: () => setState(() => _mailSent = false),
           child: Text(
@@ -107,19 +165,27 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: TextField(
+        controller: _emailController,
         style: GoogleFonts.rubik(color: Colors.white),
         decoration: InputDecoration(
           prefixIcon: Icon(icon, color: Colors.white70, size: 20),
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 18,
+            horizontal: 20,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildGradientButton({required String text, required VoidCallback onPressed}) {
+  // Reutilizamos tu botón con degradado
+  Widget _buildGradientButton({
+    required String text,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       width: double.infinity,
       height: 55,
@@ -134,9 +200,17 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
         ),
-        child: Text(text, style: GoogleFonts.rubik(color: Colors.white, fontWeight: FontWeight.bold)),
+        child: Text(
+          text,
+          style: GoogleFonts.rubik(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
     );
   }

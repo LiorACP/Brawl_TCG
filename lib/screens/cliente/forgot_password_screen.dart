@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:brawl_tcg/features/auth/widgets/forgot_password_content.dart';
+import 'package:brawl_tcg/widgets/forgot_password_content.dart';
 
 class ForgotPasswordScreen extends StatelessWidget {
   const ForgotPasswordScreen({super.key});
@@ -8,6 +8,7 @@ class ForgotPasswordScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF1A1C20),
+      // Botón para volver atrás (opcional pero recomendado)
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

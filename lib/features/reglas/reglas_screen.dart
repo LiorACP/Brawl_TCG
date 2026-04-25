@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
-import 'package:brawl_tcg/features/eventos/data/tournament.dart';
 import 'data/game_rule.dart';
 import 'viewmodels/reglas_viewmodel.dart';
 import 'widgets/eventos_oficiales_sheet.dart';

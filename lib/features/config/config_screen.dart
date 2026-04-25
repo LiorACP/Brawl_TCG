@@ -5,7 +5,7 @@ import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/shell/cliente_shell.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
-import 'package:brawl_tcg/features/auth/login_screen.dart';
+import 'package:brawl_tcg/screens/cliente/Login.dart';
 import 'widgets/datos_personales_screen.dart';
 import 'widgets/contrasena_seguridad_screen.dart';
 import 'widgets/juegos_favoritos_screen.dart';

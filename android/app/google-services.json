@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "922934256876",
+    "project_id": "brawl-tcg-database",
+    "storage_bucket": "brawl-tcg-database.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:922934256876:android:f0087aac4a3ee8921631c9",
+        "android_client_info": {
+          "package_name": "com.example.brawl_tcg"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "922934256876-taghqbtrfjdfinpt4msur2nsjcg6icp5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.brawl_tcg",
+            "certificate_hash": "dc9a40bfafbeb280668051d501956a83fd898fd1"
+          }
+        },
+        {
+          "client_id": "922934256876-u8pl96r6q7cngkikuul119ea3p9kh4th.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCuQpPASftFofIzn8mWHgsAWmGFDOwAiE4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "922934256876-u8pl96r6q7cngkikuul119ea3p9kh4th.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "922934256876-guipvku5a7la82erno7dq7hbr3gdm9ia.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.brawlTcg"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

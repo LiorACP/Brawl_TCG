@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/screens/cliente/event_screen.dart';
 
 class RegisterFormContent extends StatefulWidget {
   final bool isDesktop;
@@ -10,15 +13,87 @@ class RegisterFormContent extends StatefulWidget {
 }
 
 class _RegisterFormContentState extends State<RegisterFormContent> {
+  // Variable para controlar el rol seleccionado
   String _selectedRole = 'Cliente';
+  bool _isLoading = false;
+
+  final _nombreController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _ciudadController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _emailController.dispose();
+    _ciudadController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _register() async {
+    final nombre = _nombreController.text.trim();
+    final email = _emailController.text.trim();
+    final ciudad = _ciudadController.text.trim();
+    final password = _passwordController.text;
+
+    if (nombre.isEmpty || email.isEmpty || ciudad.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rellena todos los campos')),
+      );
+      return;
+    }
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La contraseña debe tener al menos 6 caracteres')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+    try {
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(credential.user!.uid)
+          .set({
+        'nombre': nombre,
+        'email': email,
+        'ciudad': ciudad,
+        'rol': _selectedRole,
+        'creadoEn': FieldValue.serverTimestamp(),
+      });
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const EventScreen()),
+        (_) => false,
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      final msg = switch (e.code) {
+        'email-already-in-use' => 'Ya existe una cuenta con ese email',
+        'invalid-email' => 'El email no es válido',
+        'weak-password' => 'La contraseña es demasiado débil',
+        _ => 'Error al crear la cuenta',
+      };
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: widget.isDesktop
-          ? CrossAxisAlignment.start
-          : CrossAxisAlignment.center,
+      crossAxisAlignment:
+          widget.isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
       children: [
         Center(
           child: Text(
@@ -37,7 +112,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
             duration: const Duration(milliseconds: 300),
             child: Text(
               _selectedRole == 'Cliente'
-                  ? "Crea tu cuenta para empezar a competir y demostar lo que vales."
+                  ? "Crea tu cuenta para empezar a competir y demostrar lo que vales."
                   : "Sé el mejor tiendero en organizar los mejores torneos.",
               key: ValueKey(_selectedRole),
               textAlign: widget.isDesktop ? TextAlign.left : TextAlign.center,
@@ -52,17 +127,26 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
           ),
         ),
         const SizedBox(height: 30),
+
+        //selector de rol
         _buildRoleSelector(),
         const SizedBox(height: 30),
-        _buildField(Icons.person_outline, "Nombre de Usuario"),
+        _buildField(Icons.person_outline, "Nombre de Usuario",
+            controller: _nombreController),
         const SizedBox(height: 20),
-        _buildField(Icons.email_outlined, "Correo Electrónico"),
+        _buildField(Icons.email_outlined, "Correo Electrónico",
+            controller: _emailController),
         const SizedBox(height: 20),
-        _buildField(Icons.public, "Ciudad"),
+        _buildField(Icons.public, "Ciudad", controller: _ciudadController),
         const SizedBox(height: 20),
-        _buildField(Icons.lock_outline, "Contraseña", isPass: true),
+        _buildField(Icons.lock_outline, "Contraseña",
+            isPass: true, controller: _passwordController),
         const SizedBox(height: 40),
-        _buildRegisterButton(),
+        _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0XFFF8BF54)),
+              )
+            : _buildRegisterButton(),
         const SizedBox(height: 20),
         TextButton(
           onPressed: () => Navigator.pop(context),
@@ -80,6 +164,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
     );
   }
 
+  // Widget del selector de rol tipo "Toggle" personalizado
   Widget _buildRoleSelector() {
     return Center(
       child: Container(
@@ -92,6 +177,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
         ),
         child: Stack(
           children: [
+            // Animación del fondo que se mueve
             AnimatedAlign(
               duration: const Duration(milliseconds: 250),
               curve: Curves.easeInOut,
@@ -112,6 +198,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
                 ),
               ),
             ),
+            // Botones de texto encima
             Row(children: [_roleButton("Cliente"), _roleButton("Organizador")]),
           ],
         ),
@@ -139,7 +226,12 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
     );
   }
 
-  Widget _buildField(IconData icon, String hint, {bool isPass = false}) {
+  Widget _buildField(
+    IconData icon,
+    String hint, {
+    bool isPass = false,
+    required TextEditingController controller,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.2),
@@ -147,6 +239,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
         border: Border.all(color: Colors.white.withOpacity(0.05)),
       ),
       child: TextField(
+        controller: controller,
         obscureText: isPass,
         style: GoogleFonts.rubik(color: Colors.white),
         decoration: InputDecoration(
@@ -154,10 +247,8 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
           hintText: hint,
           hintStyle: const TextStyle(color: Colors.white24, fontSize: 14),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-            vertical: 18,
-            horizontal: 20,
-          ),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
         ),
       ),
     );
@@ -174,7 +265,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
         ),
       ),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: _register,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
