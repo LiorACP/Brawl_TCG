@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,24 +19,28 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
   final _focus = FocusNode();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
+
   bool _searching = false;
-  bool _found = false;
+  bool _enrolling = false;
   String _code = '';
+
+  DocumentSnapshot<Map<String, dynamic>>? _tournamentDoc;
+  String? _errorMsg;
 
   @override
   void initState() {
     super.initState();
-    _pulseController =
-        AnimationController(vsync: this, duration: const Duration(milliseconds: 1000))
-          ..repeat(reverse: true);
+    _pulseController = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1000))
+      ..repeat(reverse: true);
     _pulseAnim = Tween(begin: 0.25, end: 0.8).animate(_pulseController);
-
     _controller.addListener(_onInput);
     WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
   }
 
   void _onInput() {
-    final raw = _controller.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+    final raw =
+        _controller.text.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
     final trimmed = raw.length > 6 ? raw.substring(0, 6) : raw;
     if (trimmed != _controller.text) {
       _controller.value = TextEditingValue(
@@ -44,22 +50,130 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       return;
     }
     if (trimmed != _code) {
-      setState(() => _code = trimmed);
-      if (trimmed.length == 6 && !_searching) _onCodeComplete();
+      setState(() {
+        _code = trimmed;
+        _tournamentDoc = null;
+        _errorMsg = null;
+      });
+      if (trimmed.length == 6 && !_searching) _searchTournament(trimmed);
     }
   }
 
-  void _onCodeComplete() {
+  Future<void> _searchTournament(String code) async {
     setState(() => _searching = true);
     HapticFeedback.mediumImpact();
-    Future.delayed(const Duration(milliseconds: 1400), () {
-      if (mounted) setState(() { _searching = false; _found = true; });
-    });
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .where('codigo', isEqualTo: code)
+          .limit(1)
+          .get();
+
+      if (!mounted) return;
+      if (snap.docs.isEmpty) {
+        setState(() {
+          _errorMsg = 'Código no encontrado';
+          _searching = false;
+        });
+      } else {
+        setState(() {
+          _tournamentDoc = snap.docs.first;
+          _searching = false;
+        });
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _errorMsg = 'Error al buscar el torneo';
+        _searching = false;
+      });
+    }
+  }
+
+  Future<void> _enroll() async {
+    final doc = _tournamentDoc;
+    if (doc == null) return;
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() => _enrolling = true);
+    try {
+      final db = FirebaseFirestore.instance;
+      final userRef = db.collection('User').doc(user.uid);
+      final orgRef = doc.data()?['organizerId'] as DocumentReference?;
+
+      // Comprobar si ya está inscrito
+      final existing = await doc.reference
+          .collection('registration')
+          .where('userId', isEqualTo: userRef)
+          .limit(1)
+          .get();
+
+      if (!mounted) return;
+      if (existing.docs.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ya estás inscrito en este torneo')),
+        );
+        setState(() => _enrolling = false);
+        return;
+      }
+
+      final userSnap = await userRef.get();
+      final userName = userSnap.data()?['nombre'] as String? ??
+          user.email?.split('@').first ??
+          'Jugador';
+      final tournamentName = doc.data()?['name'] as String? ?? 'Torneo';
+
+      // 1. Crear inscripción
+      await doc.reference.collection('registration').add({
+        'userId': userRef,
+        'status': 'Pending',
+        'playerName': userName,
+        'deck': '',
+        'points': 0,
+        'creadoEn': FieldValue.serverTimestamp(),
+      });
+
+      // 2. Escribir notificación para el organizador
+      if (orgRef != null) {
+        await db.collection('Notifications').add({
+          'userID': orgRef,
+          'date': FieldValue.serverTimestamp(),
+          'type': 'inscripcion',
+          'title': 'Nueva inscripción',
+          'mensaje': '$userName quiere apuntarse a $tournamentName',
+          'icon': '✉',
+          'isRead': false,
+          'tournamentId': doc.id,
+        });
+      }
+
+      if (!mounted) return;
+      HapticFeedback.heavyImpact();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text(
+                '¡Inscripción enviada! Espera confirmación del organizador.')),
+      );
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('Error al inscribirse. Inténtalo de nuevo.')),
+      );
+    } finally {
+      if (mounted) setState(() => _enrolling = false);
+    }
   }
 
   void _reset() {
     _controller.clear();
-    setState(() { _code = ''; _found = false; _searching = false; });
+    setState(() {
+      _code = '';
+      _tournamentDoc = null;
+      _errorMsg = null;
+    });
     _focus.requestFocus();
   }
 
@@ -73,6 +187,12 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
 
   @override
   Widget build(BuildContext context) {
+    final found = _tournamentDoc != null;
+    final data = _tournamentDoc?.data();
+    final gameCode = (data?['game'] as String?)?.toUpperCase() ?? 'MTG';
+    final tournamentName = data?['name'] as String? ?? '';
+    final location = data?['location'] as String? ?? '';
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: BrawlBackground(
@@ -83,7 +203,8 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
               Opacity(
                 opacity: 0,
                 child: SizedBox(
-                  width: 1, height: 1,
+                  width: 1,
+                  height: 1,
                   child: TextField(
                     controller: _controller,
                     focusNode: _focus,
@@ -154,7 +275,9 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                 WidgetSpan(
                                   child: ShaderMask(
                                     shaderCallback: (bounds) =>
-                                        const LinearGradient(colors: AppColors.clienteGradient)
+                                        const LinearGradient(
+                                                colors:
+                                                    AppColors.clienteGradient)
                                             .createShader(bounds),
                                     blendMode: BlendMode.srcIn,
                                     child: Text('código del torneo',
@@ -172,54 +295,45 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                             'El organizador te lo habrá enviado por email o lo encontrarás en el cartel del evento.',
                             textAlign: TextAlign.center,
                             style: GoogleFonts.rubik(
-                                fontSize: 13, color: AppColors.textDim, height: 1.4),
+                                fontSize: 13,
+                                color: AppColors.textDim,
+                                height: 1.4),
                           ),
                           const SizedBox(height: 34),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(6, (i) {
                               final filled = i < _code.length;
-                              final isCursor = i == _code.length && !_found;
+                              final isCursor = i == _code.length && !found;
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 4),
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 150),
                                   width: 44,
                                   height: 56,
                                   decoration: BoxDecoration(
-                                    color: _found
+                                    color: found
                                         ? AppColors.cyan.withValues(alpha: 0.15)
-                                        : filled
-                                            ? AppColors.surfaceHi
-                                            : Colors.transparent,
+                                        : _errorMsg != null
+                                            ? AppColors.pink
+                                                .withValues(alpha: 0.1)
+                                            : filled
+                                                ? AppColors.surfaceHi
+                                                : Colors.transparent,
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: _found
+                                      color: found
                                           ? AppColors.cyan
-                                          : isCursor
-                                              ? AppColors.cyan
-                                              : filled
-                                                  ? Colors.transparent
-                                                  : AppColors.stroke,
-                                      width: (isCursor || _found) ? 1.5 : 1,
+                                          : _errorMsg != null
+                                              ? AppColors.pink
+                                              : isCursor
+                                                  ? AppColors.cyan
+                                                  : filled
+                                                      ? Colors.transparent
+                                                      : AppColors.stroke,
+                                      width: (isCursor || found) ? 1.5 : 1,
                                     ),
-                                    boxShadow: _found
-                                        ? [
-                                            BoxShadow(
-                                              color: AppColors.cyan.withValues(alpha: 0.25),
-                                              blurRadius: 8,
-                                              spreadRadius: 1,
-                                            )
-                                          ]
-                                        : filled
-                                            ? [
-                                                BoxShadow(
-                                                  color: AppColors.cyan.withValues(alpha: 0.15),
-                                                  blurRadius: 0,
-                                                  spreadRadius: 1,
-                                                )
-                                              ]
-                                            : null,
                                   ),
                                   child: Center(
                                     child: isCursor
@@ -228,13 +342,16 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                             builder: (_, __) => Opacity(
                                               opacity: _pulseAnim.value,
                                               child: Container(
-                                                  width: 2, height: 24, color: AppColors.cyan),
+                                                  width: 2,
+                                                  height: 24,
+                                                  color: AppColors.cyan),
                                             ),
                                           )
                                         : Text(
                                             i < _code.length ? _code[i] : '',
                                             style: GoogleFonts.rubikMonoOne(
-                                                fontSize: 24, color: AppColors.text),
+                                                fontSize: 24,
+                                                color: AppColors.text),
                                           ),
                                   ),
                                 ),
@@ -244,7 +361,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                           const SizedBox(height: 20),
                           AnimatedSwitcher(
                             duration: const Duration(milliseconds: 250),
-                            child: _found
+                            child: found
                                 ? _StatusRow(
                                     key: const ValueKey('found'),
                                     color: AppColors.cyan,
@@ -262,33 +379,44 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                           text: 'Buscando torneo…',
                                         ),
                                       )
-                                    : const SizedBox.shrink(key: ValueKey('idle')),
+                                    : _errorMsg != null
+                                        ? _StatusRow(
+                                            key: const ValueKey('error'),
+                                            color: AppColors.pink,
+                                            icon: '✕',
+                                            text: _errorMsg!,
+                                          )
+                                        : const SizedBox.shrink(
+                                            key: ValueKey('idle')),
                           ),
                           const SizedBox(height: 28),
-                          if (_found)
+                          if (found)
                             Column(
                               children: [
                                 BrawlCard(
                                   padding: const EdgeInsets.all(16),
                                   radius: 20,
                                   tint: AppColors.cyan.withValues(alpha: 0.08),
-                                  border: AppColors.cyan.withValues(alpha: 0.25),
+                                  border:
+                                      AppColors.cyan.withValues(alpha: 0.25),
                                   child: Row(
                                     children: [
-                                      const GameBadge(game: 'MTG', size: 40),
+                                      GameBadge(game: gameCode, size: 40),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Text('Pioneer FNM Mayo',
+                                            Text(tournamentName,
                                                 style: GoogleFonts.rubik(
                                                     fontSize: 15,
                                                     fontWeight: FontWeight.w700,
                                                     color: AppColors.text)),
-                                            Text('Dragón Rojo Store · Hoy 18:30',
+                                            Text(location,
                                                 style: GoogleFonts.rubik(
-                                                    fontSize: 12, color: AppColors.textDim)),
+                                                    fontSize: 12,
+                                                    color: AppColors.textDim)),
                                           ],
                                         ),
                                       ),
@@ -302,11 +430,14 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                       onTap: _reset,
                                       child: Container(
                                         height: 50,
-                                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 20),
                                         decoration: BoxDecoration(
                                           color: AppColors.surface,
-                                          borderRadius: BorderRadius.circular(999),
-                                          border: Border.all(color: AppColors.stroke),
+                                          borderRadius:
+                                              BorderRadius.circular(999),
+                                          border: Border.all(
+                                              color: AppColors.stroke),
                                         ),
                                         child: Center(
                                           child: Text('Otro código',
@@ -319,12 +450,18 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: GradBtn(
-                                        size: GradBtnSize.lg,
-                                        width: double.infinity,
-                                        onTap: () => Navigator.pop(context),
-                                        child: const Text('Inscribirme ✓'),
-                                      ),
+                                      child: _enrolling
+                                          ? const Center(
+                                              child: CircularProgressIndicator(
+                                                  color: AppColors.cyan),
+                                            )
+                                          : GradBtn(
+                                              size: GradBtnSize.lg,
+                                              width: double.infinity,
+                                              onTap: _enroll,
+                                              child:
+                                                  const Text('Inscribirme ✓'),
+                                            ),
                                     ),
                                   ],
                                 ),
@@ -349,7 +486,13 @@ class _StatusRow extends StatelessWidget {
   final Color color;
   final String icon, text;
   final double opacity;
-  const _StatusRow({super.key, required this.color, required this.icon, required this.text, this.opacity = 1.0});
+  const _StatusRow({
+    super.key,
+    required this.color,
+    required this.icon,
+    required this.text,
+    this.opacity = 1.0,
+  });
 
   @override
   Widget build(BuildContext context) {
