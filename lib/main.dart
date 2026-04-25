@@ -3,14 +3,19 @@ import 'package:brawl_tcg/shell/cliente_shell.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
+@pragma('vm:entry-point')
+Future<void> _bgMessageHandler(RemoteMessage message) async {}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(_bgMessageHandler);
   runApp(const MyApp());
 }
 
@@ -75,6 +80,7 @@ class _RoleRouterState extends State<_RoleRouter> {
   void initState() {
     super.initState();
     _roleFuture = _fetchRole();
+    _saveFcmToken();
   }
 
   Future<String> _fetchRole() async {
@@ -87,6 +93,18 @@ class _RoleRouterState extends State<_RoleRouter> {
     } catch (_) {
       return 'Cliente';
     }
+  }
+
+  Future<void> _saveFcmToken() async {
+    try {
+      await FirebaseMessaging.instance.requestPermission();
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token == null) return;
+      await FirebaseFirestore.instance
+          .collection('User')
+          .doc(widget.uid)
+          .update({'fcmToken': token});
+    } catch (_) {}
   }
 
   @override
