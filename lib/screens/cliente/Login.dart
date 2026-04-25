@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brawl_tcg/screens/cliente/Registro.dart';
 import 'package:brawl_tcg/screens/cliente/forgot_password_screen.dart';
-import 'package:brawl_tcg/screens/cliente/event_screen.dart';
+import 'package:brawl_tcg/shell/cliente_shell.dart';
+import 'package:brawl_tcg/shell/org_shell.dart';
 
 class Login extends StatelessWidget {
   const Login({super.key});
@@ -130,10 +132,28 @@ class _LoginFormContentState extends State<LoginFormContent> {
     super.dispose();
   }
 
-  void _goToEventScreen() {
+  Future<void> _goToShell() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || !mounted) return;
+
+    String rol = 'Cliente';
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('usuarios')
+          .doc(uid)
+          .get();
+      rol = doc.data()?['rol'] as String? ?? 'Cliente';
+    } catch (_) {
+      // Si Firestore falla, por defecto enviamos a ClienteShell
+    }
+
+    if (!mounted) return;
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => const EventScreen()),
+      MaterialPageRoute(
+        builder: (_) =>
+            rol == 'Organizador' ? const OrgShell() : const ClienteShell(),
+      ),
       (_) => false,
     );
   }
@@ -154,7 +174,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
         password: password,
       );
       if (!mounted) return;
-      _goToEventScreen();
+      await _goToShell();
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       final msg = switch (e.code) {
@@ -187,7 +207,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
         await FirebaseAuth.instance.signInWithCredential(credential);
       }
       if (!mounted) return;
-      _goToEventScreen();
+      await _goToShell();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

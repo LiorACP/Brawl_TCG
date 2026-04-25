@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:brawl_tcg/screens/cliente/event_screen.dart';
+import 'package:brawl_tcg/shell/cliente_shell.dart';
+import 'package:brawl_tcg/shell/org_shell.dart';
 
 class RegisterFormContent extends StatefulWidget {
   final bool isDesktop;
@@ -71,7 +72,11 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (_) => const EventScreen()),
+        MaterialPageRoute(
+          builder: (_) => _selectedRole == 'Organizador'
+              ? const OrgShell()
+              : const ClienteShell(),
+        ),
         (_) => false,
       );
     } on FirebaseAuthException catch (e) {
