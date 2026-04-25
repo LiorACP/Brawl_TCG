@@ -68,8 +68,17 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
             'creadoEn': FieldValue.serverTimestamp(),
           });
 
+      // Enviar correo de verificación
+      await credential.user!.sendEmailVerification();
+
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cuenta creada. Revisa tu correo para verificar la cuenta antes de iniciar sesión.'),
+          duration: Duration(seconds: 5),
+        ),
+      );
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const Login()),
