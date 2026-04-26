@@ -51,7 +51,7 @@ class _AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Esperando respuesta de Firebase
+        // Mientras Firebase comprueba si hay sesión activa muestro el spinner
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: Color(0xFF1A1C20),
@@ -61,12 +61,12 @@ class _AuthGate extends StatelessWidget {
           );
         }
 
-        // Sin sesión → pantalla de login
+        // Si no hay usuario logueado voy al login
         if (!snapshot.hasData || snapshot.data == null) {
           return const Login();
         }
 
-        // Con sesión → cargar rol y navegar al shell correcto
+        // Si hay sesión compruebo el rol del usuario para mandarlo al shell correcto
         return _RoleRouter(uid: snapshot.data!.uid);
       },
     );

@@ -4,8 +4,11 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/features/eventos/data/tournament.dart';
 import 'data/game_rule.dart';
+import 'data/regla_firestore.dart';
+import 'services/reglas_service.dart';
 import 'viewmodels/reglas_viewmodel.dart';
 import 'widgets/eventos_oficiales_sheet.dart';
+import 'regla_detalle_screen.dart';
 
 class SharedReglasScreen extends StatelessWidget {
   const SharedReglasScreen({super.key});
@@ -60,7 +63,8 @@ class SharedReglasScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(color: AppColors.stroke),
                           ),
-                          child: const Icon(Icons.search, size: 18, color: Colors.white),
+                          child: const Icon(Icons.search,
+                              size: 18, color: Colors.white),
                         ),
                       ],
                     ),
@@ -116,7 +120,8 @@ class SharedReglasScreen extends StatelessWidget {
                                   Text(
                                     vm.alert.subtitle,
                                     style: GoogleFonts.rubik(
-                                        fontSize: 11, color: AppColors.textDim),
+                                        fontSize: 11,
+                                        color: AppColors.textDim),
                                   ),
                                 ],
                               ),
@@ -137,9 +142,13 @@ class SharedReglasScreen extends StatelessWidget {
                     children: [
                       const SectionLabel('Juegos soportados',
                           margin: EdgeInsets.only(left: 4, bottom: 10)),
-                      ...vm.games.map((g) => _GameRuleRow(rule: g)),
+
+                      // Aquí cada fila lee su versión en tiempo real desde Firestore
+                      ...vm.games.map((g) => _GameRuleRowFirestore(rule: g)),
+
                       const SectionLabel('Recursos rápidos',
-                          margin: EdgeInsets.only(left: 4, top: 6, bottom: 10)),
+                          margin:
+                              EdgeInsets.only(left: 4, top: 6, bottom: 10)),
                       IntrinsicHeight(
                         child: Row(
                           children: [
@@ -166,7 +175,8 @@ class SharedReglasScreen extends StatelessWidget {
                                 title: 'Eventos oficiales',
                                 color: AppColors.orange,
                                 icon: '★',
-                                onTap: () => showEventosOficialesSheet(context),
+                                onTap: () =>
+                                    showEventosOficialesSheet(context),
                               ),
                             ),
                           ],
@@ -186,75 +196,98 @@ class SharedReglasScreen extends StatelessWidget {
   }
 }
 
-class _GameRuleRow extends StatelessWidget {
+// Fila de juego que muestra la versión actualizada desde Firestore
+//
+// Mantiene exactamente el mismo layout que _GameRuleRow.
+// Usa StreamBuilder solo para sustituir el campo "versión".
+// Al tocar navega a ReglaDetalleScreen pasando el TcgGame.
+
+class _GameRuleRowFirestore extends StatelessWidget {
   final GameRule rule;
-  const _GameRuleRow({required this.rule});
+  const _GameRuleRowFirestore({required this.rule});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: BrawlCard(
-        padding: const EdgeInsets.all(14),
-        radius: 20,
-        child: Row(
-          children: [
-            GameBadge(game: rule.game.code, size: 44),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          rule.game.fullName,
-                          style: GoogleFonts.rubik(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.text),
-                        ),
-                      ),
-                      if (rule.isNew)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: AppColors.pink,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'NUEVO',
-                            style: GoogleFonts.rubik(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                letterSpacing: 0.4),
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    rule.formats,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.rubik(
-                        fontSize: 11.5, color: AppColors.textDim),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    'Reglas v.${rule.updated}',
-                    style: GoogleFonts.rubik(
-                        fontSize: 10.5, color: AppColors.textMute),
-                  ),
-                ],
+      child: StreamBuilder<GameMeta>(
+        stream: ReglasService.watchGameMeta(rule.game.firestoreId),
+        builder: (context, snap) {
+          // Mientras carga usa la versión del viewmodel como fallback
+          final version = snap.data?.version ?? rule.updated;
+
+          return BrawlCard(
+            padding: const EdgeInsets.all(14),
+            radius: 20,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ReglaDetalleScreen(game: rule.game),
               ),
             ),
-            const SizedBox(width: 8),
-            Text('›', style: TextStyle(fontSize: 18, color: AppColors.textMute)),
-          ],
-        ),
+            child: Row(
+              children: [
+                GameBadge(game: rule.game.code, size: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              rule.game.fullName,
+                              style: GoogleFonts.rubik(
+                                  fontSize: 14.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.text),
+                            ),
+                          ),
+                          if (rule.isNew)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: AppColors.pink,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'NUEVO',
+                                style: GoogleFonts.rubik(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    letterSpacing: 0.4),
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        rule.formats,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.rubik(
+                            fontSize: 11.5, color: AppColors.textDim),
+                      ),
+                      const SizedBox(height: 3),
+                      // ← versión desde Firestore (fallback al mock mientras carga)
+                      Text(
+                        'Reglas v.$version',
+                        style: GoogleFonts.rubik(
+                            fontSize: 10.5, color: AppColors.textMute),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('›',
+                    style:
+                        TextStyle(fontSize: 18, color: AppColors.textMute)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -293,7 +326,9 @@ class _ResourceTile extends StatelessWidget {
               child: Text(
                 icon,
                 style: TextStyle(
-                    fontSize: 15, fontWeight: FontWeight.w700, color: color),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: color),
               ),
             ),
           ),
@@ -303,7 +338,9 @@ class _ResourceTile extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: GoogleFonts.rubik(
-                fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text),
           ),
         ],
       ),

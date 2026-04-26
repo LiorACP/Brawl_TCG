@@ -51,7 +51,7 @@ class Tournament {
   final String? organizerId;
   final DateTime? date;
 
-  // Live fields
+  // Datos que solo se usan cuando el torneo está en directo
   final int? totalRounds;
   final int? currentRound;
   final List<double>? roundProgress;
@@ -59,16 +59,16 @@ class Tournament {
   final int? activeTables;
   final String? liveTimer;
 
-  // Presentation
+  // Para mostrar etiquetas de color en la tarjeta (ej: "Pendiente")
   final String? tagLabel;
   final Color? tagColor;
   final double opacity;
 
-  // Economic
+  // Precio e información de premios
   final double? entryFee;
   final String? prizeInfo;
 
-  // Access
+  // Código de acceso para unirse al torneo
   final String? accessCode;
 
   double get fillFraction => totalSlots > 0 ? enrolledCount / totalSlots : 0.0;
@@ -101,9 +101,9 @@ class Tournament {
     this.accessCode,
   });
 
-  // Firestore schema:
+  // Campos del documento en Firestore:
   //   name, rule_set, status, date (Timestamp), city,
-  //   organizerId (DocumentReference), participants (optional)
+  //   organizerId (DocumentReference), participants (opcional)
   factory Tournament.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data()!;
 
@@ -112,7 +112,7 @@ class Tournament {
     final game = _parseGame(ruleSet);
     final format = _parseFormat(ruleSet);
 
-    // organizerId is stored as a DocumentReference
+    // El organizerId viene como referencia, no como string, hay que sacar el .id
     final orgRef = d['organizerId'] as DocumentReference?;
     final organizerId = orgRef?.id;
 
@@ -162,7 +162,7 @@ class Tournament {
     return TcgGame.mtg;
   }
 
-  // "Magic: The Gathering. Commander" → "Commander"
+  // El formato viene después del punto en rule_set, ej: "Magic: The Gathering. Commander" → "Commander"
   static String _parseFormat(String ruleSet) {
     final dot = ruleSet.indexOf('.');
     if (dot >= 0 && dot < ruleSet.length - 1) {

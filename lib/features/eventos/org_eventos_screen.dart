@@ -217,14 +217,14 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
   void _openDraft(Tournament t) {
     final Widget screen;
     if (t.format.isEmpty) {
-      // Paso 2: no se ha configurado el formato todavía
+      // Todavía no tiene formato, retomo desde el paso 2
       screen = OrgCrearScreen(
         eventId: t.id,
         eventName: t.name,
         eventDate: t.date ?? DateTime.now(),
       );
     } else if (t.prizeInfo == null || t.prizeInfo!.isEmpty) {
-      // Paso 3: formato listo pero premios no configurados
+      // Ya tiene formato pero le faltan los premios, paso 3
       screen = OrgPremiosScreen(
         eventId: t.id,
         eventName: t.name,
@@ -232,7 +232,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
         plazas: t.totalSlots,
       );
     } else {
-      // Paso 4: solo falta publicar
+      // Todo configurado, solo le queda publicar
       screen = OrgAnunciosScreen(
         isCreationFlow: true,
         eventId: t.id,
@@ -255,7 +255,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ── Header ──────────────────────────────────────────────
+                    // Cabecera con el nombre del organizador
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -300,7 +300,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    // ── KPI row ─────────────────────────────────────────────
+                    // Fila de estadísticas rápidas
                     _uid == null
                         ? const _KpiSkeleton()
                         : StreamBuilder<OrgKpi>(
@@ -338,7 +338,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                             },
                           ),
                     const SizedBox(height: 16),
-                    // ── Tab row ─────────────────────────────────────────────
+                    // Fila de pestañas
                     _uid == null
                         ? const SizedBox(height: 28)
                         : _TabCountsRow(
@@ -350,7 +350,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                   ],
                 ),
               ),
-              // ── Tab content ───────────────────────────────────────────────
+              // Contenido que cambia según la pestaña activa
               Expanded(
                 child: _uid == null
                     ? const Center(
@@ -429,7 +429,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
       );
     }
 
-    // finalizados
+    // Torneos que ya han terminado
     return StreamBuilder<List<Tournament>>(
       stream: EventosService.watchOrgByStatus(uid, 'Finished'),
       builder: (ctx, snap) {
@@ -447,7 +447,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
   }
 }
 
-// ── Tab row with live counts ───────────────────────────────────────────────────
+// Pestañas con contador en tiempo real de torneos
 
 class _TabCountsRow extends StatelessWidget {
   final String uid;
@@ -518,7 +518,7 @@ class _TabCounts {
   const _TabCounts(this.enCurso, this.draft, this.finished);
 }
 
-// ── Content widgets ───────────────────────────────────────────────────────────
+// Contenido de cada pestaña
 
 class _EnCursoContent extends StatelessWidget {
   final VoidCallback onCrear;
@@ -711,7 +711,7 @@ class _EmptyContent extends StatelessWidget {
       );
 }
 
-// ── Reused UI widgets ─────────────────────────────────────────────────────────
+// Widgets pequeños que se reutilizan en varios sitios
 
 class _IconBtn extends StatelessWidget {
   final String icon;

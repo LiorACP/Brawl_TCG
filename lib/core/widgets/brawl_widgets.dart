@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 
-// ─── BrawlBackground ──────────────────────────────────────────────────────────
-// Dark scaffold background with corner circle decorations and Memphis shapes.
+// BrawlBackground: fondo oscuro con círculos decorativos en las esquinas
 class BrawlBackground extends StatelessWidget {
   final Widget child;
   final int seed;
@@ -172,7 +171,7 @@ class _MemphisPainter extends CustomPainter {
   bool shouldRepaint(_MemphisPainter old) => old.seed != seed;
 }
 
-// ─── BrawlCard ────────────────────────────────────────────────────────────────
+// BrawlCard: tarjeta con borde, radio y tinte opcionales
 class BrawlCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -211,7 +210,7 @@ class BrawlCard extends StatelessWidget {
   }
 }
 
-// ─── GameBadge ────────────────────────────────────────────────────────────────
+// GameBadge: icono circular con el código del juego (MTG, POK, etc.)
 class GameBadge extends StatelessWidget {
   final String game;
   final double size;
@@ -255,7 +254,7 @@ class GameBadge extends StatelessWidget {
   }
 }
 
-// ─── GradBtn ──────────────────────────────────────────────────────────────────
+// GradBtn: botón con gradiente de colores
 enum GradBtnSize { sm, md, lg }
 
 class GradBtn extends StatelessWidget {
@@ -322,7 +321,7 @@ class GradBtn extends StatelessWidget {
   }
 }
 
-// ─── BrawlTag ─────────────────────────────────────────────────────────────────
+// BrawlTag: etiqueta pequeña de color para mostrar estados
 class BrawlTag extends StatelessWidget {
   final String label;
   final Color color;
@@ -351,7 +350,7 @@ class BrawlTag extends StatelessWidget {
   }
 }
 
-// ─── GradText ─────────────────────────────────────────────────────────────────
+// GradText: texto con gradiente
 class GradText extends StatelessWidget {
   final String text;
   final List<Color> gradient;
@@ -378,7 +377,7 @@ class GradText extends StatelessWidget {
   }
 }
 
-// ─── BrawlTabBar ──────────────────────────────────────────────────────────────
+// BrawlTabBar: barra de pestañas personalizada
 class BrawlTabBarItem {
   final String icon;
   final String label;
@@ -593,7 +592,7 @@ class _NotchBarPainter extends CustomPainter {
   bool shouldRepaint(_NotchBarPainter old) => old.cx != cx;
 }
 
-// ─── SectionLabel ─────────────────────────────────────────────────────────────
+// SectionLabel: título de sección con estilo
 class SectionLabel extends StatelessWidget {
   final String text;
   final EdgeInsetsGeometry? margin;
@@ -617,7 +616,7 @@ class SectionLabel extends StatelessWidget {
   }
 }
 
-// ─── BackBtn ──────────────────────────────────────────────────────────────────
+// BackBtn: botón de volver atrás
 class BackBtn extends StatelessWidget {
   final VoidCallback? onTap;
   const BackBtn({super.key, this.onTap});
@@ -645,7 +644,7 @@ class BackBtn extends StatelessWidget {
   }
 }
 
-// ─── BrawlNavBarSpacer ────────────────────────────────────────────────────────
+// BrawlNavBarSpacer: espacio para que el contenido no quede tapado por la barra de navegación
 // Bottom spacer that reserves room for the mobile tab bar on mobile, and
 // collapses to a small padding on desktop (≥1024px) where there is no tab bar.
 class BrawlNavBarSpacer extends StatelessWidget {
@@ -658,7 +657,7 @@ class BrawlNavBarSpacer extends StatelessWidget {
   }
 }
 
-// ─── BrawlDesktopShell ────────────────────────────────────────────────────────
+// BrawlDesktopShell: layout para pantallas grandes (escritorio/tablet)
 // Desktop layout: Drawer navigation + full-width content area.
 class BrawlDesktopShell extends StatelessWidget {
   final int tab;

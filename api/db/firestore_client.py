@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from config import settings
 
+# Solo se inicializa una vez, si se llamara varias veces petalería
 _app: firebase_admin.App | None = None
 
 
@@ -15,8 +16,7 @@ def get_db() -> firestore.Client:
     return firestore.client()
 
 
-# ── helpers ──────────────────────────────────────────────────────────────────
-
+# Nombres de las colecciones para no escribirlos a mano en cada sitio
 GAMES_COL = "games"
 RULES_COL = "rules"
 
@@ -27,7 +27,7 @@ def rules_ref(game: str):
 
 
 async def upsert_rule(game: str, rule_id: str, data: dict) -> bool:
-    """Returns True if inserted, False if updated."""
+    # Devuelve True si era nueva, False si ya existía y la hemos actualizado
     ref = rules_ref(game).document(rule_id)
     doc = ref.get()
     ref.set(data, merge=True)
@@ -64,7 +64,7 @@ async def delete_rule(game: str, rule_id: str) -> bool:
 
 
 async def search_rules(game: str, q: str, limit: int = 20) -> list[dict]:
-    """Client-side keyword search (Firestore doesn't support full-text)."""
+    # Firestore no tiene búsqueda de texto completo, así que lo hago a mano
     q_lower = q.lower()
     docs = rules_ref(game).stream()
     results = []

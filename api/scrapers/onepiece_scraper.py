@@ -1,8 +1,7 @@
-"""
-One Piece TCG — Reglamento oficial
-Fuente: https://en.onepiece-cardgame.com/rules/
-La página contiene el reglamento completo en secciones HTML.
-"""
+# One Piece TCG
+# Scraping del reglamento oficial de la web del juego
+# URL: https://en.onepiece-cardgame.com/rules/
+
 import httpx
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -35,6 +34,7 @@ class OnePieceScraper(BaseScraper):
             if not title or len(title) < 4:
                 continue
 
+            # Recojo el contenido hasta el siguiente heading
             body_parts = []
             for sibling in heading.find_next_siblings():
                 if sibling.name in ("h2", "h3", "h4"):

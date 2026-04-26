@@ -1,7 +1,7 @@
-"""
-Yu-Gi-Oh! — YGOPRODECK Rules endpoint + scraping del reglamento oficial
-Fuente HTML: https://www.yugioh-card.com/en/rulebook/
-"""
+# Yu-Gi-Oh!
+# Hago scraping directo de la página del reglamento oficial
+# URL: https://www.yugioh-card.com/en/rulebook/
+
 import httpx
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -28,14 +28,14 @@ class YugiohScraper(BaseScraper):
         now = datetime.utcnow()
         idx = 0
 
-        # El reglamento usa h2/h3 como títulos de sección y párrafos como cuerpo
+        # La página usa h2 y h3 para los títulos de cada sección del reglamento
         sections = soup.find_all(["h2", "h3"])
         for section in sections:
             title = section.get_text(strip=True)
             if not title or len(title) < 3:
                 continue
 
-            # Acumular párrafos hasta la siguiente sección
+            # Junto todos los párrafos hasta el siguiente título
             body_parts = []
             for sibling in section.find_next_siblings():
                 if sibling.name in ("h2", "h3"):
@@ -65,6 +65,7 @@ class YugiohScraper(BaseScraper):
         return rules
 
     def _infer_category(self, title: str) -> str:
+        # Intento adivinar la categoría según palabras clave del título
         t = title.lower()
         if any(k in t for k in ("turn", "phase", "step")):
             return "Turn Structure"

@@ -1,8 +1,8 @@
-"""
-Flesh and Blood — Comprehensive Rulebook oficial
-Fuente: https://fabtcg.com/resources/rules-and-policy-center/comprehensive-rules/
-La página lista versiones del reglamento como HTML navegable.
-"""
+# Flesh and Blood
+# La página tiene un índice con enlaces a cada versión del reglamento
+# Primero busco el enlace a la versión más reciente y luego hago scraping de esa
+# URL índice: https://fabtcg.com/resources/rules-and-policy-center/comprehensive-rules/
+
 import httpx
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -11,15 +11,30 @@ from scrapers.base import BaseScraper
 
 INDEX_URL = "https://fabtcg.com/resources/rules-and-policy-center/comprehensive-rules/"
 
+# Headers que imitan un navegador real para que fabtcg.com no nos bloquee con 403
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
+
 
 class FabScraper(BaseScraper):
     game_id = GameId.fab
     version = "2.4"
 
     async def fetch(self) -> list[Rule]:
+        # Le doy más tiempo porque la página puede tardar en cargar
         async with httpx.AsyncClient(timeout=60, follow_redirects=True,
-                                     headers={"User-Agent": "Mozilla/5.0"}) as client:
-            # Obtener el índice para encontrar el enlace al reglamento actual
+                                     headers=BROWSER_HEADERS) as client:
+            # Primero busco el enlace al reglamento actual en el índice
             index_resp = await client.get(INDEX_URL)
             index_resp.raise_for_status()
             rulebook_url = self._find_rulebook_link(index_resp.text) or INDEX_URL
@@ -35,7 +50,7 @@ class FabScraper(BaseScraper):
         for a in soup.find_all("a", href=True):
             href = a["href"]
             if "comprehensive-rules" in href and href.endswith("/"):
-                # Preferir la versión más reciente (la primera con número de versión)
+                # Me quedo con el primero que tenga número de versión en la URL
                 if any(c.isdigit() for c in href):
                     base = "https://fabtcg.com"
                     return href if href.startswith("http") else base + href
@@ -46,7 +61,7 @@ class FabScraper(BaseScraper):
         now = datetime.utcnow()
         idx = 0
 
-        # El reglamento de FAB usa headers numerados: "1. Game Overview", "2.1 Turn Structure"
+        # El reglamento usa headings numerados tipo "1. Game Overview" o "2.1 Turn Structure"
         for heading in soup.find_all(["h1", "h2", "h3", "h4"]):
             title = heading.get_text(strip=True)
             if not title or len(title) < 4:
@@ -60,7 +75,7 @@ class FabScraper(BaseScraper):
                 text = sibling.get_text(" ", strip=True)
                 if not text:
                     continue
-                # Detectar bloques de ejemplo
+                # Si el bloque tiene clase "example" lo meto en ejemplos, no en el cuerpo
                 if sibling.get("class") and "example" in " ".join(sibling.get("class", [])):
                     examples.append(text)
                 else:
