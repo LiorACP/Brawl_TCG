@@ -13,6 +13,7 @@ import 'package:brawl_tcg/features/anuncios/org_anuncios_screen.dart';
 import 'data/tournament.dart';
 import 'data/org_kpi.dart';
 import 'services/eventos_service.dart';
+import 'org_inscripciones_screen.dart';
 
 class OrgEventosScreen extends StatefulWidget {
   const OrgEventosScreen({super.key});
@@ -89,6 +90,19 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                   color: AppColors.text),
             ),
             const SizedBox(height: 16),
+            _OptionRow(
+              icon: '✉',
+              label: 'Ver inscripciones pendientes',
+              color: AppColors.violet,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  fadeSlideRoute(OrgInscripcionesScreen(tournament: t)),
+                );
+              },
+            ),
+            const SizedBox(height: 2),
             _OptionRow(
               icon: '✎',
               label: 'Editar torneo',
@@ -1068,6 +1082,33 @@ class _UpcomingCard extends StatelessWidget {
                   Text(tournament.detailLabel,
                       style: GoogleFonts.rubik(
                           fontSize: 12, color: AppColors.textDim)),
+                  if (tournament.accessCode != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Text(
+                          'Código: ',
+                          style: GoogleFonts.rubik(
+                              fontSize: 11, color: AppColors.textMute),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.violet.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                                color: AppColors.violet.withValues(alpha: 0.35)),
+                          ),
+                          child: Text(
+                            tournament.accessCode!,
+                            style: GoogleFonts.rubikMonoOne(
+                                fontSize: 11, color: AppColors.violet),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   Row(
                     children: [
