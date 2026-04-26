@@ -7,6 +7,7 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:brawl_tcg/screens/cliente/Registro.dart';
 import 'package:brawl_tcg/screens/cliente/forgot_password_screen.dart';
+import 'package:brawl_tcg/screens/cliente/rol_selection_screen.dart';
 import 'package:brawl_tcg/shell/cliente_shell.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
 
@@ -206,8 +207,29 @@ class _LoginFormContentState extends State<LoginFormContent> {
         );
         await FirebaseAuth.instance.signInWithCredential(credential);
       }
+
       if (!mounted) return;
-      await _goToShell();
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return;
+
+      // Comprobar si ya existe en Firestore
+      final doc = await FirebaseFirestore.instance
+          .collection('User')
+          .doc(uid)
+          .get();
+
+      if (!mounted) return;
+      if (!doc.exists) {
+        // Usuario nuevo → pedir rol
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const RolSelectionScreen()),
+          (_) => false,
+        );
+      } else {
+        // Usuario existente → ir al shell
+        await _goToShell();
+      }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
