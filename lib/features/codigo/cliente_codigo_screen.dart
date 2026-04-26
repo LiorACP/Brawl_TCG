@@ -197,7 +197,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       final userRef = db.collection('User').doc(user.uid);
       final orgRef = doc.data()?['organizerId'] as DocumentReference?;
 
-      // Comprobar si ya está inscrito
+      // Primero compruebo si el usuario ya está apuntado a este torneo
       final existing = await doc.reference
           .collection('registration')
           .where('userId', isEqualTo: userRef)
@@ -219,7 +219,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
           'Jugador';
       final tournamentName = doc.data()?['name'] as String? ?? 'Torneo';
 
-      // 1. Crear inscripción
+      // Guardo la inscripción en la subcolección del torneo
       await doc.reference.collection('registration').add({
         'userId': userRef,
         'status': 'Pending',
@@ -229,7 +229,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
         'creadoEn': FieldValue.serverTimestamp(),
       });
 
-      // 2. Notificar al organizador (no bloquea la inscripción si falla)
+      // Mando notificación al organizador, pero si falla no peta la inscripción
       if (orgRef != null) {
         try {
           await db.collection('Notifications').add({

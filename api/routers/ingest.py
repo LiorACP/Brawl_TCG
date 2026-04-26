@@ -1,6 +1,7 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from datetime import datetime
+from fastapi import APIRouter, BackgroundTasks
 from models.rule import IngestResponse, GameId
-from db.firestore_client import upsert_rule
+from db.firestore_client import upsert_rule, get_db, GAMES_COL
 from scrapers.magic_scraper import MagicScraper
 from scrapers.yugioh_scraper import YugiohScraper
 from scrapers.pokemon_scraper import PokemonScraper
@@ -10,6 +11,7 @@ from scrapers.onepiece_scraper import OnePieceScraper
 
 router = APIRouter(prefix="/ingest", tags=["Ingest"])
 
+# Diccionario para saber qué scraper usar según el juego
 SCRAPERS = {
     GameId.magic: MagicScraper,
     GameId.yugioh: YugiohScraper,
@@ -39,7 +41,7 @@ async def _run_ingest(game: GameId) -> IngestResponse:
     for rule in rules:
         try:
             data = rule.model_dump()
-            # Convertir datetime a string ISO para Firestore
+            # Firestore no acepta objetos datetime directamente, lo paso a string ISO
             if data.get("last_updated"):
                 data["last_updated"] = data["last_updated"].isoformat()
             was_new = await upsert_rule(game.value, rule.id, data)
@@ -49,6 +51,19 @@ async def _run_ingest(game: GameId) -> IngestResponse:
                 updated += 1
         except Exception:
             errors += 1
+
+    # Actualizo el documento del juego con la versión y el total de reglas
+    # Esto es lo que lee la app Flutter para mostrar la versión en la pantalla principal
+    try:
+        version = scraper.version if hasattr(scraper, "version") else "—"
+        get_db().collection(GAMES_COL).document(game.value).set({
+            "gameId": game.value,
+            "version": version,
+            "rulesCount": inserted + updated,
+            "lastUpdated": datetime.utcnow().isoformat(),
+        }, merge=True)
+    except Exception:
+        pass
 
     return IngestResponse(
         game=game.value,
@@ -91,6 +106,8 @@ async def ingest_all():
     summary="Lanzar ingesta en background (no bloquea)",
 )
 async def ingest_background(game: GameId, background_tasks: BackgroundTasks):
+    # Con BackgroundTasks de FastAPI la petición responde al momento
+    # y la ingesta se ejecuta en segundo plano
     async def _task():
         await _run_ingest(game)
 

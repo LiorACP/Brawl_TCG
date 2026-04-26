@@ -1,8 +1,7 @@
-"""
-Pokémon TCG — Scraping del reglamento oficial
-Fuente: https://www.pokemon.com/us/pokemon-tcg/rules/
-La página tiene secciones con anclas para cada bloque de reglas.
-"""
+# Pokémon TCG
+# Scraping del reglamento oficial de la web de Pokémon
+# URL: https://www.pokemon.com/us/pokemon-tcg/rules/
+
 import httpx
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -17,6 +16,7 @@ class PokemonScraper(BaseScraper):
     version = "2024"
 
     async def fetch(self) -> list[Rule]:
+        # Meto el User-Agent para que no me bloquee la petición
         async with httpx.AsyncClient(timeout=30, follow_redirects=True,
                                      headers={"User-Agent": "Mozilla/5.0"}) as client:
             resp = await client.get(RULES_URL)
@@ -35,6 +35,7 @@ class PokemonScraper(BaseScraper):
             if not title or len(title) < 4:
                 continue
 
+            # Recojo el texto de todos los elementos hasta el siguiente heading
             body_parts = []
             for sibling in heading.find_next_siblings():
                 if sibling.name in ("h2", "h3", "h4"):
@@ -44,6 +45,7 @@ class PokemonScraper(BaseScraper):
                     body_parts.append(text)
 
             body = " ".join(body_parts)
+            # Si el cuerpo es muy corto no tiene sentido guardarlo
             if len(body) < 20:
                 continue
 

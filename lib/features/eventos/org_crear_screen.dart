@@ -248,7 +248,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // ── Torneo ────────────────────────────────────────────
+                      // Nombre y fecha del torneo
                       BrawlCard(
                         radius: 22,
                         child: Column(
@@ -271,7 +271,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ],
                         ),
                       ),
-                      // ── Juego ─────────────────────────────────────────────
+                      // Selector del juego de cartas
                       const SectionLabel('Juego',
                           margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       GridView.count(
@@ -318,7 +318,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           );
                         }).toList(),
                       ),
-                      // ── Formato ───────────────────────────────────────────
+                      // Selector del formato de juego
                       const SectionLabel('Formato',
                           margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       ...List.generate(_formats.length, (i) {
@@ -384,7 +384,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ),
                         );
                       }),
-                      // ── Plazas e Inscripción ──────────────────────────────
+                      // Número de plazas y precio de inscripción
                       const SizedBox(height: 12),
                       Row(
                         children: [

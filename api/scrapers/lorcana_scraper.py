@@ -1,8 +1,8 @@
-"""
-Disney Lorcana — Scraping del reglamento oficial de Ravensburger
-Fuente: https://www.disneylorcana.com/en-US/resources
-El PDF/HTML de reglas está disponible públicamente.
-"""
+# Disney Lorcana
+# Intento sacar las reglas de la página de recursos oficial de Ravensburger
+# Si no encuentro nada útil allí, pruebo con la FAQ que también tiene información
+# URL principal: https://www.disneylorcana.com/en-US/resources
+
 import httpx
 from bs4 import BeautifulSoup
 from datetime import datetime
@@ -10,7 +10,6 @@ from models.rule import Rule, GameId
 from scrapers.base import BaseScraper
 
 RULES_URL = "https://www.disneylorcana.com/en-US/resources"
-# Fallback: la FAQ estructurada también sirve como fuente de reglas
 FAQ_URL = "https://www.disneylorcana.com/en-US/faq"
 
 
@@ -27,7 +26,7 @@ class LorcanaScraper(BaseScraper):
 
         rules = self._parse(soup)
 
-        # Si no se extrajo nada útil de resources, intentar con FAQ
+        # Si la página principal no tiene suficiente contenido, uso la FAQ
         if len(rules) < 3:
             resp2 = await client.get(FAQ_URL)
             if resp2.status_code == 200:
@@ -79,7 +78,7 @@ class LorcanaScraper(BaseScraper):
         now = datetime.utcnow()
         idx = 0
 
-        # FAQs suelen estar en pares pregunta/respuesta con dt/dd o summary/p
+        # Las FAQs suelen ser pares pregunta/respuesta con details o div
         for item in soup.find_all(["details", "div"], class_=lambda c: c and "faq" in c.lower()):
             question = item.find(["summary", "dt", "h3", "h4"])
             answer = item.find(["p", "dd"])

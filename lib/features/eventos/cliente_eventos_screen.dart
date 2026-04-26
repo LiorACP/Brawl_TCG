@@ -199,7 +199,7 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
   }
 }
 
-// ── Stream wrappers ────────────────────────────────────────────────────────────
+// Clases que conectan los streams de Firestore con los widgets
 
 class _ApuntadosStream extends StatelessWidget {
   final String uid;
@@ -247,7 +247,7 @@ class _ParticipadosStream extends StatelessWidget {
   }
 }
 
-// ── Tab content ───────────────────────────────────────────────────────────────
+// Contenido de cada pestaña
 
 class _TabPill extends StatelessWidget {
   final String label;
@@ -598,7 +598,7 @@ class _ResultRow extends StatelessWidget {
   }
 }
 
-// ── Shared helpers ─────────────────────────────────────────────────────────────
+// Widgets pequeños compartidos entre las distintas pestañas
 
 class _LoadingSliver extends StatelessWidget {
   const _LoadingSliver();

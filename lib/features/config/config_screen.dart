@@ -37,7 +37,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   Map<String, bool> _ciudadToggles = {};
   bool _loadingCiudades = true;
 
-  // Account state
+  // Datos del perfil del usuario cargados desde Firestore
   String _nombre = '';
   String _email = '';
   String _telefono = '';
@@ -45,7 +45,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   String _joinYear = '';
   Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
 
-  // Preferences state
+  // Preferencias de la app (idioma, tema, etc.)
   String _idioma = 'es';
   String _apariencia = 'dark';
   String _distancia = 'km';
@@ -192,7 +192,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                   padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
                   child: Column(
                     children: [
-                      // ── Profile card ──────────────────────────────────────
+                      // Tarjeta de perfil con foto y nombre
                       BrawlCard(
                         padding: const EdgeInsets.all(18),
                         radius: 24,
@@ -269,7 +269,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // ── Cuenta ────────────────────────────────────────────
+                      // Sección de cuenta (email, contraseña...)
                       _Section(
                         header: 'Cuenta',
                         items: [
@@ -319,7 +319,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // ── Notificaciones ────────────────────────────────────
+                      // Sección de notificaciones generales
                       _ToggleSection(
                         header: 'Notificaciones',
                         items: [
@@ -354,7 +354,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // ── Notificaciones por ciudad ─────────────────────────
+                      // Toggles para activar notificaciones por ciudad
                       const SizedBox(height: 18),
                       if (_loadingCiudades)
                         _CiudadLoadingSection(accent: accent)
@@ -376,7 +376,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                         ),
                       const SizedBox(height: 18),
 
-                      // ── Preferencias ──────────────────────────────────────
+                      // Sección de preferencias de la app
                       _Section(
                         header: 'Preferencias',
                         items: [
@@ -432,7 +432,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // ── Legal ─────────────────────────────────────────────
+                      // Sección legal y de privacidad
                       _Section(
                         header: 'Legal',
                         items: [
@@ -482,7 +482,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   }
 }
 
-// ── _SettingsItem ─────────────────────────────────────────────────────────────
+// Widget reutilizable para filas de configuración
 class _SettingsItem {
   final String title, icon;
   final String? sub;
@@ -498,7 +498,7 @@ class _SettingsItem {
       this.onTap});
 }
 
-// ── _ToggleItem ───────────────────────────────────────────────────────────────
+// Widget para filas con switch
 class _ToggleItem {
   final String title, sub, icon, key;
   final Color color;
@@ -510,7 +510,7 @@ class _ToggleItem {
       required this.color});
 }
 
-// ── _Section ──────────────────────────────────────────────────────────────────
+// Título de sección con línea separadora
 class _Section extends StatelessWidget {
   final String header;
   final List<_SettingsItem> items;
@@ -593,7 +593,7 @@ class _Section extends StatelessWidget {
   }
 }
 
-// ── _CiudadLoadingSection ─────────────────────────────────────────────────────
+// Sección de ciudades con esqueleto de carga
 class _CiudadLoadingSection extends StatelessWidget {
   final List<Color> accent;
   const _CiudadLoadingSection({required this.accent});
@@ -624,7 +624,7 @@ class _CiudadLoadingSection extends StatelessWidget {
   }
 }
 
-// ── _ToggleSection ────────────────────────────────────────────────────────────
+// Sección con lista de toggles
 class _ToggleSection extends StatelessWidget {
   final String header;
   final List<_ToggleItem> items;

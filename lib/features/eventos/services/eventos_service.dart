@@ -1,23 +1,23 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import '../data/tournament.dart';
 import '../data/enrollment.dart';
 import '../data/org_kpi.dart';
 
-// Required Firestore indexes:
+// Para que funcionen las queries de abajo hace falta crear estos índices en Firestore:
 //   Tournaments: (organizerId ASC, status ASC, date ASC)
-//   registration (collection group): (userId ASC, status ASC)
+//   registration (collectionGroup): (userId ASC, status ASC)
 class EventosService {
   static final _db = FirebaseFirestore.instance;
 
-  // ── CLIENTE: inscripciones aceptadas ─────────────────────────────────────
-
+  // Torneos en los que el cliente está apuntado (Pending o Accepted)
   static Stream<(Enrollment? active, List<Enrollment> upcoming)>
       watchClienteApuntados(String uid) {
     final userRef = _db.collection('User').doc(uid);
     return _db
         .collectionGroup('registration')
         .where('userId', isEqualTo: userRef)
-        .where('status', isEqualTo: 'Accepted')
+        .where('status', whereIn: ['Pending', 'Accepted'])
         .snapshots()
         .asyncMap((snap) => _buildApuntados(snap.docs));
   }
@@ -28,6 +28,7 @@ class EventosService {
     if (docs.isEmpty) return (null, <Enrollment>[]);
 
     final results = await Future.wait(docs.map(_enrollmentFromReg));
+    // Solo los que aún no han pasado, ordenados por fecha
     final all = results
         .whereType<Enrollment>()
         .where((e) => e.isFuture)
@@ -35,11 +36,11 @@ class EventosService {
       ..sort((a, b) => a.date.compareTo(b.date));
 
     if (all.isEmpty) return (null, <Enrollment>[]);
+    // El primero es el activo, el resto son los próximos
     return (all.first, all.skip(1).toList());
   }
 
-  // ── CLIENTE: torneos participados (fecha pasada) ──────────────────────────
-
+  // Historial de torneos en los que el cliente ya participó (fechas pasadas)
   static Stream<(PlayerStats stats, List<TournamentResult> results)>
       watchClienteParticipados(String uid) {
     final userRef = _db.collection('User').doc(uid);
@@ -64,11 +65,13 @@ class EventosService {
     final now = DateTime.now();
     final futures = docs.map((regDoc) async {
       try {
+        // La inscripción es subcolección de Tournaments, así saco el id del padre
         final tournamentId = regDoc.reference.parent.parent!.id;
         final tDoc = await _db.collection('Tournaments').doc(tournamentId).get();
         if (!tDoc.exists) return null;
 
         final t = Tournament.fromFirestore(tDoc);
+        // Si la fecha es futura lo ignoro, esto es el historial
         if (t.date == null || t.date!.isAfter(now)) return null;
 
         final reg = regDoc.data();
@@ -96,7 +99,7 @@ class EventosService {
 
     final played = results.length;
     final podiums = results.where((r) => r.isTop).length;
-    final titles = 0; // titles require a specific "position=1" field not yet in schema
+    final titles = 0; // de momento no tenemos campo "posición = 1" en el esquema
 
     return (
       PlayerStats(played: played, podiums: podiums, titles: titles),
@@ -104,8 +107,7 @@ class EventosService {
     );
   }
 
-  // ── ORGANIZADOR: torneos en curso (Live + Pending) ────────────────────────
-
+  // Torneos del organizador que están activos o pendientes de empezar
   static Stream<List<Tournament>> watchOrgEnCurso(String orgId) {
     final orgRef = _db.collection('User').doc(orgId);
     return _db
@@ -124,6 +126,7 @@ class EventosService {
   static Stream<List<Tournament>> watchOrgByStatus(
       String orgId, String status) {
     final orgRef = _db.collection('User').doc(orgId);
+    // Los terminados los quiero de más reciente a más antiguo
     final descending = status == 'Finished';
     return _db
         .collection('Tournaments')
@@ -141,8 +144,7 @@ class EventosService {
     });
   }
 
-  // ── ORGANIZADOR: KPIs en tiempo real ─────────────────────────────────────
-
+  // KPIs del organizador: torneos de hoy, inscritos totales y pendientes de aprobar
   static Stream<OrgKpi> watchOrgKpi(String orgId) {
     final orgRef = _db.collection('User').doc(orgId);
     return _db
@@ -171,7 +173,7 @@ class EventosService {
         todayCount++;
       }
 
-      // Count registrations from subcollection
+      // Cuento las inscripciones de la subcolección de cada torneo
       try {
         final regSnap = await doc.reference.collection('registration').get();
         totalEnrolled +=
@@ -189,8 +191,7 @@ class EventosService {
     );
   }
 
-  // ── CLIENTE: ciudades donde el usuario tiene inscripciones aceptadas ─────
-
+  // Saco las ciudades donde el usuario tiene inscripciones para los toggles de notificaciones
   static Future<Set<String>> fetchUserCities(String uid) async {
     final userRef = _db.collection('User').doc(uid);
     final snap = await _db
@@ -202,6 +203,7 @@ class EventosService {
     final cities = <String>{};
     await Future.wait(snap.docs.map((regDoc) async {
       try {
+        // Subo al documento padre (el torneo) para leer la ciudad
         final tDoc = await regDoc.reference.parent.parent!.get();
         final city = tDoc.data()?['city'] as String?;
         if (city != null && city.isNotEmpty) cities.add(city);
@@ -210,8 +212,7 @@ class EventosService {
     return cities;
   }
 
-  // ── HELPERS ───────────────────────────────────────────────────────────────
-
+  // Convierte un documento de inscripción en un objeto Enrollment con los datos del torneo
   static Future<Enrollment?> _enrollmentFromReg(
       QueryDocumentSnapshot<Map<String, dynamic>> regDoc) async {
     try {
@@ -222,6 +223,7 @@ class EventosService {
       final t = Tournament.fromFirestore(tDoc);
       final date = t.date ?? DateTime.now();
       final reg = regDoc.data();
+      final status = reg['status'] as String? ?? '';
 
       return Enrollment(
         id: regDoc.id,
@@ -233,12 +235,15 @@ class EventosService {
         timeLabel: t.timeLabel,
         date: date,
         tableNumber: (reg['tableNumber'] as num?)?.toInt(),
+        tagLabel: status == 'Pending' ? 'Pendiente' : null,
+        tagColor: status == 'Pending' ? const Color(0xFFF7D048) : null,
       );
     } catch (_) {
       return null;
     }
   }
 
+  // Formatea la fecha como "12 Abr" para mostrarla en la tarjeta
   static String _shortDate(DateTime d) {
     const months = [
       'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',

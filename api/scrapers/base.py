@@ -9,11 +9,11 @@ class BaseScraper(ABC):
 
     @abstractmethod
     async def fetch(self) -> list[Rule]:
-        """Descarga y normaliza las reglas. Devuelve lista de Rule."""
+        # Cada scraper implementa esto a su manera según la fuente de datos
         ...
 
     def _keywords(self, *texts: str) -> list[str]:
-        """Extrae palabras únicas de más de 3 caracteres como keywords."""
+        # Saco palabras de más de 3 letras para usarlas como palabras clave de búsqueda
         seen = set()
         for text in texts:
             for word in text.lower().split():

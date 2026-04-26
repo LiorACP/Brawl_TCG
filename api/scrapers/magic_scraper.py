@@ -1,9 +1,8 @@
-"""
-Magic: The Gathering — MTGJSON Comprehensive Rules
-Fuente: https://mtgjson.com/api/v5/MagicCompRules.json
-El JSON contiene el texto completo de las reglas en campo 'data.rules'.
-Cada regla tiene número (ej: "100.1") y texto.
-"""
+# Magic: The Gathering
+# Uso la API de MTGJSON que tiene todo el reglamento en un JSON enorme
+# Documentación: https://mtgjson.com/api/v5/MagicCompRules.json
+# El texto completo de las reglas está en data.rules
+
 import re
 import httpx
 from datetime import datetime
@@ -12,6 +11,7 @@ from scrapers.base import BaseScraper
 
 MTGJSON_URL = "https://mtgjson.com/api/v5/MagicCompRules.json"
 
+# Cada regla de Magic empieza con un número de capítulo, los mapeo a nombre legible
 CATEGORY_MAP = {
     "1": "Game Concepts",
     "2": "Parts of a Card",
@@ -35,6 +35,7 @@ class MagicScraper(BaseScraper):
             resp.raise_for_status()
             payload = resp.json()
 
+        # La versión viene en el campo meta del JSON
         meta = payload.get("meta", {})
         self.version = meta.get("version", "unknown")
         raw_text: str = payload.get("data", {}).get("rules", "")
@@ -43,7 +44,7 @@ class MagicScraper(BaseScraper):
 
     def _parse_rules(self, text: str) -> list[Rule]:
         rules: list[Rule] = []
-        # Cada regla empieza con un número como "100.1" o "100.1a"
+        # Las reglas tienen formato "100.1 Texto de la regla" o "100.1a Texto..."
         pattern = re.compile(r'^(\d+\.\d+\w*)\s+(.+)$', re.MULTILINE)
         now = datetime.utcnow()
 
@@ -56,7 +57,7 @@ class MagicScraper(BaseScraper):
             chapter = rule_num.split(".")[0]
             category = CATEGORY_MAP.get(chapter, f"Chapter {chapter}")
 
-            # Detectar ejemplos: texto después de "Example:"
+            # Si la regla tiene un ejemplo lo separo del cuerpo principal
             examples: list[str] = []
             if "Example:" in body:
                 parts = body.split("Example:", 1)

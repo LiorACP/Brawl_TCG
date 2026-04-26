@@ -27,9 +27,9 @@ class AppNotification {
     required this.createdAt,
   });
 
-  // Firestore schema:
+  // Campos del documento en Firestore (colección Notifications):
   //   date (Timestamp), mensaje (string), type (string), userID (Reference)
-  //   Optional: title, icon, isRead
+  //   title, icon, isRead  son opcionales
   factory AppNotification.fromFirestore(
       DocumentSnapshot<Map<String, dynamic>> doc) {
     final d = doc.data()!;
@@ -38,7 +38,7 @@ class AppNotification {
     final createdAt =
         (d['date'] as Timestamp?)?.toDate() ?? DateTime.now();
 
-    // Support both 'mensaje' (current schema) and 'body' (extended schema)
+    // El campo puede llamarse 'mensaje' o 'body' según quién escribió la notificación
     final body = d['mensaje'] as String? ?? d['body'] as String? ?? '';
     final title = d['title'] as String? ?? _defaultTitle(typeStr);
     final icon = d['icon'] as String? ?? _defaultIcon(type);

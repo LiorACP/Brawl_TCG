@@ -27,7 +27,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
   bool _isSaving = false;
   bool _loading = true;
 
-  // Event summary data loaded from Firestore
+  // Datos del torneo cargados desde Firestore para mostrar en el resumen
   String _eventName = '';
   String _dateTimeLabel = '';
   String _gameCode = 'MTG';
@@ -68,7 +68,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
         _enrolledCount = (d['enrolledCount'] as num?)?.toInt() ?? 0;
         _loading = false;
       });
-      // Pre-fill fields with existing values for edit mode
+      // Si estamos editando relleno los campos con los datos que ya había
       _textController.text = d['announcementText'] as String? ?? '';
       _codeController.text = d['accessCode'] as String? ?? '';
     } catch (_) {
@@ -272,7 +272,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // ── Resumen del evento ─────────────────────────
+                            // Resumen del torneo encima del formulario
                             if (widget.isCreationFlow)
                               BrawlCard(
                                 padding: EdgeInsets.zero,
@@ -363,7 +363,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                 ),
                               ),
                             const SizedBox(height: 14),
-                            // ── Texto del anuncio ──────────────────────────
+                            // Campo para escribir el texto del anuncio
                             BrawlCard(
                               radius: 18,
                               child: Column(
@@ -403,7 +403,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            // ── Código de inscripción ──────────────────────
+                            // Código de 6 dígitos para que los jugadores se unan
                             BrawlCard(
                               radius: 18,
                               child: Column(
