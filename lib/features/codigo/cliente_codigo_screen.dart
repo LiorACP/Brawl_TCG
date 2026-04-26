@@ -59,13 +59,25 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     }
   }
 
+  static String _gameCodeFromRuleSet(String? ruleSet) {
+    final s = (ruleSet ?? '').toLowerCase();
+    if (s.contains('magic') || s.contains('mtg')) return 'MTG';
+    if (s.contains('pokémon') || s.contains('pokemon')) return 'POK';
+    if (s.contains('yu-gi-oh') || s.contains('yugioh') || s.contains('ygo')) return 'YGO';
+    if (s.contains('lorcana') || s.contains('disney')) return 'LRC';
+    if (s.contains('flesh') || s.contains('blood')) return 'FAB';
+    if (s.contains('one piece')) return 'ONE';
+    if (s.contains('dragon ball')) return 'DBS';
+    return 'MTG';
+  }
+
   Future<void> _searchTournament(String code) async {
     setState(() => _searching = true);
     HapticFeedback.mediumImpact();
     try {
       final snap = await FirebaseFirestore.instance
           .collection('Tournaments')
-          .where('codigo', isEqualTo: code)
+          .where('accessCode', isEqualTo: code)
           .limit(1)
           .get();
 
@@ -119,7 +131,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       }
 
       final userSnap = await userRef.get();
-      final userName = userSnap.data()?['nombre'] as String? ??
+      final userName = userSnap.data()?['name'] as String? ??
           user.email?.split('@').first ??
           'Jugador';
       final tournamentName = doc.data()?['name'] as String? ?? 'Torneo';
@@ -189,9 +201,9 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
   Widget build(BuildContext context) {
     final found = _tournamentDoc != null;
     final data = _tournamentDoc?.data();
-    final gameCode = (data?['game'] as String?)?.toUpperCase() ?? 'MTG';
+    final gameCode = _gameCodeFromRuleSet(data?['rule_set'] as String?);
     final tournamentName = data?['name'] as String? ?? '';
-    final location = data?['location'] as String? ?? '';
+    final location = data?['city'] as String? ?? data?['location'] as String? ?? '';
 
     return Scaffold(
       backgroundColor: AppColors.bg,

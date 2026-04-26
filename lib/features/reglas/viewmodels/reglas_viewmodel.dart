@@ -45,8 +45,8 @@ class ReglasViewModel {
         updated: 'Feb 2026',
       ),
       GameRule(
-        game: TcgGame.dbs,
-        formats: 'Masters · Zenkai',
+        game: TcgGame.fab,
+        formats: 'Classic Constructed · Blitz · Draft · Sealed',
         updated: 'Abr 2026',
       ),
     ],

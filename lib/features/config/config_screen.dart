@@ -14,6 +14,7 @@ import 'widgets/apariencia_screen.dart';
 import 'widgets/unidades_screen.dart';
 import 'widgets/politica_privacidad_screen.dart';
 import 'widgets/terminos_condiciones_screen.dart';
+import '../eventos/services/eventos_service.dart';
 
 class SharedConfigScreen extends StatefulWidget {
   final bool isOrg;
@@ -33,10 +34,14 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     'Promociones de tiendas': false,
   };
 
+  Map<String, bool> _ciudadToggles = {};
+  bool _loadingCiudades = true;
+
   // Account state
   String _nombre = '';
   String _email = '';
   String _telefono = '';
+  String _localidad = '';
   String _joinYear = '';
   Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
 
@@ -55,7 +60,10 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
 
   Future<void> _loadUser() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      if (mounted) setState(() => _loadingCiudades = false);
+      return;
+    }
 
     final creationTime = FirebaseAuth.instance.currentUser?.metadata.creationTime;
     final authEmail = FirebaseAuth.instance.currentUser?.email ?? '';
@@ -64,19 +72,67 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
       final doc = await FirebaseFirestore.instance.collection('User').doc(uid).get();
       final data = doc.data();
       if (!mounted) return;
+
+      final localidad = data?['localidad'] as String? ?? '';
+      final savedNotifCiudades =
+          data?['notifCiudades'] as Map<String, dynamic>? ?? {};
+
       setState(() {
         _nombre = data?['name'] as String? ?? '';
         _email = data?['email'] as String? ?? authEmail;
         _telefono = data?['telefono'] as String? ?? '';
         _joinYear = creationTime != null ? creationTime.year.toString() : '';
+        _localidad = localidad;
       });
+
+      _loadCiudadesNotif(uid, localidad, savedNotifCiudades);
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _email = authEmail;
         _joinYear = creationTime != null ? creationTime.year.toString() : '';
+        _loadingCiudades = false;
       });
     }
+  }
+
+  Future<void> _loadCiudadesNotif(
+      String uid, String localidad, Map<String, dynamic> savedPrefs) async {
+    try {
+      final cities = await EventosService.fetchUserCities(uid);
+      if (localidad.isNotEmpty) cities.add(localidad);
+
+      final toggles = <String, bool>{};
+      for (final city in cities) {
+        toggles[city] = savedPrefs[city] as bool? ?? true;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _ciudadToggles = toggles;
+        _loadingCiudades = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      final toggles = <String, bool>{};
+      if (localidad.isNotEmpty) {
+        toggles[localidad] = savedPrefs[localidad] as bool? ?? true;
+      }
+      setState(() {
+        _ciudadToggles = toggles;
+        _loadingCiudades = false;
+      });
+    }
+  }
+
+  Future<void> _saveCiudadToggle(String city, bool value) async {
+    setState(() => _ciudadToggles[city] = value);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await FirebaseFirestore.instance
+        .collection('User')
+        .doc(uid)
+        .update({'notifCiudades.$city': value});
   }
 
   Future<void> _savePersonalData(String nombre, String email, String telefono) async {
@@ -298,6 +354,28 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
+                      // ── Notificaciones por ciudad ─────────────────────────
+                      const SizedBox(height: 18),
+                      if (_loadingCiudades)
+                        _CiudadLoadingSection(accent: accent)
+                      else if (_ciudadToggles.isNotEmpty)
+                        _ToggleSection(
+                          header: 'Notificaciones por ciudad',
+                          items: _ciudadToggles.keys
+                              .map((city) => _ToggleItem(
+                                    title: city,
+                                    sub: 'Eventos en $city',
+                                    icon: '◎',
+                                    key: city,
+                                    color: AppColors.orange,
+                                  ))
+                              .toList(),
+                          toggles: _ciudadToggles,
+                          onToggle: _saveCiudadToggle,
+                          accent: accent,
+                        ),
+                      const SizedBox(height: 18),
+
                       // ── Preferencias ──────────────────────────────────────
                       _Section(
                         header: 'Preferencias',
@@ -508,6 +586,37 @@ class _Section extends StatelessWidget {
                 ),
               );
             }),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── _CiudadLoadingSection ─────────────────────────────────────────────────────
+class _CiudadLoadingSection extends StatelessWidget {
+  final List<Color> accent;
+  const _CiudadLoadingSection({required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SectionLabel('Notificaciones por ciudad',
+            margin: const EdgeInsets.only(left: 4, bottom: 10)),
+        BrawlCard(
+          padding: const EdgeInsets.all(18),
+          radius: 18,
+          child: Center(
+            child: SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                color: accent.first,
+                strokeWidth: 2,
+              ),
+            ),
           ),
         ),
       ],

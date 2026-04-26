@@ -7,6 +7,8 @@ import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/notificaciones/shared_notis_screen.dart';
 import 'package:brawl_tcg/features/eventos/org_info_screen.dart';
+import 'package:brawl_tcg/features/eventos/org_crear_screen.dart';
+import 'package:brawl_tcg/features/premios/org_premios_screen.dart';
 import 'package:brawl_tcg/features/anuncios/org_anuncios_screen.dart';
 import 'data/tournament.dart';
 import 'data/org_kpi.dart';
@@ -52,6 +54,178 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
       Navigator.push(context, fadeSlideRoute(const OrgInfoScreen()));
   void _openAnuncios() =>
       Navigator.push(context, fadeSlideRoute(const OrgAnunciosScreen()));
+
+  void _showTournamentOptions(Tournament t) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.stroke),
+        ),
+        padding: const EdgeInsets.fromLTRB(22, 16, 22, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.stroke,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              t.name,
+              style: GoogleFonts.rubik(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.text),
+            ),
+            const SizedBox(height: 16),
+            _OptionRow(
+              icon: '✎',
+              label: 'Editar torneo',
+              color: AppColors.cyan,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  fadeSlideRoute(OrgAnunciosScreen(
+                    isCreationFlow: false,
+                    eventId: t.id,
+                  )),
+                );
+              },
+            ),
+            const SizedBox(height: 2),
+            _OptionRow(
+              icon: '🗑',
+              label: 'Eliminar torneo',
+              color: AppColors.pink,
+              onTap: () {
+                Navigator.pop(context);
+                _confirmDeleteTournament(t);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteTournament(Tournament t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar torneo',
+            style: GoogleFonts.rubik(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text)),
+        content: Text(
+          '¿Seguro que quieres eliminar "${t.name}"? Esta acción no se puede deshacer.',
+          style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textDim),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar',
+                style: GoogleFonts.rubik(
+                    fontSize: 13, color: AppColors.textMute)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Eliminar',
+                style: GoogleFonts.rubik(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pink)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await FirebaseFirestore.instance
+        .collection('Tournaments')
+        .doc(t.id)
+        .delete();
+  }
+
+  Future<void> _deleteDraft(Tournament t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Eliminar borrador',
+            style: GoogleFonts.rubik(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text)),
+        content: Text(
+          '¿Seguro que quieres eliminar "${t.name}"? Esta acción no se puede deshacer.',
+          style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textDim),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancelar',
+                style: GoogleFonts.rubik(
+                    fontSize: 13, color: AppColors.textMute)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Eliminar',
+                style: GoogleFonts.rubik(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pink)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+    await FirebaseFirestore.instance
+        .collection('Tournaments')
+        .doc(t.id)
+        .delete();
+  }
+
+  void _openDraft(Tournament t) {
+    final Widget screen;
+    if (t.format.isEmpty) {
+      // Paso 2: no se ha configurado el formato todavía
+      screen = OrgCrearScreen(
+        eventId: t.id,
+        eventName: t.name,
+        eventDate: t.date ?? DateTime.now(),
+      );
+    } else if (t.prizeInfo == null || t.prizeInfo!.isEmpty) {
+      // Paso 3: formato listo pero premios no configurados
+      screen = OrgPremiosScreen(
+        eventId: t.id,
+        eventName: t.name,
+        entryFee: t.entryFee ?? 0,
+        plazas: t.totalSlots,
+      );
+    } else {
+      // Paso 4: solo falta publicar
+      screen = OrgAnunciosScreen(
+        isCreationFlow: true,
+        eventId: t.id,
+      );
+    }
+    Navigator.push(context, fadeSlideRoute(screen));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -212,6 +386,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
           }
           return _EnCursoContent(
             onCrear: _openCrear,
+            onOptions: _showTournamentOptions,
             liveTournament: live.isEmpty ? null : live.first,
             upcomingTournaments: pending,
           );
@@ -231,7 +406,11 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
               sub: 'Los torneos guardados sin publicar aparecerán aquí',
             );
           }
-          return _TournamentList(tournaments: snap.data!);
+          return _TournamentList(
+            tournaments: snap.data!,
+            onTap: _openDraft,
+            onDelete: _deleteDraft,
+          );
         },
       );
     }
@@ -329,11 +508,13 @@ class _TabCounts {
 
 class _EnCursoContent extends StatelessWidget {
   final VoidCallback onCrear;
+  final void Function(Tournament) onOptions;
   final Tournament? liveTournament;
   final List<Tournament> upcomingTournaments;
 
   const _EnCursoContent({
     required this.onCrear,
+    required this.onOptions,
     required this.liveTournament,
     required this.upcomingTournaments,
   });
@@ -343,10 +524,11 @@ class _EnCursoContent extends StatelessWidget {
     return Column(
       children: [
         if (liveTournament != null) ...[
-          _LiveCard(tournament: liveTournament!),
+          _LiveCard(tournament: liveTournament!, onOptions: onOptions),
           const SizedBox(height: 12),
         ],
-        ...upcomingTournaments.map((t) => _UpcomingCard(tournament: t)),
+        ...upcomingTournaments.map(
+            (t) => _UpcomingCard(tournament: t, onOptions: onOptions)),
         const SizedBox(height: 20),
       ],
     );
@@ -356,8 +538,13 @@ class _EnCursoContent extends StatelessWidget {
 class _TournamentList extends StatelessWidget {
   final List<Tournament> tournaments;
   final bool finished;
+  final void Function(Tournament)? onTap;
+  final void Function(Tournament)? onDelete;
   const _TournamentList(
-      {required this.tournaments, this.finished = false});
+      {required this.tournaments,
+      this.finished = false,
+      this.onTap,
+      this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -365,47 +552,78 @@ class _TournamentList extends StatelessWidget {
       children: [
         ...tournaments.map((t) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: BrawlCard(
-                padding: const EdgeInsets.all(16),
-                radius: 20,
-                child: Row(
-                  children: [
-                    GameBadge(game: t.game.code, size: 40),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            t.name,
-                            style: GoogleFonts.rubik(
-                              fontSize: 14.5,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.text,
+              child: GestureDetector(
+                onTap: onTap != null ? () => onTap!(t) : null,
+                child: BrawlCard(
+                  padding: const EdgeInsets.all(16),
+                  radius: 20,
+                  child: Row(
+                    children: [
+                      GameBadge(game: t.game.code, size: 40),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              t.name,
+                              style: GoogleFonts.rubik(
+                                fontSize: 14.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.text,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              t.detailLabel,
+                              style: GoogleFonts.rubik(
+                                fontSize: 12,
+                                color: AppColors.textDim,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (finished)
+                        BrawlTag(
+                          label: 'Finalizado',
+                          color: AppColors.textMute,
+                        )
+                      else ...[
+                        if (onDelete != null)
+                          GestureDetector(
+                            onTap: () => onDelete!(t),
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.pink.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(9),
+                                border: Border.all(
+                                    color:
+                                        AppColors.pink.withValues(alpha: 0.25)),
+                              ),
+                              child: Center(
+                                child: Text('🗑',
+                                    style: const TextStyle(fontSize: 13)),
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 2),
-                          Text(
-                            t.detailLabel,
-                            style: GoogleFonts.rubik(
-                              fontSize: 12,
-                              color: AppColors.textDim,
-                            ),
-                          ),
+                        BrawlTag(
+                          label: 'Borrador',
+                          color: AppColors.yellow,
+                        ),
+                        if (onTap != null) ...[
+                          const SizedBox(width: 8),
+                          Text('›',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  color: AppColors.textMute)),
                         ],
-                      ),
-                    ),
-                    if (finished)
-                      BrawlTag(
-                        label: 'Finalizado',
-                        color: AppColors.textMute,
-                      )
-                    else
-                      BrawlTag(
-                        label: 'Borrador',
-                        color: AppColors.yellow,
-                      ),
-                  ],
+                      ],
+                    ],
+                  ),
                 ),
               ),
             )),
@@ -646,7 +864,8 @@ class _UnderlineTab extends StatelessWidget {
 
 class _LiveCard extends StatelessWidget {
   final Tournament tournament;
-  const _LiveCard({required this.tournament});
+  final void Function(Tournament) onOptions;
+  const _LiveCard({required this.tournament, required this.onOptions});
 
   @override
   Widget build(BuildContext context) {
@@ -680,6 +899,23 @@ class _LiveCard extends StatelessWidget {
                   '⏱ ${tournament.liveTimer ?? '—'}',
                   style: GoogleFonts.rubikMonoOne(
                       fontSize: 11, color: AppColors.textDim),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () => onOptions(tournament),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceHi,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text('⋯',
+                          style: TextStyle(
+                              fontSize: 14, color: AppColors.textDim)),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -773,7 +1009,8 @@ class _LiveCard extends StatelessWidget {
 
 class _UpcomingCard extends StatelessWidget {
   final Tournament tournament;
-  const _UpcomingCard({required this.tournament});
+  final void Function(Tournament) onOptions;
+  const _UpcomingCard({required this.tournament, required this.onOptions});
 
   @override
   Widget build(BuildContext context) {
@@ -807,6 +1044,24 @@ class _UpcomingCard extends StatelessWidget {
                               AppColors.textMute,
                         ),
                       ],
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => onOptions(tournament),
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceHi,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Text('⋯',
+                                style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppColors.textDim)),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 3),
@@ -849,6 +1104,43 @@ class _UpcomingCard extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OptionRow extends StatelessWidget {
+  final String icon, label;
+  final Color color;
+  final VoidCallback onTap;
+  const _OptionRow(
+      {required this.icon,
+      required this.label,
+      required this.color,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.07),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: 0.15)),
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 12),
+            Text(label,
+                style: GoogleFonts.rubik(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: color)),
           ],
         ),
       ),

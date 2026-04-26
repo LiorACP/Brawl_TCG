@@ -1,5 +1,7 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
@@ -21,6 +23,7 @@ class OrgAnunciosScreen extends StatefulWidget {
 
 class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
   final _textController = TextEditingController();
+  final _codeController = TextEditingController();
   bool _isSaving = false;
   bool _loading = true;
 
@@ -65,6 +68,9 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
         _enrolledCount = (d['enrolledCount'] as num?)?.toInt() ?? 0;
         _loading = false;
       });
+      // Pre-fill fields with existing values for edit mode
+      _textController.text = d['announcementText'] as String? ?? '';
+      _codeController.text = d['accessCode'] as String? ?? '';
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -82,6 +88,15 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
     return 'MTG';
   }
 
+  static const _codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+
+  void _generateCode() {
+    final rng = Random.secure();
+    final code = List.generate(
+        6, (_) => _codeChars[rng.nextInt(_codeChars.length)]).join();
+    _codeController.text = code;
+  }
+
   static String _formatDateTime(DateTime d) {
     const weekdays = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
     final h = d.hour.toString().padLeft(2, '0');
@@ -96,9 +111,32 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
       await FirebaseFirestore.instance
           .collection('Tournaments')
           .doc(widget.eventId)
-          .update({'announcementText': _textController.text.trim()});
+          .update({
+        'announcementText': _textController.text.trim(),
+        if (_codeController.text.trim().isNotEmpty)
+          'accessCode': _codeController.text.trim(),
+      });
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _saveChanges() async {
+    if (widget.eventId == null) return;
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({
+        'announcementText': _textController.text.trim(),
+        if (_codeController.text.trim().isNotEmpty)
+          'accessCode': _codeController.text.trim(),
+      });
+      if (!mounted) return;
+      Navigator.pop(context);
     } catch (_) {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -113,6 +151,8 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
           .update({
         'status': 'Pending',
         'announcementText': _textController.text.trim(),
+        if (_codeController.text.trim().isNotEmpty)
+          'accessCode': _codeController.text.trim(),
       });
 
       if (!mounted) return;
@@ -134,6 +174,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
   @override
   void dispose() {
     _textController.dispose();
+    _codeController.dispose();
     super.dispose();
   }
 
@@ -361,6 +402,110 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                 ],
                               ),
                             ),
+                            const SizedBox(height: 14),
+                            // ── Código de inscripción ──────────────────────
+                            BrawlCard(
+                              radius: 18,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('CÓDIGO DE INSCRIPCIÓN',
+                                      style: GoogleFonts.rubik(
+                                          fontSize: 10.5,
+                                          color: AppColors.textMute,
+                                          fontWeight: FontWeight.w600,
+                                          letterSpacing: 0.5)),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Container(
+                                          height: 44,
+                                          decoration: BoxDecoration(
+                                            color: AppColors.surface,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                                color: AppColors.stroke),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 14),
+                                          alignment: Alignment.centerLeft,
+                                          child: TextField(
+                                            controller: _codeController,
+                                            maxLength: 6,
+                                            textCapitalization:
+                                                TextCapitalization.characters,
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.allow(
+                                                  RegExp(r'[a-zA-Z0-9]')),
+                                              TextInputFormatter.withFunction(
+                                                  (_, v) => v.copyWith(
+                                                      text: v.text
+                                                          .toUpperCase())),
+                                            ],
+                                            style: GoogleFonts.rubikMonoOne(
+                                              fontSize: 20,
+                                              color: AppColors.text,
+                                              letterSpacing: 6,
+                                            ),
+                                            decoration: InputDecoration(
+                                              hintText: '······',
+                                              hintStyle: GoogleFonts.rubikMonoOne(
+                                                fontSize: 20,
+                                                color: AppColors.textMute,
+                                                letterSpacing: 6,
+                                              ),
+                                              border: InputBorder.none,
+                                              isDense: true,
+                                              contentPadding: EdgeInsets.zero,
+                                              counterText: '',
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      GestureDetector(
+                                        onTap: _generateCode,
+                                        child: Container(
+                                          height: 44,
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 14),
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                                colors:
+                                                    AppColors.organizadorGradient),
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Text('⚡',
+                                                  style:
+                                                      TextStyle(fontSize: 13)),
+                                              const SizedBox(width: 5),
+                                              Text('Generar',
+                                                  style: GoogleFonts.rubik(
+                                                      fontSize: 13,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                      color: Colors.white)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'Los jugadores usarán este código para inscribirse.',
+                                    style: GoogleFonts.rubik(
+                                        fontSize: 11,
+                                        color: AppColors.textMute),
+                                  ),
+                                ],
+                              ),
+                            ),
                             const SizedBox(height: 80),
                           ],
                         ),
@@ -375,8 +520,10 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         size: GradBtnSize.lg,
                         gradient: AppColors.organizadorGradient,
                         width: double.infinity,
-                        onTap: widget.isCreationFlow ? _publish : null,
-                        child: const Text('Publicar ahora ✦'),
+                        onTap: widget.isCreationFlow ? _publish : _saveChanges,
+                        child: Text(widget.isCreationFlow
+                            ? 'Publicar ahora ✦'
+                            : 'Guardar cambios'),
                       ),
               ),
             ],

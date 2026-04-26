@@ -196,6 +196,27 @@ class EventosService {
     );
   }
 
+  // ── CLIENTE: ciudades donde el usuario tiene inscripciones aceptadas ─────
+
+  static Future<Set<String>> fetchUserCities(String uid) async {
+    final userRef = _db.collection('User').doc(uid);
+    final snap = await _db
+        .collectionGroup('registration')
+        .where('userId', isEqualTo: userRef)
+        .where('status', isEqualTo: 'Accepted')
+        .get();
+
+    final cities = <String>{};
+    await Future.wait(snap.docs.map((regDoc) async {
+      try {
+        final tDoc = await regDoc.reference.parent.parent!.get();
+        final city = tDoc.data()?['city'] as String?;
+        if (city != null && city.isNotEmpty) cities.add(city);
+      } catch (_) {}
+    }));
+    return cities;
+  }
+
   // ── HELPERS ───────────────────────────────────────────────────────────────
 
   static Future<Enrollment?> _enrollmentFromReg(
