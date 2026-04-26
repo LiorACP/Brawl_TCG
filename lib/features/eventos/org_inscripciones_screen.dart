@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -154,7 +154,7 @@ class _RegistrationCardState extends State<_RegistrationCard> {
       if (widget.playerRef != null) {
         final isAccepted = newStatus == 'Accepted';
         await db.collection('Notifications').add({
-          'userID': widget.playerRef,
+          'userID': widget.playerRef?.id,
           'date': FieldValue.serverTimestamp(),
           'type': 'inscripcion_respuesta',
           'title': isAccepted ? 'Inscripción aceptada' : 'Inscripción rechazada',

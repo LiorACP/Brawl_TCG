@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/material.dart';
 import '../data/tournament.dart';
 import '../data/enrollment.dart';
 import '../data/org_kpi.dart';
@@ -10,14 +9,7 @@ import '../data/org_kpi.dart';
 class EventosService {
   static final _db = FirebaseFirestore.instance;
 
-  // ── CLIENTE: inscripciones (Pending + Accepted) ───────────────────────────
-  //
-  // registration is a subcollection of Tournaments:
-  //   Tournaments/{id}/registration/{regId}
-  //   Fields: userId (Reference), status, deck, player_name, points
-  //
-  // Queried via collectionGroup without status filter to avoid requiring a
-  // composite index and to show Pending registrations immediately.
+  // ── CLIENTE: inscripciones aceptadas ─────────────────────────────────────
 
   static Stream<(Enrollment? active, List<Enrollment> upcoming)>
       watchClienteApuntados(String uid) {
@@ -25,7 +17,7 @@ class EventosService {
     return _db
         .collectionGroup('registration')
         .where('userId', isEqualTo: userRef)
-        .where('status', whereIn: ['Pending', 'Accepted'])
+        .where('status', isEqualTo: 'Accepted')
         .snapshots()
         .asyncMap((snap) => _buildApuntados(snap.docs));
   }
@@ -230,7 +222,6 @@ class EventosService {
       final t = Tournament.fromFirestore(tDoc);
       final date = t.date ?? DateTime.now();
       final reg = regDoc.data();
-      final status = reg['status'] as String? ?? '';
 
       return Enrollment(
         id: regDoc.id,
@@ -242,8 +233,6 @@ class EventosService {
         timeLabel: t.timeLabel,
         date: date,
         tableNumber: (reg['tableNumber'] as num?)?.toInt(),
-        tagLabel: status == 'Pending' ? 'Pendiente' : null,
-        tagColor: status == 'Pending' ? const Color(0xFFF7D048) : null,
       );
     } catch (_) {
       return null;

@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/notification.dart';
 
 // Firestore schema for Notifications:
@@ -16,12 +16,11 @@ class NotificacionesService {
   static final _db = FirebaseFirestore.instance;
 
   static Stream<NotiBundle> watchNotifications(String uid) {
-    final userRef = _db.collection('User').doc(uid);
     // Single-field filter only — avoids requiring a composite Firestore index.
     // Date filtering and ordering are done client-side.
     return _db
         .collection('Notifications')
-        .where('userID', isEqualTo: userRef)
+        .where('userID', isEqualTo: uid)
         .snapshots()
         .map((snap) {
       final now = DateTime.now();
@@ -50,10 +49,9 @@ class NotificacionesService {
   }
 
   static Future<void> markAllRead(String uid) async {
-    final userRef = _db.collection('User').doc(uid);
     final snap = await _db
         .collection('Notifications')
-        .where('userID', isEqualTo: userRef)
+        .where('userID', isEqualTo: uid)
         .where('isRead', isEqualTo: false)
         .get();
 

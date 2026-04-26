@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -233,7 +233,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       if (orgRef != null) {
         try {
           await db.collection('Notifications').add({
-            'userID': orgRef,
+            'userID': orgRef.id,
             'date': FieldValue.serverTimestamp(),
             'type': 'inscripcion',
             'title': 'Nueva inscripción',
