@@ -59,6 +59,20 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     }
   }
 
+  static String _parseFormat(String? ruleSet) {
+    if (ruleSet == null) return '';
+    final dot = ruleSet.indexOf('.');
+    if (dot >= 0 && dot < ruleSet.length - 1) {
+      return ruleSet.substring(dot + 1).trim();
+    }
+    return ruleSet.trim();
+  }
+
+  static bool _requiresDeck(String? ruleSet) {
+    final format = _parseFormat(ruleSet).toLowerCase();
+    return !['draft', 'sealed', 'sealed battle'].contains(format);
+  }
+
   static String _gameCodeFromRuleSet(String? ruleSet) {
     final s = (ruleSet ?? '').toLowerCase();
     if (s.contains('magic') || s.contains('mtg')) return 'MTG';
@@ -102,7 +116,76 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     }
   }
 
-  Future<void> _enroll() async {
+  Future<void> _showDeckDialog() async {
+    final deckController = TextEditingController();
+    final deckUrl = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Enlace de tu mazo',
+            style: GoogleFonts.rubik(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Pega el enlace de tu lista en Moxfield, Limitless, etc.',
+              style: GoogleFonts.rubik(
+                  fontSize: 12, color: AppColors.textDim),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: deckController,
+              autofocus: true,
+              style: GoogleFonts.rubik(
+                  fontSize: 13, color: AppColors.text),
+              cursorColor: AppColors.cyan,
+              decoration: InputDecoration(
+                hintText: 'https://moxfield.com/...',
+                hintStyle: GoogleFonts.rubik(
+                    fontSize: 13, color: AppColors.textMute),
+                filled: true,
+                fillColor: AppColors.surfaceHi,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12, vertical: 10),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancelar',
+                style: GoogleFonts.rubik(
+                    fontSize: 13, color: AppColors.textMute)),
+          ),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(ctx, deckController.text.trim()),
+            child: Text('Inscribirme',
+                style: GoogleFonts.rubik(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.cyan)),
+          ),
+        ],
+      ),
+    );
+    deckController.dispose();
+    if (deckUrl == null) return;
+    _enroll(deckUrl);
+  }
+
+  Future<void> _enroll(String deckUrl) async {
     final doc = _tournamentDoc;
     if (doc == null) return;
     final user = FirebaseAuth.instance.currentUser;
@@ -140,24 +223,26 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       await doc.reference.collection('registration').add({
         'userId': userRef,
         'status': 'Pending',
-        'playerName': userName,
-        'deck': '',
+        'player_name': userName,
+        'deck': deckUrl,
         'points': 0,
         'creadoEn': FieldValue.serverTimestamp(),
       });
 
-      // 2. Escribir notificación para el organizador
+      // 2. Notificar al organizador (no bloquea la inscripción si falla)
       if (orgRef != null) {
-        await db.collection('Notifications').add({
-          'userID': orgRef,
-          'date': FieldValue.serverTimestamp(),
-          'type': 'inscripcion',
-          'title': 'Nueva inscripción',
-          'mensaje': '$userName quiere apuntarse a $tournamentName',
-          'icon': '✉',
-          'isRead': false,
-          'tournamentId': doc.id,
-        });
+        try {
+          await db.collection('Notifications').add({
+            'userID': orgRef,
+            'date': FieldValue.serverTimestamp(),
+            'type': 'inscripcion',
+            'title': 'Nueva inscripción',
+            'mensaje': '$userName quiere apuntarse a $tournamentName',
+            'icon': '✉',
+            'isRead': false,
+            'tournamentId': doc.id,
+          });
+        } catch (_) {}
       }
 
       if (!mounted) return;
@@ -168,11 +253,10 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                 '¡Inscripción enviada! Espera confirmación del organizador.')),
       );
       Navigator.pop(context);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text('Error al inscribirse. Inténtalo de nuevo.')),
+        SnackBar(content: Text('Error al inscribirse: $e')),
       );
     } finally {
       if (mounted) setState(() => _enrolling = false);
@@ -201,9 +285,11 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
   Widget build(BuildContext context) {
     final found = _tournamentDoc != null;
     final data = _tournamentDoc?.data();
-    final gameCode = _gameCodeFromRuleSet(data?['rule_set'] as String?);
+    final ruleSet = data?['rule_set'] as String?;
+    final gameCode = _gameCodeFromRuleSet(ruleSet);
     final tournamentName = data?['name'] as String? ?? '';
     final location = data?['city'] as String? ?? data?['location'] as String? ?? '';
+    final needsDeck = _requiresDeck(ruleSet);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -470,7 +556,9 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                           : GradBtn(
                                               size: GradBtnSize.lg,
                                               width: double.infinity,
-                                              onTap: _enroll,
+                                              onTap: needsDeck
+                                                  ? _showDeckDialog
+                                                  : () => _enroll(''),
                                               child:
                                                   const Text('Inscribirme ✓'),
                                             ),
