@@ -68,6 +68,9 @@ class Tournament {
   final double? entryFee;
   final String? prizeInfo;
 
+  // Access
+  final String? accessCode;
+
   double get fillFraction => totalSlots > 0 ? enrolledCount / totalSlots : 0.0;
   String get detailLabel => '$dateLabel · $timeLabel · $totalSlots plazas';
 
@@ -95,6 +98,7 @@ class Tournament {
     this.opacity = 1.0,
     this.entryFee,
     this.prizeInfo,
+    this.accessCode,
   });
 
   // Firestore schema:
@@ -140,6 +144,7 @@ class Tournament {
       liveTimer: d['liveTimer'] as String?,
       entryFee: (d['entryFee'] as num?)?.toDouble(),
       prizeInfo: d['prizeInfo'] as String?,
+      accessCode: d['accessCode'] as String?,
     );
   }
 
