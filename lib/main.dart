@@ -1,4 +1,5 @@
 import 'package:brawl_tcg/screens/cliente/Login.dart';
+import 'package:brawl_tcg/screens/cliente/rol_selection_screen.dart';
 import 'package:brawl_tcg/shell/cliente_shell.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -89,6 +90,7 @@ class _RoleRouterState extends State<_RoleRouter> {
           .collection('User')
           .doc(widget.uid)
           .get();
+      if (!doc.exists) return 'nuevo';
       final isOrganizer = doc.data()?['organizer'] as bool? ?? false;
       return isOrganizer ? 'Organizador' : 'Cliente';
     } catch (_) {
@@ -121,9 +123,11 @@ class _RoleRouterState extends State<_RoleRouter> {
             ),
           );
         }
-        return snapshot.data == 'Organizador'
-            ? const OrgShell()
-            : const ClienteShell();
+        return switch (snapshot.data) {
+          'nuevo' => const RolSelectionScreen(),
+          'Organizador' => const OrgShell(),
+          _ => const ClienteShell(),
+        };
       },
     );
   }
