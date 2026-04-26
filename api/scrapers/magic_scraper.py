@@ -1,15 +1,26 @@
 # Magic: The Gathering
-# Uso la API de MTGJSON que tiene todo el reglamento en un JSON enorme
-# Documentación: https://mtgjson.com/api/v5/MagicCompRules.json
-# El texto completo de las reglas está en data.rules
+# La página oficial de WotC tiene el enlace al TXT del reglamento actualizado
+# Primero busco el enlace en la página de reglas y luego descargo el TXT
+# Página de reglas: https://magic.wizards.com/en/rules
 
 import re
 import httpx
+from bs4 import BeautifulSoup
 from datetime import datetime
 from models.rule import Rule, GameId
 from scrapers.base import BaseScraper
 
-MTGJSON_URL = "https://mtgjson.com/api/v5/MagicCompRules.json"
+RULES_PAGE = "https://magic.wizards.com/en/rules"
+
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+}
 
 # Cada regla de Magic empieza con un número de capítulo, los mapeo a nombre legible
 CATEGORY_MAP = {
@@ -30,17 +41,43 @@ class MagicScraper(BaseScraper):
     version = "unknown"
 
     async def fetch(self) -> list[Rule]:
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.get(MTGJSON_URL)
-            resp.raise_for_status()
-            payload = resp.json()
+        async with httpx.AsyncClient(timeout=60, follow_redirects=True,
+                                     headers=BROWSER_HEADERS) as client:
+            # Busco el enlace al TXT del reglamento en la página oficial
+            page = await client.get(RULES_PAGE)
+            page.raise_for_status()
+            txt_url = self._find_rules_txt(page.text)
 
-        # La versión viene en el campo meta del JSON
-        meta = payload.get("meta", {})
-        self.version = meta.get("version", "unknown")
-        raw_text: str = payload.get("data", {}).get("rules", "")
+            if not txt_url:
+                raise RuntimeError("No se encontró el enlace al TXT del reglamento en magic.wizards.com/en/rules")
+
+            rules_resp = await client.get(txt_url)
+            rules_resp.raise_for_status()
+            raw_text = rules_resp.text
+
+        # Saco la versión del nombre del archivo (ej: MagicCompRules 20240308.txt)
+        version_match = re.search(r'(\d{8})', txt_url)
+        if version_match:
+            raw_date = version_match.group(1)
+            self.version = f"{raw_date[:4]}-{raw_date[4:6]}-{raw_date[6:]}"
+        else:
+            self.version = "2024"
 
         return self._parse_rules(raw_text)
+
+    def _find_rules_txt(self, html: str) -> str | None:
+        soup = BeautifulSoup(html, "lxml")
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            # El enlace al reglamento suele ser un .txt con "MagicCompRules" en el nombre
+            if "MagicCompRules" in href and href.endswith(".txt"):
+                return href if href.startswith("http") else "https://magic.wizards.com" + href
+        # Fallback: buscar cualquier enlace a media.wizards.com con .txt
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            if "media.wizards.com" in href and ".txt" in href:
+                return href
+        return None
 
     def _parse_rules(self, text: str) -> list[Rule]:
         rules: list[Rule] = []
@@ -64,7 +101,7 @@ class MagicScraper(BaseScraper):
                 body = parts[0].strip()
                 examples = [parts[1].strip()]
 
-            rule = Rule(
+            rules.append(Rule(
                 id=f"magic-{rule_num}",
                 game=GameId.magic,
                 title=f"Regla {rule_num}",
@@ -75,7 +112,6 @@ class MagicScraper(BaseScraper):
                 search_keywords=self._keywords(body),
                 examples=examples,
                 last_updated=now,
-            )
-            rules.append(rule)
+            ))
 
         return rules

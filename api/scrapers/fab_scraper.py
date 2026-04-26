@@ -11,6 +11,20 @@ from scrapers.base import BaseScraper
 
 INDEX_URL = "https://fabtcg.com/resources/rules-and-policy-center/comprehensive-rules/"
 
+# Headers que imitan un navegador real para que fabtcg.com no nos bloquee con 403
+BROWSER_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/124.0.0.0 Safari/537.36"
+    ),
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    "Connection": "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+}
+
 
 class FabScraper(BaseScraper):
     game_id = GameId.fab
@@ -19,7 +33,7 @@ class FabScraper(BaseScraper):
     async def fetch(self) -> list[Rule]:
         # Le doy más tiempo porque la página puede tardar en cargar
         async with httpx.AsyncClient(timeout=60, follow_redirects=True,
-                                     headers={"User-Agent": "Mozilla/5.0"}) as client:
+                                     headers=BROWSER_HEADERS) as client:
             # Primero busco el enlace al reglamento actual en el índice
             index_resp = await client.get(INDEX_URL)
             index_resp.raise_for_status()
