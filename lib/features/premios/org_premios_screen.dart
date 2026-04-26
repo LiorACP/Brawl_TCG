@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
@@ -6,7 +7,18 @@ import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/anuncios/org_anuncios_screen.dart';
 
 class OrgPremiosScreen extends StatefulWidget {
-  const OrgPremiosScreen({super.key});
+  final String eventId;
+  final String eventName;
+  final double entryFee;
+  final int plazas;
+
+  const OrgPremiosScreen({
+    super.key,
+    required this.eventId,
+    required this.eventName,
+    required this.entryFee,
+    required this.plazas,
+  });
 
   @override
   State<OrgPremiosScreen> createState() => _OrgPremiosScreenState();
@@ -16,6 +28,7 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
   int _pool = 200;
   bool _productPrize = true;
   bool _promoPrize = true;
+  bool _isSaving = false;
 
   final _prizes = [
     _PrizeSlot(pos: '🏆  1.º', pct: 40),
@@ -23,6 +36,58 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
     _PrizeSlot(pos: '🥉  3.º / 4.º', pct: 20),
     _PrizeSlot(pos: '       5.º – 8.º', pct: 15),
   ];
+
+  Future<void> _saveDraft() async {
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({
+        'prizePool': _pool,
+        'productPrize': _productPrize,
+        'promoPrize': _promoPrize,
+      });
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (_) {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _next() async {
+    setState(() => _isSaving = true);
+    try {
+      await FirebaseFirestore.instance
+          .collection('Tournaments')
+          .doc(widget.eventId)
+          .update({
+        'prizePool': _pool,
+        'productPrize': _productPrize,
+        'promoPrize': _promoPrize,
+        'prizeInfo': '€ $_pool · ${_productPrize ? 'Producto' : ''}'
+            '${_productPrize && _promoPrize ? ' · ' : ''}'
+            '${_promoPrize ? 'Promo Top 4' : ''}',
+      });
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        fadeSlideRoute(OrgAnunciosScreen(
+          isCreationFlow: true,
+          eventId: widget.eventId,
+        )),
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Error al guardar los premios')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,9 +120,7 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Borrador guardado')),
-                          ),
+                          onTap: _isSaving ? null : _saveDraft,
                           child: Text('Guardar',
                               style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim)),
                         ),
@@ -231,13 +294,16 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: GradBtn(
-                        size: GradBtnSize.lg,
-                        gradient: AppColors.organizadorGradient,
-                        width: double.infinity,
-                        onTap: () => Navigator.push(context, fadeSlideRoute(const OrgAnunciosScreen(isCreationFlow: true))),
-                        child: const Text('Siguiente · Publicar →'),
-                      ),
+                      child: _isSaving
+                          ? const Center(
+                              child: CircularProgressIndicator(color: AppColors.orange))
+                          : GradBtn(
+                              size: GradBtnSize.lg,
+                              gradient: AppColors.organizadorGradient,
+                              width: double.infinity,
+                              onTap: _next,
+                              child: const Text('Siguiente · Publicar →'),
+                            ),
                     ),
                   ],
                 ),

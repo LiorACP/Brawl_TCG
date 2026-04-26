@@ -439,10 +439,15 @@ class _ApuntadosTab extends StatelessWidget {
             ),
           ),
         ] else ...[
-          _EmptyState(
-            icon: '📅',
-            message: 'No tienes torneos próximos',
-            sub: 'Usa el botón ＋ para inscribirte con un código',
+          SizedBox(
+            height: MediaQuery.of(context).size.height * 0.35,
+            child: Center(
+              child: _EmptyState(
+                icon: '📅',
+                message: 'No tienes torneos próximos',
+                sub: 'Usa el botón ＋ para inscribirte con un código',
+              ),
+            ),
           ),
         ],
         SectionLabel(
@@ -690,11 +695,14 @@ class _EmptyState extends StatelessWidget {
           padding: const EdgeInsets.all(24),
           radius: 22,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(icon, style: const TextStyle(fontSize: 36)),
               const SizedBox(height: 12),
               Text(
                 message,
+                textAlign: TextAlign.center,
                 style: GoogleFonts.rubik(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,

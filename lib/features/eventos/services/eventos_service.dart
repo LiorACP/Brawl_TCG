@@ -119,23 +119,33 @@ class EventosService {
         .collection('Tournaments')
         .where('organizerId', isEqualTo: orgRef)
         .where('status', whereIn: ['Live', 'Pending'])
-        .orderBy('date')
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((d) => Tournament.fromFirestore(d)).toList());
+        .map((snap) {
+      final list =
+          snap.docs.map((d) => Tournament.fromFirestore(d)).toList();
+      list.sort((a, b) => (a.date ?? DateTime(0)).compareTo(b.date ?? DateTime(0)));
+      return list;
+    });
   }
 
   static Stream<List<Tournament>> watchOrgByStatus(
       String orgId, String status) {
     final orgRef = _db.collection('User').doc(orgId);
+    final descending = status == 'Finished';
     return _db
         .collection('Tournaments')
         .where('organizerId', isEqualTo: orgRef)
         .where('status', isEqualTo: status)
-        .orderBy('date', descending: status == 'Finished')
         .snapshots()
-        .map((snap) =>
-            snap.docs.map((d) => Tournament.fromFirestore(d)).toList());
+        .map((snap) {
+      final list =
+          snap.docs.map((d) => Tournament.fromFirestore(d)).toList();
+      list.sort((a, b) {
+        final cmp = (a.date ?? DateTime(0)).compareTo(b.date ?? DateTime(0));
+        return descending ? -cmp : cmp;
+      });
+      return list;
+    });
   }
 
   // ── ORGANIZADOR: KPIs en tiempo real ─────────────────────────────────────

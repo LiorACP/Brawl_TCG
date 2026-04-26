@@ -5,8 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
-import 'package:brawl_tcg/shell/cliente_shell.dart';
-import 'package:brawl_tcg/shell/org_shell.dart';
 import 'package:brawl_tcg/screens/cliente/Login.dart';
 import 'widgets/datos_personales_screen.dart';
 import 'widgets/contrasena_seguridad_screen.dart';
@@ -96,22 +94,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     });
   }
 
-  void _switchToCliente() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      fadeSlideRoute(const ClienteShell()),
-      (route) => false,
-    );
-  }
-
-  void _switchToOrg() {
-    Navigator.pushAndRemoveUntil(
-      context,
-      fadeSlideRoute(const OrgShell()),
-      (route) => false,
-    );
-  }
-
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
     if (!mounted) return;
@@ -195,17 +177,10 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                       style: GoogleFonts.rubik(
                                           fontSize: 12, color: AppColors.textDim)),
                                   const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      BrawlTag(label: 'Cliente', color: AppColors.cyan),
-                                      if (_isOrg) ...[
-                                        const SizedBox(width: 6),
-                                        BrawlTag(
-                                            label: 'Organizador',
-                                            color: AppColors.magenta),
-                                      ],
-                                    ],
-                                  ),
+                                  if (_isOrg)
+                                    BrawlTag(
+                                        label: 'Organizador',
+                                        color: AppColors.magenta),
                                 ],
                               ),
                             ),
@@ -232,33 +207,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                     style: GoogleFonts.rubik(
                                         fontSize: 12, color: AppColors.textDim)),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-
-                      // ── Role switcher ─────────────────────────────────────
-                      BrawlCard(
-                        padding: const EdgeInsets.all(4),
-                        radius: 18,
-                        child: Row(
-                          children: [
-                            _RoleTab(
-                              label: 'Cliente',
-                              active: !_isOrg,
-                              gradient: AppColors.clienteGradient,
-                              onTap: () {
-                                if (_isOrg) _switchToCliente();
-                              },
-                            ),
-                            _RoleTab(
-                              label: 'Organizador',
-                              active: _isOrg,
-                              gradient: AppColors.organizadorGradient,
-                              onTap: () {
-                                if (!_isOrg) _switchToOrg();
-                              },
                             ),
                           ],
                         ),
@@ -449,43 +397,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
               ),
               const BrawlNavBarSpacer(),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── _RoleTab ──────────────────────────────────────────────────────────────────
-class _RoleTab extends StatelessWidget {
-  final String label;
-  final bool active;
-  final List<Color> gradient;
-  final VoidCallback onTap;
-  const _RoleTab(
-      {required this.label,
-      required this.active,
-      required this.gradient,
-      required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          height: 42,
-          decoration: BoxDecoration(
-            gradient: active ? LinearGradient(colors: gradient) : null,
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Center(
-            child: Text(label,
-                style: GoogleFonts.rubik(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white)),
           ),
         ),
       ),
