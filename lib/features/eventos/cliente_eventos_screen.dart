@@ -307,133 +307,78 @@ class _ApuntadosTab extends StatelessWidget {
       children: [
         if (active != null) ...[
           BrawlCard(
-            padding: EdgeInsets.zero,
-            radius: 26,
+            padding: const EdgeInsets.all(16),
+            radius: 22,
             tint: const Color(0xFF0F0C1A),
             border: Colors.transparent,
-            child: Column(
+            child: Row(
               children: [
-                Container(
-                  height: 130,
-                  decoration: const BoxDecoration(
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(26)),
-                  ),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: -30,
-                        right: -40,
-                        child: Container(
-                          width: 200,
-                          height: 200,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: RadialGradient(
-                              colors: [
-                                AppColors.cyan.withValues(alpha: 0.5),
-                                AppColors.violet.withValues(alpha: 0.3),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 14,
-                        left: 14,
-                        child: GameBadge(game: active!.game.code, size: 36),
-                      ),
-                    ],
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+                GameBadge(game: active!.game.code, size: 48),
+                const SizedBox(width: 14),
+                Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         active!.tournamentName,
                         style: GoogleFonts.rubik(
-                          fontSize: 18,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: AppColors.text,
-                          letterSpacing: -0.3,
+                          letterSpacing: -0.2,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         active!.storeName,
                         style: GoogleFonts.rubik(
-                          fontSize: 13,
-                          color: AppColors.textDim,
-                        ),
+                            fontSize: 12, color: AppColors.textDim),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 10),
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                          Row(
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    active!.dateLabel,
-                                    style: GoogleFonts.rubik(
-                                      fontSize: 10,
+                              Text(active!.dateLabel,
+                                  style: GoogleFonts.rubik(
+                                      fontSize: 9,
                                       color: AppColors.textMute,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  Text(
-                                    active!.timeLabel,
-                                    style: GoogleFonts.rubik(
-                                      fontSize: 20,
+                                      letterSpacing: 0.4)),
+                              Text(active!.timeLabel,
+                                  style: GoogleFonts.rubik(
+                                      fontSize: 16,
                                       fontWeight: FontWeight.w700,
-                                      color: AppColors.text,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(width: 18),
-                              Container(
-                                  width: 1,
-                                  height: 36,
-                                  color: AppColors.stroke),
-                              const SizedBox(width: 18),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'MESA',
-                                    style: GoogleFonts.rubik(
-                                      fontSize: 10,
-                                      color: AppColors.textMute,
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                  Text(
-                                    active!.tableLabel,
-                                    style: GoogleFonts.rubik(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.text,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                      color: AppColors.text)),
                             ],
                           ),
-                          GradBtn(
-                            size: GradBtnSize.sm,
-                            child: const Text('Ver →'),
+                          const SizedBox(width: 12),
+                          Container(width: 1, height: 28, color: AppColors.stroke),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('MESA',
+                                  style: GoogleFonts.rubik(
+                                      fontSize: 9,
+                                      color: AppColors.textMute,
+                                      letterSpacing: 0.4)),
+                              Text(active!.tableLabel,
+                                  style: GoogleFonts.rubik(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.text)),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
+                ),
+                const SizedBox(width: 10),
+                GradBtn(
+                  size: GradBtnSize.sm,
+                  child: const Text('Ver →'),
                 ),
               ],
             ),
@@ -675,9 +620,10 @@ class _ErrorSliver extends StatelessWidget {
         height: 200,
         child: Center(
           child: Text(
-            'Error al cargar datos',
+            message,
+            textAlign: TextAlign.center,
             style: GoogleFonts.rubik(
-                fontSize: 13, color: AppColors.textMute),
+                fontSize: 12, color: AppColors.textMute),
           ),
         ),
       );
