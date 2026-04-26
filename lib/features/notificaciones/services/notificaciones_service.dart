@@ -17,21 +17,26 @@ class NotificacionesService {
 
   static Stream<NotiBundle> watchNotifications(String uid) {
     final userRef = _db.collection('User').doc(uid);
-    final cutoff = DateTime.now().subtract(const Duration(days: 2));
+    // Single-field filter only — avoids requiring a composite Firestore index.
+    // Date filtering and ordering are done client-side.
     return _db
         .collection('Notifications')
         .where('userID', isEqualTo: userRef)
-        .where('date', isGreaterThan: Timestamp.fromDate(cutoff))
-        .orderBy('date', descending: true)
         .snapshots()
         .map((snap) {
       final now = DateTime.now();
+      final cutoff = now.subtract(const Duration(days: 2));
       final today = <AppNotification>[];
       final yesterday = <AppNotification>[];
       int unread = 0;
 
-      for (final doc in snap.docs) {
-        final n = AppNotification.fromFirestore(doc);
+      final docs = snap.docs
+          .map((d) => AppNotification.fromFirestore(d))
+          .where((n) => n.createdAt.isAfter(cutoff))
+          .toList()
+        ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+      for (final n in docs) {
         if (!n.isRead) unread++;
         if (_isToday(n.createdAt, now)) {
           today.add(n);
