@@ -140,41 +140,37 @@ class SharedReglasScreen extends StatelessWidget {
                       ...vm.games.map((g) => _GameRuleRow(rule: g)),
                       const SectionLabel('Recursos rápidos',
                           margin: EdgeInsets.only(left: 4, top: 6, bottom: 10)),
-                      LayoutBuilder(
-                        builder: (context, constraints) {
-                          final isWide = constraints.maxWidth >= 600;
-                          return GridView.count(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            crossAxisCount: isWide ? 3 : 3,
-                            mainAxisSpacing: 10,
-                            crossAxisSpacing: 10,
-                            childAspectRatio: isWide ? 2.0 : 1.4,
-                            children: [
-                              _ResourceTile(
+                      IntrinsicHeight(
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _ResourceTile(
                                 title: 'Glosario',
-                                sub: '248 términos',
                                 color: AppColors.violet,
                                 icon: 'A',
                                 onTap: () {},
                               ),
-                              _ResourceTile(
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _ResourceTile(
                                 title: 'Árbitro FAQ',
-                                sub: 'Situaciones comunes',
                                 color: AppColors.cyan,
                                 icon: '?',
                                 onTap: () {},
                               ),
-                              _ResourceTile(
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _ResourceTile(
                                 title: 'Eventos oficiales',
-                                sub: 'Calendario IRL',
                                 color: AppColors.orange,
                                 icon: '★',
                                 onTap: () => showEventosOficialesSheet(context),
                               ),
-                            ],
-                          );
-                        },
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -265,12 +261,11 @@ class _GameRuleRow extends StatelessWidget {
 }
 
 class _ResourceTile extends StatelessWidget {
-  final String title, sub, icon;
+  final String title, icon;
   final Color color;
   final VoidCallback? onTap;
   const _ResourceTile({
     required this.title,
-    required this.sub,
     required this.icon,
     required this.color,
     this.onTap,
@@ -284,6 +279,7 @@ class _ResourceTile extends StatelessWidget {
       radius: 18,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: 32,
@@ -301,16 +297,13 @@ class _ResourceTile extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.rubik(
-                fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            sub,
-            style: GoogleFonts.rubik(fontSize: 11, color: AppColors.textDim),
+                fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.text),
           ),
         ],
       ),
