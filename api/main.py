@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import rules, ingest
+from routers import rules, ingest, notify
 
 app = FastAPI(
     title="TCG Rules API",
@@ -25,6 +25,7 @@ app.add_middleware(
 
 app.include_router(rules.router)
 app.include_router(ingest.router)
+app.include_router(notify.router)
 
 
 @app.get("/", tags=["Health"], summary="Estado del servicio")

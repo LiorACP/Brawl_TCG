@@ -6,6 +6,7 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/notificaciones/shared_notis_screen.dart';
+import 'package:brawl_tcg/features/notificaciones/services/notificaciones_service.dart';
 import 'package:brawl_tcg/features/eventos/org_info_screen.dart';
 import 'package:brawl_tcg/features/eventos/org_crear_screen.dart';
 import 'package:brawl_tcg/features/premios/org_premios_screen.dart';
@@ -285,7 +286,50 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                         ),
                         Row(
                           children: [
-                            _IconBtn(icon: '🔔', onTap: _openNotis),
+                            _uid == null
+                                ? _IconBtn(icon: '🔔', onTap: _openNotis)
+                                : StreamBuilder<NotiBundle>(
+                                    stream: NotificacionesService
+                                        .watchNotifications(_uid!),
+                                    builder: (ctx, snap) {
+                                      final unread =
+                                          snap.data?.unreadCount ?? 0;
+                                      return Stack(
+                                        clipBehavior: Clip.none,
+                                        children: [
+                                          _IconBtn(
+                                              icon: '🔔',
+                                              onTap: _openNotis),
+                                          if (unread > 0)
+                                            Positioned(
+                                              top: -4,
+                                              right: -4,
+                                              child: Container(
+                                                width: 16,
+                                                height: 16,
+                                                decoration: const BoxDecoration(
+                                                  color: AppColors.pink,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    unread > 9
+                                                        ? '9+'
+                                                        : '$unread',
+                                                    style: const TextStyle(
+                                                      fontSize: 9,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Colors.white,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      );
+                                    },
+                                  ),
                             const SizedBox(width: 8),
                             _IconBtn(icon: '📢', onTap: _openAnuncios),
                             const SizedBox(width: 8),
