@@ -5,11 +5,18 @@ import 'package:brawl_tcg/shell/org_shell.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
+
+// VAPID key (Web Push certificate) de Firebase Console:
+// Project Settings → Cloud Messaging → Web Push certificates → Key pair
+// Reemplaza este valor con el tuyo antes de desplegar en web.
+const String _kVapidKey =
+    'BKrkI2AVVga5ebHmlxojbCNydEmshrHkncp9TGup8MglYe51l_qXC8uVrfl7HIr1Ac3s92ggMdKd7HcXkNVBpmA';
 
 @pragma('vm:entry-point')
 Future<void> _bgMessageHandler(RemoteMessage message) async {}
@@ -108,7 +115,9 @@ class _RoleRouterState extends State<_RoleRouter> {
   Future<void> _saveFcmToken() async {
     try {
       await FirebaseMessaging.instance.requestPermission();
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await FirebaseMessaging.instance.getToken(
+        vapidKey: kIsWeb ? _kVapidKey : null,
+      );
       if (token == null) return;
       await FirebaseFirestore.instance
           .collection('User')
