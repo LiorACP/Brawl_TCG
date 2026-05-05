@@ -64,7 +64,7 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
           .collection('User')
           .doc(user.uid)
           .update({
-        'nombre': nuevoNombre,
+        'name': nuevoNombre,
         'email': nuevoEmail,
         'telefono': nuevoTelefono,
       });

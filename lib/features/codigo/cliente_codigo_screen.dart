@@ -216,6 +216,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
 
       final userSnap = await userRef.get();
       final userName = userSnap.data()?['name'] as String? ??
+          userSnap.data()?['nombre'] as String? ??
           user.email?.split('@').first ??
           'Jugador';
       final tournamentName = doc.data()?['name'] as String? ?? 'Torneo';
