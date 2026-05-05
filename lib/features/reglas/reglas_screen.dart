@@ -28,109 +28,112 @@ class SharedReglasScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(22, 18, 22, 0),
                 child: Column(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'BIBLIOTECA',
-                              style: GoogleFonts.rubik(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textMute,
-                                letterSpacing: 0.5,
-                              ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'BIBLIOTECA',
+                            style: GoogleFonts.rubik(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textMute,
+                              letterSpacing: 0.5,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Juegos & Reglas',
-                              style: GoogleFonts.rubik(
-                                fontSize: 26,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.text,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.stroke),
                           ),
-                          child: const Icon(Icons.search,
-                              size: 18, color: Colors.white),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            'Juegos & Reglas',
+                            style: GoogleFonts.rubik(
+                              fontSize: 26,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    BrawlCard(
-                      padding: EdgeInsets.zero,
-                      radius: 22,
-                      tint: const Color(0xFF0F0C1A),
-                      border: Colors.transparent,
-                      child: SizedBox(
-                        height: 110,
-                        child: Stack(
+                    StreamBuilder<GameMeta?>(
+                      stream: ReglasService.watchLatestUpdate(),
+                      builder: (context, snap) {
+                        final meta = snap.data;
+                        if (meta == null) return const SizedBox.shrink();
+
+                        final game = TcgGameFirestoreId.fromFirestoreId(meta.gameId);
+                        final gameName = game?.fullName ?? meta.gameId;
+                        final dateLabel = _shortDate(meta.lastUpdated!);
+
+                        return Column(
                           children: [
-                            Positioned(
-                              top: -30,
-                              right: -40,
-                              child: Container(
-                                width: 200,
-                                height: 200,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  gradient: RadialGradient(
-                                    colors: [
-                                      AppColors.orange.withValues(alpha: 0.5),
-                                      AppColors.pink.withValues(alpha: 0.3),
-                                      Colors.transparent,
-                                    ],
-                                  ),
+                            BrawlCard(
+                              padding: EdgeInsets.zero,
+                              radius: 22,
+                              tint: const Color(0xFF0F0C1A),
+                              border: Colors.transparent,
+                              child: SizedBox(
+                                height: 110,
+                                child: Stack(
+                                  children: [
+                                    Positioned(
+                                      top: -30,
+                                      right: -40,
+                                      child: Container(
+                                        width: 200,
+                                        height: 200,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          gradient: RadialGradient(
+                                            colors: [
+                                              AppColors.orange.withValues(alpha: 0.5),
+                                              AppColors.pink.withValues(alpha: 0.3),
+                                              Colors.transparent,
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      bottom: 12,
+                                      left: 16,
+                                      right: 16,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          BrawlTag(
+                                            label: '⚡ Actualizado · $dateLabel',
+                                            color: AppColors.yellow,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Reglas actualizadas · $gameName',
+                                            style: GoogleFonts.rubik(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.text,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            '${meta.rulesCount} reglas · v.${meta.version}',
+                                            style: GoogleFonts.rubik(
+                                                fontSize: 11,
+                                                color: AppColors.textDim),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                            Positioned(
-                              bottom: 12,
-                              left: 16,
-                              right: 16,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  BrawlTag(
-                                    label: vm.alert.tag,
-                                    color: AppColors.yellow,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    vm.alert.title,
-                                    style: GoogleFonts.rubik(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.text,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    vm.alert.subtitle,
-                                    style: GoogleFonts.rubik(
-                                        fontSize: 11,
-                                        color: AppColors.textDim),
-                                  ),
-                                ],
-                              ),
-                            ),
+                            const SizedBox(height: 12),
                           ],
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 12),
                   ],
                 ),
               ),
@@ -215,6 +218,7 @@ class _GameRuleRowFirestore extends StatelessWidget {
         builder: (context, snap) {
           // Mientras carga usa la versión del viewmodel como fallback
           final version = snap.data?.version ?? rule.updated;
+          final isUpdated = snap.data?.lastUpdated != null;
 
           return BrawlCard(
             padding: const EdgeInsets.all(14),
@@ -244,7 +248,7 @@ class _GameRuleRowFirestore extends StatelessWidget {
                                   color: AppColors.text),
                             ),
                           ),
-                          if (rule.isNew)
+                          if (isUpdated)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 1.5),
@@ -346,4 +350,12 @@ class _ResourceTile extends StatelessWidget {
       ),
     );
   }
+}
+
+String _shortDate(DateTime d) {
+  const months = [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+  ];
+  return '${d.day} ${months[d.month - 1]}';
 }

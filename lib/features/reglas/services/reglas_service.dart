@@ -53,4 +53,19 @@ class ReglasService {
     final doc = await _db.collection('games').doc(gameId).get();
     return doc.data()?['version'] as String? ?? '—';
   }
+
+  // Devuelve el GameMeta actualizado más recientemente entre todos los juegos.
+  // Emite null si ningún juego tiene lastUpdated (la API no ha corrido aún).
+  static Stream<GameMeta?> watchLatestUpdate() {
+    return _db.collection('games').snapshots().map((snap) {
+      final withDate = snap.docs
+          .map((d) => GameMeta.fromFirestore(d))
+          .where((m) => m.lastUpdated != null)
+          .toList();
+      if (withDate.isEmpty) return null;
+      return withDate.reduce(
+        (a, b) => a.lastUpdated!.isAfter(b.lastUpdated!) ? a : b,
+      );
+    });
+  }
 }

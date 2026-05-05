@@ -13,6 +13,17 @@ extension TcgGameFirestoreId on TcgGame {
         TcgGame.one => 'onepiece',
         TcgGame.dbs => 'dbs',
       };
+
+  static TcgGame? fromFirestoreId(String id) => switch (id) {
+        'magic' => TcgGame.mtg,
+        'pokemon' => TcgGame.pok,
+        'yugioh' => TcgGame.ygo,
+        'lorcana' => TcgGame.lor,
+        'fab' => TcgGame.fab,
+        'onepiece' => TcgGame.one,
+        'dbs' => TcgGame.dbs,
+        _ => null,
+      };
 }
 
 // Modelo para el documento games/{gameId}
@@ -42,6 +53,33 @@ class GameMeta {
 
   // Valor por defecto cuando Firestore aún no tiene datos del juego
   static const fallback = GameMeta(gameId: '', version: '—');
+}
+
+class FaqItem {
+  final String question;
+  final String answer;
+  final List<String> keywords;
+
+  const FaqItem({
+    required this.question,
+    required this.answer,
+    this.keywords = const [],
+  });
+
+  bool matches(String query) {
+    if (query.isEmpty) return true;
+    final q = query.toLowerCase();
+    return question.toLowerCase().contains(q) ||
+        answer.toLowerCase().contains(q) ||
+        keywords.any((k) => k.toLowerCase().contains(q));
+  }
+}
+
+class RuleSection {
+  final String title;
+  final List<FaqItem> faqs;
+
+  const RuleSection({required this.title, required this.faqs});
 }
 
 // Modelo para cada documento de la subcolección games/{gameId}/rules/{ruleId}
