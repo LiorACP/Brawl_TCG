@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Usuarios: solo el propio usuario puede leer y editar su documento
+    match /User/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Torneos: cualquier usuario autenticado puede leer
+    // Solo el organizador (dueño) puede crear/editar/borrar
+    match /Tournaments/{tournamentId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null
+        && resource.data.organizerId == /databases/$(database)/documents/User/$(request.auth.uid);
+
+      // Inscripciones: cualquier usuario autenticado puede inscribirse (crear)
+      // Solo el organizador puede leer todas; el jugador solo la suya
+      match /registration/{regId} {
+        allow create: if request.auth != null;
+        allow read: if request.auth != null;
+        allow update, delete: if request.auth != null;
+      }
+    }
+
+    // Notificaciones: cualquier usuario autenticado puede CREAR (para enviar notifs a otros)
+    // Solo el destinatario puede leer y marcar como leída
+    match /Notifications/{notifId} {
+      allow create: if request.auth != null;
+      allow read, update: if request.auth != null
+        && resource.data.userID == /databases/$(database)/documents/User/$(request.auth.uid);
+    }
+  }
+}

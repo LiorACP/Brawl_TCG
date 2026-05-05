@@ -84,7 +84,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
             itemBuilder: (context, i) {
               final doc = docs[i];
               final data = doc.data();
-              final playerName = data['playerName'] as String? ?? 'Jugador';
+              final playerName = data['player_name'] as String? ?? 'Jugador';
               final deck = data['deck'] as String? ?? '';
               final hasDeck = deck.isNotEmpty;
               final regId = doc.id;
@@ -144,6 +144,12 @@ class _RegistrationCardState extends State<_RegistrationCard> {
 
       await regRef.update({'status': newStatus});
 
+      // Decremento pendingCount siempre (se acepta o rechaza deja de estar pendiente)
+      await db
+          .collection('Tournaments')
+          .doc(widget.tournamentId)
+          .update({'pendingCount': FieldValue.increment(-1)});
+
       if (newStatus == 'Accepted') {
         await db
             .collection('Tournaments')
@@ -154,7 +160,7 @@ class _RegistrationCardState extends State<_RegistrationCard> {
       if (widget.playerRef != null) {
         final isAccepted = newStatus == 'Accepted';
         await db.collection('Notifications').add({
-          'userID': widget.playerRef?.id,
+          'userID': widget.playerRef,
           'date': FieldValue.serverTimestamp(),
           'type': 'inscripcion_respuesta',
           'title': isAccepted ? 'Inscripción aceptada' : 'Inscripción rechazada',

@@ -1,17 +1,11 @@
-﻿import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:http/http.dart' as http;
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
-
-// Cambia esta URL por la de tu backend en producción.
-// Para emulador Android usa: http://10.0.2.2:8000
-// Para iOS simulator / web usa: http://localhost:8000
-const String _kApiBase = 'http://10.0.2.2:8000';
+import 'package:brawl_tcg/features/notificaciones/services/notificaciones_service.dart';
 
 class ClienteCodigoScreen extends StatefulWidget {
   const ClienteCodigoScreen({super.key});
@@ -236,30 +230,21 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
         'creadoEn': FieldValue.serverTimestamp(),
       });
 
-      // Mando notificación in-app al organizador (Firestore), si falla no peta la inscripción
+      // Incremento pendingCount en el torneo para disparar el stream de KPIs
+      await doc.reference.update({'pendingCount': FieldValue.increment(1)});
+
+      // Notificación in-app al organizador; si falla no bloquea la inscripción
       if (orgRef != null) {
         try {
-          await db.collection('Notifications').add({
-            'userID': orgRef,
-            'date': FieldValue.serverTimestamp(),
-            'type': 'inscripcion',
-            'title': 'Nueva inscripción',
-            'mensaje': '$userName quiere apuntarse a $tournamentName',
-            'icon': '✉',
-            'isRead': false,
-            'tournamentId': doc.id,
-          });
-        } catch (_) {}
-
-        // Push FCM al organizador a través de la API
-        try {
-          await _sendEnrollmentPush(
-            organizerUid: orgRef.id,
+          await NotificacionesService.notifyOrganizer(
+            organizerRef: orgRef,
             playerName: userName,
             tournamentName: tournamentName,
             tournamentId: doc.id,
           );
-        } catch (_) {}
+        } catch (e) {
+          debugPrint('Error al enviar notificación al organizador: $e');
+        }
       }
 
       if (!mounted) return;
@@ -278,25 +263,6 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     } finally {
       if (mounted) setState(() => _enrolling = false);
     }
-  }
-
-  static Future<void> _sendEnrollmentPush({
-    required String organizerUid,
-    required String playerName,
-    required String tournamentName,
-    required String tournamentId,
-  }) async {
-    final uri = Uri.parse('$_kApiBase/notify/enrollment');
-    await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'organizer_uid': organizerUid,
-        'player_name': playerName,
-        'tournament_name': tournamentName,
-        'tournament_id': tournamentId,
-      }),
-    );
   }
 
   void _reset() {

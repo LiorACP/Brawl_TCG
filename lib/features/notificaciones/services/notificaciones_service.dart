@@ -66,6 +66,26 @@ class NotificacionesService {
     await batch.commit();
   }
 
+  // Escribe una notificación de inscripción para el organizador del torneo.
+  // Se llama desde el flujo de inscripción del jugador.
+  static Future<void> notifyOrganizer({
+    required DocumentReference organizerRef,
+    required String playerName,
+    required String tournamentName,
+    required String tournamentId,
+  }) async {
+    await _db.collection('Notifications').add({
+      'userID': organizerRef,
+      'date': FieldValue.serverTimestamp(),
+      'type': 'inscripcion',
+      'title': 'Nueva inscripción',
+      'mensaje': '$playerName quiere apuntarse a $tournamentName',
+      'icon': '✉',
+      'isRead': false,
+      'tournamentId': tournamentId,
+    });
+  }
+
   static Future<void> markRead(String notificationId) async {
     await _db
         .collection('Notifications')
