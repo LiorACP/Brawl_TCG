@@ -40,6 +40,12 @@ class _NotisBody extends StatefulWidget {
 class _NotisBodyState extends State<_NotisBody> {
   String _filter = 'all';
 
+  @override
+  void initState() {
+    super.initState();
+    NotificacionesService.markAllRead(widget.uid);
+  }
+
   static const _filters = [
     ('all', 'Todas'),
     ('events', 'Eventos'),

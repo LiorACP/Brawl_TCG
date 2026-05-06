@@ -15,6 +15,7 @@ import 'data/tournament.dart';
 import 'data/org_kpi.dart';
 import 'services/eventos_service.dart';
 import 'org_inscripciones_screen.dart';
+import 'org_participantes_screen.dart';
 
 class OrgEventosScreen extends StatefulWidget {
   const OrgEventosScreen({super.key});
@@ -100,6 +101,19 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                 Navigator.push(
                   context,
                   fadeSlideRoute(OrgInscripcionesScreen(tournament: t)),
+                );
+              },
+            ),
+            const SizedBox(height: 2),
+            _OptionRow(
+              icon: '👥',
+              label: 'Ver participantes',
+              color: AppColors.cyan,
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(
+                  context,
+                  fadeSlideRoute(OrgParticipantesScreen(tournament: t)),
                 );
               },
             ),
