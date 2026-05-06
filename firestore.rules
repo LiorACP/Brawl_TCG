@@ -8,12 +8,18 @@ service cloud.firestore {
     }
 
     // Torneos: cualquier usuario autenticado puede leer
-    // Solo el organizador (dueño) puede crear/editar/borrar
+    // Solo el organizador puede crear/editar/borrar; cualquier usuario puede
+    // incrementar pendingCount (necesario para disparar el stream de KPIs al inscribirse)
     match /Tournaments/{tournamentId} {
       allow read: if request.auth != null;
       allow create: if request.auth != null;
-      allow update, delete: if request.auth != null
+      allow delete: if request.auth != null
         && resource.data.organizerId == /databases/$(database)/documents/User/$(request.auth.uid);
+      allow update: if request.auth != null
+        && (
+          resource.data.organizerId == /databases/$(database)/documents/User/$(request.auth.uid)
+          || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingCount'])
+        );
 
       // Inscripciones: cualquier usuario autenticado puede inscribirse (crear)
       // Solo el organizador puede leer todas; el jugador solo la suya

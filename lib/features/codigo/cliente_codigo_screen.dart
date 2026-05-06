@@ -231,8 +231,10 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
         'creadoEn': FieldValue.serverTimestamp(),
       });
 
-      // Incremento pendingCount en el torneo para disparar el stream de KPIs
-      await doc.reference.update({'pendingCount': FieldValue.increment(1)});
+      // Incremento pendingCount para disparar el stream de KPIs (silencioso si falla)
+      doc.reference
+          .update({'pendingCount': FieldValue.increment(1)})
+          .catchError((_) {});
 
       // Notificación in-app al organizador; si falla no bloquea la inscripción
       if (orgRef != null) {
