@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -34,10 +35,19 @@ class _ClienteVsScreenState extends State<ClienteVsScreen>
   late Animation<double> _buttonFade; // botón final
 
   bool _submitting = false;
+  StreamSubscription<LiveMatchData?>? _matchSub;
 
   @override
   void initState() {
     super.initState();
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _matchSub = TorneoLiveService.watchLiveMatch(uid).listen((data) {
+        if (!mounted) return;
+        if (data == null || !data.active) Navigator.of(context).popUntil((r) => r.isFirst);
+      });
+    }
 
     _intro = AnimationController(
       vsync: this,
@@ -110,6 +120,7 @@ class _ClienteVsScreenState extends State<ClienteVsScreen>
 
   @override
   void dispose() {
+    _matchSub?.cancel();
     _intro.dispose();
     _pulse.dispose();
     super.dispose();

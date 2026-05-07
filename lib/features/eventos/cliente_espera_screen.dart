@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math' as math;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
@@ -16,6 +18,7 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
     with TickerProviderStateMixin {
   late AnimationController _floatCtrl;
   late AnimationController _glowCtrl;
+  StreamSubscription<LiveMatchData?>? _matchSub;
 
   @override
   void initState() {
@@ -28,10 +31,19 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      _matchSub = TorneoLiveService.watchLiveMatch(uid).listen((data) {
+        if (!mounted) return;
+        if (data == null || !data.active) Navigator.of(context).popUntil((r) => r.isFirst);
+      });
+    }
   }
 
   @override
   void dispose() {
+    _matchSub?.cancel();
     _floatCtrl.dispose();
     _glowCtrl.dispose();
     super.dispose();
