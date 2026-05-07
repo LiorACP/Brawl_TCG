@@ -311,6 +311,32 @@ class TorneoLiveService {
     }
   }
 
+  /// El organizador finaliza el torneo.
+  static Future<void> finalizarTorneo(String tournamentId) async {
+    final regSnap = await _db
+        .collection('Tournaments')
+        .doc(tournamentId)
+        .collection('registration')
+        .where('status', isEqualTo: 'Accepted')
+        .get();
+
+    final batch = _db.batch();
+
+    batch.update(_db.collection('Tournaments').doc(tournamentId), {
+      'status': 'Finished',
+      'roundStatus': 'finished',
+    });
+
+    for (final doc in regSnap.docs) {
+      final userRef = doc.data()['userId'] as DocumentReference?;
+      if (userRef != null) {
+        batch.delete(_db.collection('UserLiveMatch').doc(userRef.id));
+      }
+    }
+
+    await batch.commit();
+  }
+
   /// Inicia la siguiente ronda (emparejamiento por puntos).
   static Future<void> nextRound({
     required String tournamentId,

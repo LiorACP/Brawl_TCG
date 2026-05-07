@@ -972,16 +972,67 @@ class _UnderlineTab extends StatelessWidget {
   }
 }
 
-class _LiveCard extends StatelessWidget {
+class _LiveCard extends StatefulWidget {
   final Tournament tournament;
   final void Function(Tournament) onOptions;
   const _LiveCard({required this.tournament, required this.onOptions});
 
   @override
+  State<_LiveCard> createState() => _LiveCardState();
+}
+
+class _LiveCardState extends State<_LiveCard> {
+  bool _finalizando = false;
+
+  Future<void> _confirmarFinalizar() async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Finalizar torneo',
+            style: GoogleFonts.rubik(
+                color: AppColors.text, fontWeight: FontWeight.w700)),
+        content: Text(
+          '¿Seguro que quieres finalizar "${widget.tournament.name}"? '
+          'Esta acción no se puede deshacer.',
+          style: GoogleFonts.rubik(color: AppColors.textDim, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancelar',
+                style: GoogleFonts.rubik(color: AppColors.textMute)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Finalizar',
+                style: GoogleFonts.rubik(
+                    color: AppColors.pink, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    setState(() => _finalizando = true);
+    try {
+      await TorneoLiveService.finalizarTorneo(widget.tournament.id);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al finalizar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _finalizando = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final progress = tournament.roundProgress ?? [];
-    final currentRound = tournament.currentRound ?? 0;
-    final totalRounds = tournament.totalRounds ?? 0;
+    final t = widget.tournament;
+    final progress = t.roundProgress ?? [];
+    final currentRound = t.currentRound ?? 0;
+    final totalRounds = t.totalRounds ?? 0;
 
     return BrawlCard(
       padding: EdgeInsets.zero,
@@ -1007,7 +1058,7 @@ class _LiveCard extends StatelessWidget {
                 ),
                 const Spacer(),
                 Text(
-                  '⏱ ${tournament.liveTimer ?? '—'}',
+                  '⏱ ${t.liveTimer ?? '—'}',
                   style: GoogleFonts.rubikMonoOne(
                     fontSize: 11,
                     color: AppColors.textDim,
@@ -1017,7 +1068,7 @@ class _LiveCard extends StatelessWidget {
                 GestureDetector(
                   onTap: () => Navigator.push(
                     context,
-                    fadeSlideRoute(OrgRankingScreen(tournament: tournament)),
+                    fadeSlideRoute(OrgRankingScreen(tournament: t)),
                   ),
                   child: Container(
                     width: 28,
@@ -1040,7 +1091,7 @@ class _LiveCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 GestureDetector(
-                  onTap: () => onOptions(tournament),
+                  onTap: () => widget.onOptions(t),
                   child: Container(
                     width: 28,
                     height: 28,
@@ -1069,14 +1120,14 @@ class _LiveCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    GameBadge(game: tournament.game.code, size: 42),
+                    GameBadge(game: t.game.code, size: 42),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tournament.name,
+                            t.name,
                             style: GoogleFonts.rubik(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -1085,7 +1136,7 @@ class _LiveCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            '${tournament.enrolledCount} inscritos · ${tournament.activeTables ?? 0} mesas activas',
+                            '${t.enrolledCount} inscritos · ${t.activeTables ?? 0} mesas activas',
                             style: GoogleFonts.rubik(
                               fontSize: 12,
                               color: AppColors.textDim,
@@ -1139,7 +1190,7 @@ class _LiveCard extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        '${tournament.pendingResults ?? 0} resultados pendientes',
+                        '${t.pendingResults ?? 0} resultados pendientes',
                         style: GoogleFonts.rubik(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -1149,6 +1200,42 @@ class _LiveCard extends StatelessWidget {
                     ],
                   ),
                 ],
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: GestureDetector(
+                    onTap: _finalizando ? null : _confirmarFinalizar,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 11),
+                      decoration: BoxDecoration(
+                        color: AppColors.pink.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.pink.withValues(alpha: 0.35),
+                        ),
+                      ),
+                      child: Center(
+                        child: _finalizando
+                            ? SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: AppColors.pink,
+                                ),
+                              )
+                            : Text(
+                                'Finalizar torneo',
+                                style: GoogleFonts.rubik(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.pink,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1216,7 +1303,13 @@ class _UpcomingCardState extends State<_UpcomingCard> {
       organizerId: orgId,
       roundNum: 1,
       randomize: true,
-    ).whenComplete(() {
+    ).catchError((e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al iniciar: $e')),
+        );
+      }
+    }).whenComplete(() {
       if (mounted) setState(() => _loading = false);
     });
   }
