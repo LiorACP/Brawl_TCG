@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
-import 'package:brawl_tcg/screens/cliente/Login.dart';
 import 'widgets/datos_personales_screen.dart';
 import 'widgets/contrasena_seguridad_screen.dart';
 import 'widgets/juegos_favoritos_screen.dart';
@@ -152,12 +151,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
 
   Future<void> _logout() async {
     await FirebaseAuth.instance.signOut();
-    if (!mounted) return;
-    Navigator.pushAndRemoveUntil(
-      context,
-      fadeSlideRoute(const Login()),
-      (route) => false,
-    );
   }
 
   String get _idiomaLabel => _idioma == 'es' ? 'Español (España)' : 'English (UK)';

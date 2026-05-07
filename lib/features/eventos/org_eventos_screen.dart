@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -16,6 +17,8 @@ import 'data/org_kpi.dart';
 import 'services/eventos_service.dart';
 import 'org_inscripciones_screen.dart';
 import 'org_participantes_screen.dart';
+import 'org_ranking_screen.dart';
+import 'services/torneo_live_service.dart';
 
 class OrgEventosScreen extends StatefulWidget {
   const OrgEventosScreen({super.key});
@@ -44,7 +47,8 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
           .collection('User')
           .doc(user.uid)
           .get();
-      final name = doc.data()?['name'] as String? ??
+      final name =
+          doc.data()?['name'] as String? ??
           user.email?.split('@').first ??
           'Organizador';
       if (mounted) setState(() => _storeName = name.toUpperCase());
@@ -87,9 +91,10 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
             Text(
               t.name,
               style: GoogleFonts.rubik(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.text),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text,
+              ),
             ),
             const SizedBox(height: 16),
             _OptionRow(
@@ -126,10 +131,9 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                 Navigator.pop(context);
                 Navigator.push(
                   context,
-                  fadeSlideRoute(OrgAnunciosScreen(
-                    isCreationFlow: false,
-                    eventId: t.id,
-                  )),
+                  fadeSlideRoute(
+                    OrgAnunciosScreen(isCreationFlow: false, eventId: t.id),
+                  ),
                 );
               },
             ),
@@ -155,11 +159,14 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Eliminar torneo',
-            style: GoogleFonts.rubik(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.text)),
+        title: Text(
+          'Eliminar torneo',
+          style: GoogleFonts.rubik(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
+        ),
         content: Text(
           '¿Seguro que quieres eliminar "${t.name}"? Esta acción no se puede deshacer.',
           style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textDim),
@@ -167,17 +174,21 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar',
-                style: GoogleFonts.rubik(
-                    fontSize: 13, color: AppColors.textMute)),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textMute),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Eliminar',
-                style: GoogleFonts.rubik(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.pink)),
+            child: Text(
+              'Eliminar',
+              style: GoogleFonts.rubik(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.pink,
+              ),
+            ),
           ),
         ],
       ),
@@ -195,11 +206,14 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Eliminar borrador',
-            style: GoogleFonts.rubik(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.text)),
+        title: Text(
+          'Eliminar borrador',
+          style: GoogleFonts.rubik(
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+            color: AppColors.text,
+          ),
+        ),
         content: Text(
           '¿Seguro que quieres eliminar "${t.name}"? Esta acción no se puede deshacer.',
           style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textDim),
@@ -207,17 +221,21 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar',
-                style: GoogleFonts.rubik(
-                    fontSize: 13, color: AppColors.textMute)),
+            child: Text(
+              'Cancelar',
+              style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textMute),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Eliminar',
-                style: GoogleFonts.rubik(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.pink)),
+            child: Text(
+              'Eliminar',
+              style: GoogleFonts.rubik(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.pink,
+              ),
+            ),
           ),
         ],
       ),
@@ -248,10 +266,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
       );
     } else {
       // Todo configurado, solo le queda publicar
-      screen = OrgAnunciosScreen(
-        isCreationFlow: true,
-        eventId: t.id,
-      );
+      screen = OrgAnunciosScreen(isCreationFlow: true, eventId: t.id);
     }
     Navigator.push(context, fadeSlideRoute(screen));
   }
@@ -303,8 +318,10 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                             _uid == null
                                 ? _IconBtn(icon: '🔔', onTap: _openNotis)
                                 : StreamBuilder<NotiBundle>(
-                                    stream: NotificacionesService
-                                        .watchNotifications(_uid!),
+                                    stream:
+                                        NotificacionesService.watchNotifications(
+                                          _uid!,
+                                        ),
                                     builder: (ctx, snap) {
                                       final unread =
                                           snap.data?.unreadCount ?? 0;
@@ -312,8 +329,9 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                                         clipBehavior: Clip.none,
                                         children: [
                                           _IconBtn(
-                                              icon: '🔔',
-                                              onTap: _openNotis),
+                                            icon: '🔔',
+                                            onTap: _openNotis,
+                                          ),
                                           if (unread > 0)
                                             Positioned(
                                               top: -4,
@@ -364,7 +382,8 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                         : StreamBuilder<OrgKpi>(
                             stream: EventosService.watchOrgKpi(_uid!),
                             builder: (ctx, snap) {
-                              final kpi = snap.data ??
+                              final kpi =
+                                  snap.data ??
                                   const OrgKpi(
                                     todayCount: 0,
                                     totalEnrolled: 0,
@@ -413,7 +432,9 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                 child: _uid == null
                     ? const Center(
                         child: CircularProgressIndicator(
-                            color: AppColors.orange))
+                          color: AppColors.orange,
+                        ),
+                      )
                     : SingleChildScrollView(
                         padding: const EdgeInsets.fromLTRB(22, 16, 22, 20),
                         child: AnimatedSwitcher(
@@ -511,8 +532,11 @@ class _TabCountsRow extends StatelessWidget {
   final String uid;
   final String activeTab;
   final void Function(String) onTab;
-  const _TabCountsRow(
-      {required this.uid, required this.activeTab, required this.onTab});
+  const _TabCountsRow({
+    required this.uid,
+    required this.activeTab,
+    required this.onTab,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -525,25 +549,28 @@ class _TabCountsRow extends StatelessWidget {
             GestureDetector(
               onTap: () => onTab('encurso'),
               child: _UnderlineTab(
-                  label: 'En curso',
-                  count: c.enCurso,
-                  active: activeTab == 'encurso'),
+                label: 'En curso',
+                count: c.enCurso,
+                active: activeTab == 'encurso',
+              ),
             ),
             const SizedBox(width: 16),
             GestureDetector(
               onTap: () => onTab('borradores'),
               child: _UnderlineTab(
-                  label: 'Borradores',
-                  count: c.draft,
-                  active: activeTab == 'borradores'),
+                label: 'Borradores',
+                count: c.draft,
+                active: activeTab == 'borradores',
+              ),
             ),
             const SizedBox(width: 16),
             GestureDetector(
               onTap: () => onTab('finalizados'),
               child: _UnderlineTab(
-                  label: 'Finalizados',
-                  count: c.finished,
-                  active: activeTab == 'finalizados'),
+                label: 'Finalizados',
+                count: c.finished,
+                active: activeTab == 'finalizados',
+              ),
             ),
           ],
         );
@@ -552,22 +579,22 @@ class _TabCountsRow extends StatelessWidget {
   }
 
   static Stream<_TabCounts> _watchCounts(String uid) {
-    final orgRef =
-        FirebaseFirestore.instance.collection('User').doc(uid);
+    final orgRef = FirebaseFirestore.instance.collection('User').doc(uid);
     return FirebaseFirestore.instance
         .collection('Tournaments')
         .where('organizerId', isEqualTo: orgRef)
         .snapshots()
         .map((snap) {
-      int enCurso = 0, draft = 0, finished = 0;
-      for (final doc in snap.docs) {
-        final status = (doc.data()['status'] as String? ?? '').toLowerCase();
-        if (status == 'live' || status == 'pending') enCurso++;
-        if (status == 'draft') draft++;
-        if (status == 'finished') finished++;
-      }
-      return _TabCounts(enCurso, draft, finished);
-    });
+          int enCurso = 0, draft = 0, finished = 0;
+          for (final doc in snap.docs) {
+            final status = (doc.data()['status'] as String? ?? '')
+                .toLowerCase();
+            if (status == 'live' || status == 'pending') enCurso++;
+            if (status == 'draft') draft++;
+            if (status == 'finished') finished++;
+          }
+          return _TabCounts(enCurso, draft, finished);
+        });
   }
 }
 
@@ -600,7 +627,8 @@ class _EnCursoContent extends StatelessWidget {
           const SizedBox(height: 12),
         ],
         ...upcomingTournaments.map(
-            (t) => _UpcomingCard(tournament: t, onOptions: onOptions)),
+          (t) => _UpcomingCard(tournament: t, onOptions: onOptions),
+        ),
         const SizedBox(height: 20),
       ],
     );
@@ -612,93 +640,95 @@ class _TournamentList extends StatelessWidget {
   final bool finished;
   final void Function(Tournament)? onTap;
   final void Function(Tournament)? onDelete;
-  const _TournamentList(
-      {required this.tournaments,
-      this.finished = false,
-      this.onTap,
-      this.onDelete});
+  const _TournamentList({
+    required this.tournaments,
+    this.finished = false,
+    this.onTap,
+    this.onDelete,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ...tournaments.map((t) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: GestureDetector(
-                onTap: onTap != null ? () => onTap!(t) : null,
-                child: BrawlCard(
-                  padding: const EdgeInsets.all(16),
-                  radius: 20,
-                  child: Row(
-                    children: [
-                      GameBadge(game: t.game.code, size: 40),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              t.name,
-                              style: GoogleFonts.rubik(
-                                fontSize: 14.5,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.text,
-                              ),
+        ...tournaments.map(
+          (t) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GestureDetector(
+              onTap: onTap != null ? () => onTap!(t) : null,
+              child: BrawlCard(
+                padding: const EdgeInsets.all(16),
+                radius: 20,
+                child: Row(
+                  children: [
+                    GameBadge(game: t.game.code, size: 40),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            t.name,
+                            style: GoogleFonts.rubik(
+                              fontSize: 14.5,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              t.detailLabel,
-                              style: GoogleFonts.rubik(
-                                fontSize: 12,
-                                color: AppColors.textDim,
-                              ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            t.detailLabel,
+                            style: GoogleFonts.rubik(
+                              fontSize: 12,
+                              color: AppColors.textDim,
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                      if (finished)
-                        BrawlTag(
-                          label: 'Finalizado',
-                          color: AppColors.textMute,
-                        )
-                      else ...[
-                        if (onDelete != null)
-                          GestureDetector(
-                            onTap: () => onDelete!(t),
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: AppColors.pink.withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(9),
-                                border: Border.all(
-                                    color:
-                                        AppColors.pink.withValues(alpha: 0.25)),
+                    ),
+                    if (finished)
+                      BrawlTag(label: 'Finalizado', color: AppColors.textMute)
+                    else ...[
+                      if (onDelete != null)
+                        GestureDetector(
+                          onTap: () => onDelete!(t),
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.pink.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(9),
+                              border: Border.all(
+                                color: AppColors.pink.withValues(alpha: 0.25),
                               ),
-                              child: Center(
-                                child: Text('🗑',
-                                    style: const TextStyle(fontSize: 13)),
+                            ),
+                            child: Center(
+                              child: Text(
+                                '🗑',
+                                style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ),
-                        BrawlTag(
-                          label: 'Borrador',
-                          color: AppColors.yellow,
                         ),
-                        if (onTap != null) ...[
-                          const SizedBox(width: 8),
-                          Text('›',
-                              style: TextStyle(
-                                  fontSize: 20,
-                                  color: AppColors.textMute)),
-                        ],
+                      BrawlTag(label: 'Borrador', color: AppColors.yellow),
+                      if (onTap != null) ...[
+                        const SizedBox(width: 8),
+                        Text(
+                          '›',
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: AppColors.textMute,
+                          ),
+                        ),
                       ],
                     ],
-                  ),
+                  ],
                 ),
               ),
-            )),
+            ),
+          ),
+        ),
         const SizedBox(height: 20),
       ],
     );
@@ -710,11 +740,9 @@ class _LoadingContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const SizedBox(
-        height: 200,
-        child: Center(
-            child:
-                CircularProgressIndicator(color: AppColors.orange)),
-      );
+    height: 200,
+    child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
+  );
 }
 
 class _EmptyContent extends StatelessWidget {
@@ -731,42 +759,40 @@ class _EmptyContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 24),
-        child: BrawlCard(
-          padding: const EdgeInsets.all(28),
-          radius: 22,
-          child: Column(
-            children: [
-              Text(icon,
-                  style: TextStyle(
-                      fontSize: 36, color: AppColors.textMute)),
-              const SizedBox(height: 12),
-              Text(
-                message,
-                style: GoogleFonts.rubik(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.text),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                sub,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.rubik(
-                    fontSize: 12, color: AppColors.textMute),
-              ),
-              if (onAction != null) ...[
-                const SizedBox(height: 16),
-                GradBtn(
-                  gradient: AppColors.organizadorGradient,
-                  onTap: onAction,
-                  child: Text(actionLabel ?? ''),
-                ),
-              ],
-            ],
+    padding: const EdgeInsets.symmetric(vertical: 24),
+    child: BrawlCard(
+      padding: const EdgeInsets.all(28),
+      radius: 22,
+      child: Column(
+        children: [
+          Text(icon, style: TextStyle(fontSize: 36, color: AppColors.textMute)),
+          const SizedBox(height: 12),
+          Text(
+            message,
+            style: GoogleFonts.rubik(
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              color: AppColors.text,
+            ),
           ),
-        ),
-      );
+          const SizedBox(height: 4),
+          Text(
+            sub,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textMute),
+          ),
+          if (onAction != null) ...[
+            const SizedBox(height: 16),
+            GradBtn(
+              gradient: AppColors.organizadorGradient,
+              onTap: onAction,
+              child: Text(actionLabel ?? ''),
+            ),
+          ],
+        ],
+      ),
+    ),
+  );
 }
 
 // Widgets pequeños que se reutilizan en varios sitios
@@ -778,19 +804,18 @@ class _IconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.stroke),
-          ),
-          child: Center(
-              child: Text(icon, style: const TextStyle(fontSize: 15))),
-        ),
-      );
+    onTap: onTap,
+    child: Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.stroke),
+      ),
+      child: Center(child: Text(icon, style: const TextStyle(fontSize: 15))),
+    ),
+  );
 }
 
 class _KpiSkeleton extends StatelessWidget {
@@ -798,29 +823,31 @@ class _KpiSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Row(
-        children: List.generate(
-            3,
-            (_) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 8),
-                    child: BrawlCard(
-                      padding: const EdgeInsets.all(12),
-                      radius: 18,
-                      child: const SizedBox(height: 38),
-                    ),
-                  ),
-                )),
-      );
+    children: List.generate(
+      3,
+      (_) => Expanded(
+        child: Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: BrawlCard(
+            padding: const EdgeInsets.all(12),
+            radius: 18,
+            child: const SizedBox(height: 38),
+          ),
+        ),
+      ),
+    ),
+  );
 }
 
 class _KpiCard extends StatelessWidget {
   final String label, value;
   final String? suffix, badge;
-  const _KpiCard(
-      {required this.label,
-      required this.value,
-      this.suffix,
-      this.badge});
+  const _KpiCard({
+    required this.label,
+    required this.value,
+    this.suffix,
+    this.badge,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -834,9 +861,10 @@ class _KpiCard extends StatelessWidget {
             Text(
               label.toUpperCase(),
               style: GoogleFonts.rubik(
-                  fontSize: 10.5,
-                  color: AppColors.textMute,
-                  letterSpacing: 0.5),
+                fontSize: 10.5,
+                color: AppColors.textMute,
+                letterSpacing: 0.5,
+              ),
             ),
             const SizedBox(height: 2),
             Row(
@@ -847,23 +875,31 @@ class _KpiCard extends StatelessWidget {
                   text: value,
                   gradient: AppColors.organizadorGradient,
                   style: GoogleFonts.rubik(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
                 if (suffix != null) ...[
                   const SizedBox(width: 4),
-                  Text(suffix!,
-                      style: GoogleFonts.rubik(
-                          fontSize: 12, color: AppColors.textMute)),
+                  Text(
+                    suffix!,
+                    style: GoogleFonts.rubik(
+                      fontSize: 12,
+                      color: AppColors.textMute,
+                    ),
+                  ),
                 ],
                 if (badge != null) ...[
                   const SizedBox(width: 6),
-                  Text(badge!,
-                      style: GoogleFonts.rubik(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.cyan)),
+                  Text(
+                    badge!,
+                    style: GoogleFonts.rubik(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.cyan,
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -878,10 +914,11 @@ class _UnderlineTab extends StatelessWidget {
   final String label;
   final int count;
   final bool active;
-  const _UnderlineTab(
-      {required this.label,
-      required this.count,
-      this.active = false});
+  const _UnderlineTab({
+    required this.label,
+    required this.count,
+    this.active = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -896,21 +933,21 @@ class _UnderlineTab extends StatelessWidget {
                 label,
                 style: GoogleFonts.rubik(
                   fontSize: 13,
-                  fontWeight:
-                      active ? FontWeight.w600 : FontWeight.w500,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w500,
                   color: active ? AppColors.text : AppColors.textMute,
                 ),
               ),
               const SizedBox(width: 6),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 6, vertical: 1),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
                 decoration: BoxDecoration(
-                    color: AppColors.surfaceHi,
-                    borderRadius: BorderRadius.circular(8)),
-                child: Text('$count',
-                    style: GoogleFonts.rubik(
-                        fontSize: 10, color: AppColors.text)),
+                  color: AppColors.surfaceHi,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '$count',
+                  style: GoogleFonts.rubik(fontSize: 10, color: AppColors.text),
+                ),
               ),
             ],
           ),
@@ -924,7 +961,8 @@ class _UnderlineTab extends StatelessWidget {
               height: 2,
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
-                    colors: AppColors.organizadorGradient),
+                  colors: AppColors.organizadorGradient,
+                ),
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -961,18 +999,46 @@ class _LiveCard extends StatelessWidget {
                 Text(
                   'EN VIVO · RONDA $currentRound / $totalRounds',
                   style: GoogleFonts.rubik(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.pink,
-                      letterSpacing: 0.6),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pink,
+                    letterSpacing: 0.6,
+                  ),
                 ),
                 const Spacer(),
                 Text(
                   '⏱ ${tournament.liveTimer ?? '—'}',
                   style: GoogleFonts.rubikMonoOne(
-                      fontSize: 11, color: AppColors.textDim),
+                    fontSize: 11,
+                    color: AppColors.textDim,
+                  ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    fadeSlideRoute(OrgRankingScreen(tournament: tournament)),
+                  ),
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    decoration: BoxDecoration(
+                      color: AppColors.cyan.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.cyan.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Center(
+                      child: Icon(
+                        Icons.visibility_outlined,
+                        size: 15,
+                        color: AppColors.cyan,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 GestureDetector(
                   onTap: () => onOptions(tournament),
                   child: Container(
@@ -983,9 +1049,13 @@ class _LiveCard extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Center(
-                      child: Text('⋯',
-                          style: TextStyle(
-                              fontSize: 14, color: AppColors.textDim)),
+                      child: Text(
+                        '⋯',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textDim,
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -1005,17 +1075,21 @@ class _LiveCard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(tournament.name,
-                              style: GoogleFonts.rubik(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.text)),
+                          Text(
+                            tournament.name,
+                            style: GoogleFonts.rubik(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.text,
+                            ),
+                          ),
                           const SizedBox(height: 2),
                           Text(
                             '${tournament.enrolledCount} inscritos · ${tournament.activeTables ?? 0} mesas activas',
                             style: GoogleFonts.rubik(
-                                fontSize: 12,
-                                color: AppColors.textDim),
+                              fontSize: 12,
+                              color: AppColors.textDim,
+                            ),
                           ),
                         ],
                       ),
@@ -1033,8 +1107,9 @@ class _LiveCard extends StatelessWidget {
                           child: Container(
                             height: 6,
                             decoration: BoxDecoration(
-                                color: AppColors.surfaceHi,
-                                borderRadius: BorderRadius.circular(3)),
+                              color: AppColors.surfaceHi,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
                             child: FractionallySizedBox(
                               widthFactor: v,
                               alignment: Alignment.centerLeft,
@@ -1043,8 +1118,7 @@ class _LiveCard extends StatelessWidget {
                                   color: v == 1.0
                                       ? AppColors.cyan
                                       : AppColors.orange,
-                                  borderRadius:
-                                      BorderRadius.circular(3),
+                                  borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
                             ),
@@ -1057,16 +1131,21 @@ class _LiveCard extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Ronda $currentRound en juego',
-                          style: GoogleFonts.rubik(
-                              fontSize: 11,
-                              color: AppColors.textMute)),
                       Text(
-                          '${tournament.pendingResults ?? 0} resultados pendientes',
-                          style: GoogleFonts.rubik(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.cyan)),
+                        'Ronda $currentRound en juego',
+                        style: GoogleFonts.rubik(
+                          fontSize: 11,
+                          color: AppColors.textMute,
+                        ),
+                      ),
+                      Text(
+                        '${tournament.pendingResults ?? 0} resultados pendientes',
+                        style: GoogleFonts.rubik(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.cyan,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1079,10 +1158,91 @@ class _LiveCard extends StatelessWidget {
   }
 }
 
-class _UpcomingCard extends StatelessWidget {
+class _UpcomingCard extends StatefulWidget {
   final Tournament tournament;
   final void Function(Tournament) onOptions;
   const _UpcomingCard({required this.tournament, required this.onOptions});
+
+  @override
+  State<_UpcomingCard> createState() => _UpcomingCardState();
+}
+
+class _UpcomingCardState extends State<_UpcomingCard> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  bool get _isReady {
+    final date = widget.tournament.date;
+    if (date == null) return false;
+    final diff = date.difference(DateTime.now());
+    return diff.inMinutes <= 15 && diff.inSeconds > 0;
+  }
+
+  String get _countdownLabel {
+    final date = widget.tournament.date;
+    if (date == null) return '00:00';
+    final diff = date.difference(DateTime.now());
+    if (diff.inSeconds <= 0) return '00:00';
+    final mins = diff.inMinutes;
+    final secs = diff.inSeconds % 60;
+    return '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+  }
+
+  bool _loading = false;
+
+  void _iniciar() {
+    if (_loading) return;
+    setState(() => _loading = true);
+    final orgId =
+        widget.tournament.organizerId ??
+        FirebaseAuth.instance.currentUser?.uid ??
+        '';
+    TorneoLiveService.startRound(
+      tournamentId: widget.tournament.id,
+      tournamentName: widget.tournament.name,
+      organizerId: orgId,
+      roundNum: 1,
+      randomize: true,
+    ).whenComplete(() {
+      if (mounted) setState(() => _loading = false);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isReady) {
+      return _ReadyCard(
+        tournament: widget.tournament,
+        countdownLabel: _countdownLabel,
+        onIniciar: _loading ? null : _iniciar,
+        onOptions: widget.onOptions,
+        loading: _loading,
+      );
+    }
+    return _UpcomingCardBody(
+      tournament: widget.tournament,
+      onOptions: widget.onOptions,
+    );
+  }
+}
+
+class _UpcomingCardBody extends StatelessWidget {
+  final Tournament tournament;
+  final void Function(Tournament) onOptions;
+  const _UpcomingCardBody({required this.tournament, required this.onOptions});
 
   @override
   Widget build(BuildContext context) {
@@ -1102,18 +1262,20 @@ class _UpcomingCard extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(tournament.name,
-                            style: GoogleFonts.rubik(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.text)),
+                        child: Text(
+                          tournament.name,
+                          style: GoogleFonts.rubik(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.text,
+                          ),
+                        ),
                       ),
                       if (tournament.tagLabel != null) ...[
                         const SizedBox(width: 8),
                         BrawlTag(
                           label: tournament.tagLabel!,
-                          color: tournament.tagColor ??
-                              AppColors.textMute,
+                          color: tournament.tagColor ?? AppColors.textMute,
                         ),
                       ],
                       const SizedBox(width: 8),
@@ -1127,19 +1289,26 @@ class _UpcomingCard extends StatelessWidget {
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Center(
-                            child: Text('⋯',
-                                style: TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textDim)),
+                            child: Text(
+                              '⋯',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textDim,
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 3),
-                  Text(tournament.detailLabel,
-                      style: GoogleFonts.rubik(
-                          fontSize: 12, color: AppColors.textDim)),
+                  Text(
+                    tournament.detailLabel,
+                    style: GoogleFonts.rubik(
+                      fontSize: 12,
+                      color: AppColors.textDim,
+                    ),
+                  ),
                   if (tournament.accessCode != null) ...[
                     const SizedBox(height: 6),
                     Row(
@@ -1147,21 +1316,28 @@ class _UpcomingCard extends StatelessWidget {
                         Text(
                           'Código: ',
                           style: GoogleFonts.rubik(
-                              fontSize: 11, color: AppColors.textMute),
+                            fontSize: 11,
+                            color: AppColors.textMute,
+                          ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 7, vertical: 2),
+                            horizontal: 7,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: AppColors.violet.withValues(alpha: 0.15),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                                color: AppColors.violet.withValues(alpha: 0.35)),
+                              color: AppColors.violet.withValues(alpha: 0.35),
+                            ),
                           ),
                           child: Text(
                             tournament.accessCode!,
                             style: GoogleFonts.rubikMonoOne(
-                                fontSize: 11, color: AppColors.violet),
+                              fontSize: 11,
+                              color: AppColors.violet,
+                            ),
                           ),
                         ),
                       ],
@@ -1182,10 +1358,9 @@ class _UpcomingCard extends StatelessWidget {
                               child: Container(
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                      colors:
-                                          AppColors.organizadorGradient),
-                                  borderRadius:
-                                      BorderRadius.circular(3),
+                                    colors: AppColors.organizadorGradient,
+                                  ),
+                                  borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
                             ),
@@ -1196,10 +1371,170 @@ class _UpcomingCard extends StatelessWidget {
                       Text(
                         '${tournament.enrolledCount}/${tournament.totalSlots}',
                         style: GoogleFonts.rubikMonoOne(
-                            fontSize: 11, color: AppColors.text),
+                          fontSize: 11,
+                          color: AppColors.text,
+                        ),
                       ),
                     ],
                   ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ReadyCard extends StatelessWidget {
+  final Tournament tournament;
+  final String countdownLabel;
+  final VoidCallback? onIniciar;
+  final void Function(Tournament) onOptions;
+  final bool loading;
+  const _ReadyCard({
+    required this.tournament,
+    required this.countdownLabel,
+    required this.onIniciar,
+    required this.onOptions,
+    this.loading = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: BrawlCard(
+        padding: EdgeInsets.zero,
+        radius: 24,
+        tint: const Color(0xFF110D1E),
+        border: AppColors.pink.withValues(alpha: 0.4),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Row(
+                children: [
+                  _PulseDot(color: AppColors.pink),
+                  const SizedBox(width: 10),
+                  Text(
+                    'LISTO PARA INICIAR',
+                    style: GoogleFonts.rubik(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.pink,
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '⏱ $countdownLabel',
+                    style: GoogleFonts.rubikMonoOne(
+                      fontSize: 11,
+                      color: AppColors.textDim,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  GestureDetector(
+                    onTap: () => onOptions(tournament),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceHi,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          '⋯',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.textDim,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(height: 1, color: AppColors.stroke),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      GameBadge(game: tournament.game.code, size: 42),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tournament.name,
+                              style: GoogleFonts.rubik(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.text,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${tournament.enrolledCount} inscritos',
+                              style: GoogleFonts.rubik(
+                                fontSize: 12,
+                                color: AppColors.textDim,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: List.generate(
+                      5,
+                      (i) => Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Container(
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceHi,
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  loading
+                      ? const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: AppColors.orange,
+                            ),
+                          ),
+                        )
+                      : GradBtn(
+                          gradient: AppColors.organizadorGradient,
+                          onTap: onIniciar,
+                          child: Text(
+                            'Iniciar torneo',
+                            style: GoogleFonts.rubik(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
                 ],
               ),
             ),
@@ -1214,11 +1549,12 @@ class _OptionRow extends StatelessWidget {
   final String icon, label;
   final Color color;
   final VoidCallback onTap;
-  const _OptionRow(
-      {required this.icon,
-      required this.label,
-      required this.color,
-      required this.onTap});
+  const _OptionRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1235,11 +1571,14 @@ class _OptionRow extends StatelessWidget {
           children: [
             Text(icon, style: const TextStyle(fontSize: 16)),
             const SizedBox(width: 12),
-            Text(label,
-                style: GoogleFonts.rubik(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: color)),
+            Text(
+              label,
+              style: GoogleFonts.rubik(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: color,
+              ),
+            ),
           ],
         ),
       ),
@@ -1264,8 +1603,9 @@ class _PulseDotState extends State<_PulseDot>
   void initState() {
     super.initState();
     _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
     _anim = Tween(begin: 0.25, end: 0.8).animate(_ctrl);
   }
 

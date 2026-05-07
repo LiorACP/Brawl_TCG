@@ -1,10 +1,14 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/eventos/cliente_eventos_screen.dart';
+import 'package:brawl_tcg/features/eventos/cliente_vs_screen.dart';
+import 'package:brawl_tcg/features/eventos/cliente_espera_screen.dart';
+import 'package:brawl_tcg/features/eventos/services/torneo_live_service.dart';
 import 'package:brawl_tcg/features/mapa/mapa_screen.dart';
 import 'package:brawl_tcg/features/reglas/reglas_screen.dart';
 import 'package:brawl_tcg/features/config/config_screen.dart';
@@ -24,9 +28,12 @@ class _ClienteShellState extends State<ClienteShell> {
   int _tab = 0;
   String? _uid;
   StreamSubscription<NotiBundle>? _notiSub;
+  StreamSubscription<LiveMatchData?>? _matchSub;
   final Set<String> _seenIds = {};
   bool _initialized = false;
   OverlayEntry? _bannerEntry;
+  LiveMatchData? _liveMatch;
+  String? _lastShownMatchId;
 
   static const _tabs = [
     BrawlTabBarItem(icon: '◎', label: 'Eventos'),
@@ -46,7 +53,32 @@ class _ClienteShellState extends State<ClienteShell> {
   void initState() {
     super.initState();
     _uid = FirebaseAuth.instance.currentUser?.uid;
-    if (_uid != null) _startListening();
+    if (_uid != null) {
+      _startListening();
+      _startMatchListener();
+    }
+  }
+
+  void _startMatchListener() {
+    _matchSub =
+        TorneoLiveService.watchLiveMatch(_uid!).listen(_onLiveMatch);
+  }
+
+  void _onLiveMatch(LiveMatchData? data) {
+    if (!mounted) return;
+    setState(() => _liveMatch = data);
+
+    // Nueva ronda detectada: matchId cambia y active = true
+    if (data != null && data.active && data.matchId != _lastShownMatchId) {
+      _lastShownMatchId = data.matchId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        Navigator.push(
+          context,
+          slideRoute(ClienteVsScreen(matchData: data)),
+        );
+      });
+    }
   }
 
   void _startListening() {
@@ -104,6 +136,7 @@ class _ClienteShellState extends State<ClienteShell> {
   @override
   void dispose() {
     _notiSub?.cancel();
+    _matchSub?.cancel();
     _dismissBanner();
     super.dispose();
   }
@@ -136,6 +169,60 @@ class _ClienteShellState extends State<ClienteShell> {
                 onTap: (i) => setState(() => _tab = i),
               ),
             ),
+            // Botón flotante "Volver a la ronda" cuando hay partida activa
+            if (_liveMatch != null)
+              Positioned(
+                top: MediaQuery.of(context).padding.top + 10,
+                left: 16,
+                right: 16,
+                child: GestureDetector(
+                  onTap: () {
+                    final m = _liveMatch!;
+                    if (!m.roundFinished) {
+                      Navigator.push(context,
+                          slideRoute(ClienteVsScreen(matchData: m)));
+                    } else {
+                      Navigator.push(context,
+                          slideRoute(ClienteEsperaScreen(matchData: m)));
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                          colors: AppColors.clienteGradient),
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.cyan.withValues(alpha: 0.35),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.sports_esports,
+                            color: Colors.white, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          _liveMatch!.roundFinished
+                              ? 'Esperando resultados · Ronda ${_liveMatch!.roundNum}'
+                              : '⚔  Ronda ${_liveMatch!.roundNum} en curso · Volver',
+                          style: GoogleFonts.rubik(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
           ],
         );
       },
