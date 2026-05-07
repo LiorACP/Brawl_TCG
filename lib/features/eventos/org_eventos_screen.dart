@@ -154,97 +154,114 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
   }
 
   Future<void> _confirmDeleteTournament(Tournament t) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Eliminar torneo',
-          style: GoogleFonts.rubik(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.text,
-          ),
-        ),
-        content: Text(
-          '¿Seguro que quieres eliminar "${t.name}"? Esta acción no se puede deshacer.',
-          style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textDim),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancelar',
-              style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textMute),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Eliminar',
-              style: GoogleFonts.rubik(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.pink,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    final confirm = await _showDeleteDialog('Eliminar torneo', t.name);
     if (confirm != true) return;
-    await FirebaseFirestore.instance
-        .collection('Tournaments')
-        .doc(t.id)
-        .delete();
+    await _doDeleteTournament(t, notifyPlayers: true);
   }
 
   Future<void> _deleteDraft(Tournament t) async {
-    final confirm = await showDialog<bool>(
+    final confirm = await _showDeleteDialog('Eliminar borrador', t.name);
+    if (confirm != true) return;
+    await _doDeleteTournament(t, notifyPlayers: false);
+  }
+
+  Future<bool?> _showDeleteDialog(String title, String name) {
+    return showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Eliminar borrador',
+          title,
           style: GoogleFonts.rubik(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.text,
-          ),
+              fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
         ),
         content: Text(
-          '¿Seguro que quieres eliminar "${t.name}"? Esta acción no se puede deshacer.',
+          '¿Seguro que quieres eliminar "$name"? Esta acción no se puede deshacer.',
           style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textDim),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Cancelar',
-              style: GoogleFonts.rubik(fontSize: 13, color: AppColors.textMute),
-            ),
+            child: Text('Cancelar',
+                style:
+                    GoogleFonts.rubik(fontSize: 13, color: AppColors.textMute)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text(
-              'Eliminar',
-              style: GoogleFonts.rubik(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppColors.pink,
-              ),
-            ),
+            child: Text('Eliminar',
+                style: GoogleFonts.rubik(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.pink)),
           ),
         ],
       ),
     );
-    if (confirm != true) return;
-    await FirebaseFirestore.instance
-        .collection('Tournaments')
-        .doc(t.id)
-        .delete();
+  }
+
+  Future<void> _doDeleteTournament(Tournament t,
+      {required bool notifyPlayers}) async {
+    final db = FirebaseFirestore.instance;
+    final tournRef = db.collection('Tournaments').doc(t.id);
+
+    // 1. Inscripciones: notificar jugadores activos y borrar documentos
+    final regSnap = await tournRef.collection('registration').get();
+    var batch = db.batch();
+    int ops = 0;
+
+    for (final regDoc in regSnap.docs) {
+      if (notifyPlayers) {
+        final status = regDoc.data()['status'] as String?;
+        if (status == 'Pending' || status == 'Accepted') {
+          final playerRef = regDoc.data()['userId'] as DocumentReference?;
+          if (playerRef != null) {
+            db.collection('Notifications').add({
+              'userID': playerRef,
+              'date': FieldValue.serverTimestamp(),
+              'type': 'torneo_cancelado',
+              'title': 'Torneo cancelado',
+              'mensaje': 'El torneo "${t.name}" ha sido cancelado.',
+              'icon': '❌',
+              'isRead': false,
+              'tournamentId': t.id,
+            });
+          }
+        }
+      }
+      batch.delete(regDoc.reference);
+      if (++ops == 499) {
+        await batch.commit();
+        batch = db.batch();
+        ops = 0;
+      }
+    }
+
+    // 2. Rondas y partidas anidadas
+    final roundsSnap = await tournRef.collection('rounds').get();
+    for (final roundDoc in roundsSnap.docs) {
+      final matchesSnap =
+          await roundDoc.reference.collection('matches').get();
+      for (final matchDoc in matchesSnap.docs) {
+        batch.delete(matchDoc.reference);
+        if (++ops == 499) {
+          await batch.commit();
+          batch = db.batch();
+          ops = 0;
+        }
+      }
+      batch.delete(roundDoc.reference);
+      if (++ops == 499) {
+        await batch.commit();
+        batch = db.batch();
+        ops = 0;
+      }
+    }
+
+    if (ops > 0) await batch.commit();
+
+    // 3. Borrar el documento del torneo
+    await tournRef.delete();
   }
 
   void _openDraft(Tournament t) {
