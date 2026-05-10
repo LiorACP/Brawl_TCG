@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
+import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
@@ -28,25 +30,30 @@ class _OrgShellState extends State<OrgShell> {
   bool _initialized = false;
   OverlayEntry? _bannerEntry;
 
-  static const _tabs = [
-    BrawlTabBarItem(icon: '◈', label: 'Eventos'),
-    BrawlTabBarItem(icon: '⌂', label: 'Tienda'),
-    BrawlTabBarItem(icon: '＃', label: 'Reglas'),
-    BrawlTabBarItem(icon: '♢', label: 'Perfil'),
-  ];
+  List<BrawlTabBarItem> get _tabs => [
+        BrawlTabBarItem(icon: '◈', label: L10n.t('Eventos')),
+        BrawlTabBarItem(icon: '⌂', label: L10n.t('Tienda')),
+        BrawlTabBarItem(icon: '＃', label: L10n.t('Reglas')),
+        BrawlTabBarItem(icon: '♢', label: L10n.t('Perfil')),
+      ];
 
-  static const _screens = [
-    OrgEventosScreen(),
-    OrgTiendaScreen(),
-    SharedReglasScreen(),
-    SharedConfigScreen(isOrg: true),
-  ];
+  List<Widget> get _screens => const [
+        OrgEventosScreen(),
+        OrgTiendaScreen(),
+        SharedReglasScreen(),
+        SharedConfigScreen(isOrg: true),
+      ];
 
   @override
   void initState() {
     super.initState();
     _uid = FirebaseAuth.instance.currentUser?.uid;
+    AppPrefsNotifier.instance.addListener(_onPrefsChanged);
     if (_uid != null) _startListening();
+  }
+
+  void _onPrefsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _startListening() {
@@ -105,6 +112,7 @@ class _OrgShellState extends State<OrgShell> {
 
   @override
   void dispose() {
+    AppPrefsNotifier.instance.removeListener(_onPrefsChanged);
     _notiSub?.cancel();
     _dismissBanner();
     super.dispose();

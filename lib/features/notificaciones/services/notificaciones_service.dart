@@ -1,9 +1,7 @@
+import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../data/notification.dart';
 
-// Campos del documento en Firestore (colección Notifications):
-//   date (Timestamp), mensaje (string), type (string), userID (Reference)
-//   title, icon, isRead  (opcionales)
 typedef NotiBundle = ({
   List<AppNotification> today,
   List<AppNotification> yesterday,
@@ -15,15 +13,13 @@ class NotificacionesService {
 
   static Stream<NotiBundle> watchNotifications(String uid) {
     final userRef = _db.collection('User').doc(uid);
-    // Solo filtro por userID para no necesitar un índice compuesto en Firestore.
-    // El filtro por fecha y el orden los hago yo aquí en el cliente.
     return _db
         .collection('Notifications')
         .where('userID', isEqualTo: userRef)
         .snapshots()
         .map((snap) {
+      final prefs = AppPrefsNotifier.instance.notifToggles;
       final now = DateTime.now();
-      // Solo muestro notificaciones de los últimos 2 días
       final cutoff = now.subtract(const Duration(days: 2));
       final today = <AppNotification>[];
       final yesterday = <AppNotification>[];
@@ -32,6 +28,7 @@ class NotificacionesService {
       final docs = snap.docs
           .map((d) => AppNotification.fromFirestore(d))
           .where((n) => n.createdAt.isAfter(cutoff))
+          .where((n) => _isAllowed(n, prefs))
           .toList()
         ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
@@ -48,7 +45,29 @@ class NotificacionesService {
     });
   }
 
-  // Marca todas las notificaciones del usuario como leídas de una vez
+  // Filtra una notificación según las preferencias del usuario
+  static bool _isAllowed(
+      AppNotification n, Map<String, bool> prefs) {
+    switch (n.type) {
+      case NotificationType.event:
+        // 'discovered_event' → toggle "Nuevos eventos cerca"
+        // otros eventos → toggle "Torneos próximos"
+        if (n.icon == '🔍') {
+          return prefs['Nuevos eventos cerca'] ?? true;
+        }
+        return prefs['Torneos próximos'] ?? true;
+      case NotificationType.result:
+        return prefs['Resultados y emparejamiento'] ?? true;
+      case NotificationType.social:
+        // Las inscripciones siempre se muestran (acción del organizador)
+        return true;
+      case NotificationType.system:
+        // Tipo 'promo' → toggle "Promociones de tiendas"
+        // Resto de sistema siempre visible
+        return prefs['Promociones de tiendas'] ?? false;
+    }
+  }
+
   static Future<void> markAllRead(String uid) async {
     final userRef = _db.collection('User').doc(uid);
     final snap = await _db
@@ -58,7 +77,6 @@ class NotificacionesService {
         .get();
 
     if (snap.docs.isEmpty) return;
-    // Uso batch para actualizar todas en una sola petición
     final batch = _db.batch();
     for (final doc in snap.docs) {
       batch.update(doc.reference, {'isRead': true});
@@ -66,8 +84,14 @@ class NotificacionesService {
     await batch.commit();
   }
 
-  // Escribe una notificación de inscripción para el organizador del torneo.
-  // Se llama desde el flujo de inscripción del jugador.
+  static Future<void> markRead(String notificationId) async {
+    await _db
+        .collection('Notifications')
+        .doc(notificationId)
+        .update({'isRead': true});
+  }
+
+  // Notificación de inscripción para el organizador
   static Future<void> notifyOrganizer({
     required DocumentReference organizerRef,
     required String playerName,
@@ -86,14 +110,24 @@ class NotificacionesService {
     });
   }
 
-  static Future<void> markRead(String notificationId) async {
-    await _db
-        .collection('Notifications')
-        .doc(notificationId)
-        .update({'isRead': true});
+  // Notificación de torneo próximo (2h antes) para el jugador inscrito
+  static Future<void> notifyTorneoProximo({
+    required DocumentReference userRef,
+    required String tournamentName,
+    required String tournamentId,
+  }) async {
+    await _db.collection('Notifications').add({
+      'userID': userRef,
+      'date': FieldValue.serverTimestamp(),
+      'type': 'torneo',
+      'title': '¡Tu torneo empieza pronto!',
+      'mensaje': '$tournamentName comienza en menos de 2 horas',
+      'icon': '⏰',
+      'isRead': false,
+      'tournamentId': tournamentId,
+    });
   }
 
-  // Comprueba si una fecha es de hoy comparando año, mes y día
   static bool _isToday(DateTime dt, DateTime now) =>
       dt.year == now.year && dt.month == now.month && dt.day == now.day;
 }

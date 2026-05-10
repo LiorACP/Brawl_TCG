@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
@@ -49,7 +50,7 @@ class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
     if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('No se pudo abrir Google Maps')),
+          SnackBar(content: Text(L10n.t('No se pudo abrir Google Maps'))),
         );
       }
     }
@@ -117,7 +118,7 @@ class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
                                       decoration: InputDecoration(
                                         isDense: true,
                                         border: InputBorder.none,
-                                        hintText: 'Ciudad...',
+                                        hintText: L10n.t('Ciudad...'),
                                         hintStyle: GoogleFonts.rubik(
                                           fontSize: 14,
                                           color: AppColors.textDim,
@@ -466,7 +467,7 @@ class _BuscarTiendaButton extends StatelessWidget {
                 const Icon(Icons.store_outlined, size: 18, color: Colors.white),
                 const SizedBox(width: 8),
                 Text(
-                  'Buscar tienda',
+                  L10n.t('Buscar tienda'),
                   style: GoogleFonts.rubik(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

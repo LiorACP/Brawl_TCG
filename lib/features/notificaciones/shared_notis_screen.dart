@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'data/notification.dart';
@@ -46,13 +48,13 @@ class _NotisBodyState extends State<_NotisBody> {
     NotificacionesService.markAllRead(widget.uid);
   }
 
-  static const _filters = [
-    ('all', 'Todas'),
-    ('events', 'Eventos'),
-    ('results', 'Resultados'),
-    ('social', 'Social'),
-    ('system', 'Sistema'),
-  ];
+  List<(String, String)> get _filters => [
+        ('all', L10n.t('Todas')),
+        ('events', L10n.t('Eventos')),
+        ('results', L10n.t('Resultados')),
+        ('social', L10n.t('Social')),
+        ('system', L10n.t('Sistema')),
+      ];
 
   List<AppNotification> _filtered(List<AppNotification> notis) {
     if (_filter == 'all') return notis;
@@ -102,13 +104,13 @@ class _NotisBodyState extends State<_NotisBody> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('CENTRO',
+                            Text(L10n.t('CENTRO'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: AppColors.textMute,
                                     letterSpacing: 0.5)),
-                            Text('Notificaciones',
+                            Text(L10n.t('Notificaciones'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 22,
                                     fontWeight: FontWeight.w700,
@@ -138,7 +140,8 @@ class _NotisBodyState extends State<_NotisBody> {
                                       color: AppColors.cyan),
                                 ),
                                 const SizedBox(width: 4),
-                                Text('${bundle.unreadCount} sin leer',
+                                Text(L10n.fmt('{n} sin leer',
+                                        {'n': '${bundle.unreadCount}'}),
                                     style: GoogleFonts.rubik(
                                         fontSize: 11,
                                         color: AppColors.textDim)),
@@ -202,16 +205,16 @@ class _NotisBodyState extends State<_NotisBody> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (todayVisible.isNotEmpty) ...[
-                            const SectionLabel('Hoy',
+                            SectionLabel(L10n.t('Hoy'),
                                 margin:
-                                    EdgeInsets.only(left: 4, bottom: 10, top: 4)),
+                                    const EdgeInsets.only(left: 4, bottom: 10, top: 4)),
                             ...todayVisible.map(
                               (n) => _NotiItem(notification: n, unread: !n.isRead),
                             ),
                           ],
                           if (yesterdayVisible.isNotEmpty) ...[
-                            const SectionLabel('Ayer',
-                                margin: EdgeInsets.only(
+                            SectionLabel(L10n.t('Ayer'),
+                                margin: const EdgeInsets.only(
                                     left: 4, bottom: 10, top: 16)),
                             ...yesterdayVisible.map(
                               (n) =>
@@ -240,11 +243,19 @@ class _NotiItem extends StatelessWidget {
     this.dim = false,
   });
 
+  Future<void> _openLink() async {
+    final uri = Uri.tryParse(notification.link!);
+    if (uri != null) await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasLink = notification.link != null && notification.link!.isNotEmpty;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
-      child: Opacity(
+      child: GestureDetector(
+        onTap: hasLink ? _openLink : null,
+        child: Opacity(
         opacity: dim ? 0.85 : 1.0,
         child: Container(
           padding: const EdgeInsets.all(13),
@@ -321,6 +332,7 @@ class _NotiItem extends StatelessWidget {
             ],
           ),
         ),
+        ),
       ),
     );
   }
@@ -342,7 +354,9 @@ class _EmptyState extends StatelessWidget {
             Text('🔔', style: const TextStyle(fontSize: 40)),
             const SizedBox(height: 12),
             Text(
-              isFiltered ? 'Sin notificaciones de este tipo' : 'Todo al día',
+              isFiltered
+                  ? L10n.t('Sin notificaciones de este tipo')
+                  : L10n.t('Todo al día'),
               style: GoogleFonts.rubik(
                 fontSize: 15,
                 fontWeight: FontWeight.w600,
@@ -352,8 +366,8 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               isFiltered
-                  ? 'No hay notificaciones recientes en esta categoría'
-                  : 'No tienes notificaciones en las últimas 48h',
+                  ? L10n.t('No hay notificaciones recientes en esta categoría')
+                  : L10n.t('No tienes notificaciones en las últimas 48h'),
               textAlign: TextAlign.center,
               style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textMute),
             ),

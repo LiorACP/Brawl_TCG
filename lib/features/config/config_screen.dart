@@ -2,7 +2,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
+import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'widgets/datos_personales_screen.dart';
@@ -14,6 +16,7 @@ import 'widgets/unidades_screen.dart';
 import 'widgets/politica_privacidad_screen.dart';
 import 'widgets/terminos_condiciones_screen.dart';
 import '../eventos/services/eventos_service.dart';
+import '../notificaciones/services/notificaciones_service.dart';
 
 class SharedConfigScreen extends StatefulWidget {
   final bool isOrg;
@@ -26,17 +29,10 @@ class SharedConfigScreen extends StatefulWidget {
 class _SharedConfigScreenState extends State<SharedConfigScreen> {
   late bool _isOrg;
 
-  final Map<String, bool> _toggles = {
-    'Torneos próximos': true,
-    'Nuevos eventos cerca': true,
-    'Resultados y emparejamiento': true,
-    'Promociones de tiendas': false,
-  };
-
+  Map<String, bool> _toggles = {};
   Map<String, bool> _ciudadToggles = {};
   bool _loadingCiudades = true;
 
-  // Datos del perfil del usuario cargados desde Firestore
   String _nombre = '';
   String _email = '';
   String _telefono = '';
@@ -44,18 +40,19 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   String _joinYear = '';
   Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
 
-  // Preferencias de la app (idioma, tema, etc.)
-  String _idioma = 'es';
-  String _apariencia = 'dark';
-  String _distancia = 'km';
-  String _hora = '24h';
-
   @override
   void initState() {
     super.initState();
     _isOrg = widget.isOrg;
+    // Inicializar toggles desde el notifier (ya cargados en main)
+    _toggles = Map<String, bool>.from(AppPrefsNotifier.instance.notifToggles);
     _loadUser();
   }
+
+  String get _idioma => AppPrefsNotifier.instance.idioma;
+  String get _apariencia => AppPrefsNotifier.instance.tema;
+  String get _distancia => AppPrefsNotifier.instance.distancia;
+  String get _hora => AppPrefsNotifier.instance.hora;
 
   Future<void> _loadUser() async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
@@ -68,7 +65,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     final authEmail = FirebaseAuth.instance.currentUser?.email ?? '';
 
     try {
-      final doc = await FirebaseFirestore.instance.collection('User').doc(uid).get();
+      final doc =
+          await FirebaseFirestore.instance.collection('User').doc(uid).get();
       final data = doc.data();
       if (!mounted) return;
 
@@ -76,20 +74,43 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
       final savedNotifCiudades =
           data?['notifCiudades'] as Map<String, dynamic>? ?? {};
 
+      // Leer notifPrefs del documento (por si el notifier aún no los tiene)
+      final notifPrefs = data?['notifPrefs'] as Map<String, dynamic>? ?? {};
+      final freshToggles = {
+        'Torneos próximos': notifPrefs['Torneos próximos'] as bool? ?? true,
+        'Nuevos eventos cerca':
+            notifPrefs['Nuevos eventos cerca'] as bool? ?? true,
+        'Resultados y emparejamiento':
+            notifPrefs['Resultados y emparejamiento'] as bool? ?? true,
+        'Promociones de tiendas':
+            notifPrefs['Promociones de tiendas'] as bool? ?? false,
+      };
+
       setState(() {
         _nombre = data?['name'] as String? ?? '';
         _email = data?['email'] as String? ?? authEmail;
         _telefono = data?['telefono'] as String? ?? '';
-        _joinYear = creationTime != null ? creationTime.year.toString() : '';
+        _joinYear =
+            creationTime != null ? creationTime.year.toString() : '';
         _localidad = localidad;
+        _toggles = freshToggles;
       });
 
       _loadCiudadesNotif(uid, localidad, savedNotifCiudades);
+
+      // Acciones automáticas al cargar según los toggles activos
+      if (freshToggles['Torneos próximos'] == true) {
+        _checkUpcomingTorneos(uid);
+      }
+      if (freshToggles['Nuevos eventos cerca'] == true) {
+        _checkEventosCerca(uid);
+      }
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _email = authEmail;
-        _joinYear = creationTime != null ? creationTime.year.toString() : '';
+        _joinYear =
+            creationTime != null ? creationTime.year.toString() : '';
         _loadingCiudades = false;
       });
     }
@@ -114,13 +135,112 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     } catch (_) {
       if (!mounted) return;
       final toggles = <String, bool>{};
-      if (localidad.isNotEmpty) {
-        toggles[localidad] = savedPrefs[localidad] as bool? ?? true;
+      if (_localidad.isNotEmpty) {
+        toggles[_localidad] = savedPrefs[_localidad] as bool? ?? true;
       }
       setState(() {
         _ciudadToggles = toggles;
         _loadingCiudades = false;
       });
+    }
+  }
+
+  // Comprueba torneos inscritos que empiezan en menos de 2h y crea notificaciones
+  Future<void> _checkUpcomingTorneos(String uid) async {
+    final userRef =
+        FirebaseFirestore.instance.collection('User').doc(uid);
+    final now = DateTime.now();
+    final twoHoursLater = now.add(const Duration(hours: 2));
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collectionGroup('registration')
+          .where('userId', isEqualTo: userRef)
+          .where('status', isEqualTo: 'Accepted')
+          .get();
+
+      for (final regDoc in snap.docs) {
+        final tournamentId =
+            regDoc.reference.parent.parent?.id;
+        if (tournamentId == null) continue;
+
+        final tDoc = await FirebaseFirestore.instance
+            .collection('Tournaments')
+            .doc(tournamentId)
+            .get();
+        if (!tDoc.exists) continue;
+
+        final dateTs = tDoc.data()?['date'] as Timestamp?;
+        if (dateTs == null) continue;
+        final date = dateTs.toDate();
+
+        if (date.isAfter(now) && date.isBefore(twoHoursLater)) {
+          final existing = await FirebaseFirestore.instance
+              .collection('Notifications')
+              .where('userID', isEqualTo: userRef)
+              .where('tournamentId', isEqualTo: tournamentId)
+              .where('type', isEqualTo: 'torneo_pronto')
+              .get();
+
+          if (existing.docs.isEmpty) {
+            final name =
+                tDoc.data()?['name'] as String? ?? 'tu torneo';
+            await NotificacionesService.notifyTorneoProximo(
+              userRef: userRef,
+              tournamentName: name,
+              tournamentId: tournamentId,
+            );
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Busca torneos abiertos en las ciudades habilitadas creados en las últimas 24h
+  Future<void> _checkEventosCerca(String uid) async {
+    final enabledCities = _ciudadToggles.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+    if (enabledCities.isEmpty) return;
+
+    final userRef =
+        FirebaseFirestore.instance.collection('User').doc(uid);
+    final since =
+        Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 24)));
+
+    for (final city in enabledCities) {
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('Tournaments')
+            .where('localidad', isEqualTo: city)
+            .where('status', isEqualTo: 'open')
+            .where('createdAt', isGreaterThan: since)
+            .get();
+
+        for (final tDoc in snap.docs) {
+          final existing = await FirebaseFirestore.instance
+              .collection('Notifications')
+              .where('userID', isEqualTo: userRef)
+              .where('tournamentId', isEqualTo: tDoc.id)
+              .where('type', isEqualTo: 'discovered_event')
+              .get();
+
+          if (existing.docs.isEmpty) {
+            final name = tDoc.data()['name'] as String? ?? 'Nuevo torneo';
+            await FirebaseFirestore.instance.collection('Notifications').add({
+              'userID': userRef,
+              'date': FieldValue.serverTimestamp(),
+              'type': 'discovered_event',
+              'title': 'Nuevo torneo en $city',
+              'mensaje': '$name disponible cerca de ti',
+              'icon': '🔍',
+              'isRead': false,
+              'tournamentId': tDoc.id,
+            });
+          }
+        }
+      } catch (_) {}
     }
   }
 
@@ -134,7 +254,21 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
         .update({'notifCiudades.$city': value});
   }
 
-  Future<void> _savePersonalData(String nombre, String email, String telefono) async {
+  Future<void> _onNotifToggle(String key, bool value) async {
+    setState(() => _toggles[key] = value);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await AppPrefsNotifier.instance.setNotifToggle(uid, key, value);
+
+    // Ejecutar acción inmediata al activar
+    if (value && uid.isNotEmpty) {
+      if (key == 'Torneos próximos') _checkUpcomingTorneos(uid);
+      if (key == 'Nuevos eventos cerca') _checkEventosCerca(uid);
+    }
+  }
+
+  Future<void> _savePersonalData(
+      String nombre, String email, String telefono) async {
     setState(() {
       _nombre = nombre;
       _email = email;
@@ -153,12 +287,15 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
     await FirebaseAuth.instance.signOut();
   }
 
-  String get _idiomaLabel => _idioma == 'es' ? 'Español (España)' : 'English (UK)';
-  String get _aparienciaLabel => _apariencia == 'dark' ? 'Oscuro' : 'Claro';
+  String get _idiomaLabel =>
+      _idioma == 'es' ? L10n.t('Español (España)') : L10n.t('English (UK)');
+  String get _aparienciaLabel =>
+      _apariencia == 'dark' ? L10n.t('Oscuro') : L10n.t('Claro');
 
   @override
   Widget build(BuildContext context) {
-    final accent = _isOrg ? AppColors.organizadorGradient : AppColors.clienteGradient;
+    final accent =
+        _isOrg ? AppColors.organizadorGradient : AppColors.clienteGradient;
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -172,7 +309,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                 child: Row(
                   children: [
                     const SizedBox(width: 4),
-                    Text('Configuración',
+                    Text(L10n.t('Configuración'),
                         style: GoogleFonts.rubik(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -185,7 +322,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                   padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
                   child: Column(
                     children: [
-                      // Tarjeta de perfil con foto y nombre
+                      // Tarjeta de perfil
                       BrawlCard(
                         padding: const EdgeInsets.all(18),
                         radius: 24,
@@ -221,14 +358,16 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                         if (_nombre.isNotEmpty)
                                           '@${_nombre.split(' ').first.toLowerCase()}',
                                         if (_joinYear.isNotEmpty)
-                                          'desde $_joinYear',
+                                          L10n.fmt('desde {year}',
+                                              {'year': _joinYear}),
                                       ].join(' · '),
                                       style: GoogleFonts.rubik(
-                                          fontSize: 12, color: AppColors.textDim)),
+                                          fontSize: 12,
+                                          color: AppColors.textDim)),
                                   const SizedBox(height: 6),
                                   if (_isOrg)
                                     BrawlTag(
-                                        label: 'Organizador',
+                                        label: L10n.t('Organizador'),
                                         color: AppColors.magenta),
                                 ],
                               ),
@@ -250,11 +389,13 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                 decoration: BoxDecoration(
                                   color: AppColors.surface,
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: AppColors.stroke),
+                                  border:
+                                      Border.all(color: AppColors.stroke),
                                 ),
-                                child: Text('Editar',
+                                child: Text(L10n.t('Editar'),
                                     style: GoogleFonts.rubik(
-                                        fontSize: 12, color: AppColors.textDim)),
+                                        fontSize: 12,
+                                        color: AppColors.textDim)),
                               ),
                             ),
                           ],
@@ -262,12 +403,12 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // Sección de cuenta (email, contraseña...)
+                      // Cuenta
                       _Section(
-                        header: 'Cuenta',
+                        header: L10n.t('Cuenta'),
                         items: [
                           _SettingsItem(
-                            title: 'Datos personales',
+                            title: L10n.t('Datos personales'),
                             sub: '$_nombre · $_email',
                             color: AppColors.cyan,
                             icon: 'i',
@@ -283,8 +424,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             ),
                           ),
                           _SettingsItem(
-                            title: 'Contraseña y seguridad',
-                            sub: '2FA desactivado',
+                            title: L10n.t('Contraseña y seguridad'),
+                            sub: L10n.t('2FA desactivado'),
                             color: AppColors.violet,
                             icon: '⚿',
                             onTap: () => Navigator.push(
@@ -294,8 +435,9 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             ),
                           ),
                           _SettingsItem(
-                            title: 'Mis juegos favoritos',
-                            sub: '${_selectedGames.length} seleccionados',
+                            title: L10n.t('Mis juegos favoritos'),
+                            sub: L10n.fmt('{n} seleccionados',
+                                {'n': '${_selectedGames.length}'}),
                             color: AppColors.pink,
                             icon: '♥',
                             onTap: () => Navigator.push(
@@ -312,52 +454,52 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // Sección de notificaciones generales
+                      // Notificaciones generales
                       _ToggleSection(
-                        header: 'Notificaciones',
+                        header: L10n.t('Notificaciones'),
                         items: [
                           _ToggleItem(
-                              title: 'Torneos próximos',
-                              sub: 'Push · 2h antes',
+                              title: L10n.t('Torneos próximos'),
+                              sub: L10n.t('Push · 2h antes'),
                               color: AppColors.cyan,
                               icon: '⏰',
                               key: 'Torneos próximos'),
                           _ToggleItem(
-                              title: 'Nuevos eventos cerca',
-                              sub: 'Radio 10 km',
+                              title: L10n.t('Nuevos eventos cerca'),
+                              sub: L10n.t('Radio 10 km'),
                               color: AppColors.orange,
                               icon: '◉',
                               key: 'Nuevos eventos cerca'),
                           _ToggleItem(
-                              title: 'Resultados y emparejamiento',
-                              sub: 'En tiempo real',
+                              title: L10n.t('Resultados y emparejamiento'),
+                              sub: L10n.t('En tiempo real'),
                               color: AppColors.pink,
                               icon: '⚔',
                               key: 'Resultados y emparejamiento'),
                           _ToggleItem(
-                              title: 'Promociones de tiendas',
-                              sub: 'Semanal',
+                              title: L10n.t('Promociones de tiendas'),
+                              sub: L10n.t('Semanal'),
                               color: AppColors.yellow,
                               icon: '✦',
                               key: 'Promociones de tiendas'),
                         ],
                         toggles: _toggles,
-                        onToggle: (k, v) => setState(() => _toggles[k] = v),
+                        onToggle: _onNotifToggle,
                         accent: accent,
                       ),
                       const SizedBox(height: 18),
 
-                      // Toggles para activar notificaciones por ciudad
-                      const SizedBox(height: 18),
+                      // Notificaciones por ciudad
                       if (_loadingCiudades)
                         _CiudadLoadingSection(accent: accent)
                       else if (_ciudadToggles.isNotEmpty)
                         _ToggleSection(
-                          header: 'Notificaciones por ciudad',
+                          header: L10n.t('Notificaciones por ciudad'),
                           items: _ciudadToggles.keys
                               .map((city) => _ToggleItem(
                                     title: city,
-                                    sub: 'Eventos en $city',
+                                    sub: L10n.fmt(
+                                        'Eventos en {city}', {'city': city}),
                                     icon: '◎',
                                     key: city,
                                     color: AppColors.orange,
@@ -369,68 +511,98 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                         ),
                       const SizedBox(height: 18),
 
-                      // Sección de preferencias de la app
+                      // Preferencias
                       _Section(
-                        header: 'Preferencias',
+                        header: L10n.t('Preferencias'),
                         items: [
                           _SettingsItem(
-                            title: 'Idioma',
+                            title: L10n.t('Idioma'),
                             sub: _idiomaLabel,
                             color: AppColors.violet,
                             icon: '🌐',
-                            onTap: () => Navigator.push(
-                              context,
-                              slideRoute(IdiomaScreen(
-                                selected: _idioma,
-                                accent: accent,
-                                onSave: (lang) =>
-                                    setState(() => _idioma = lang),
-                              )),
-                            ),
+                            onTap: () async {
+                              final uid = FirebaseAuth
+                                  .instance.currentUser?.uid;
+                              await Navigator.push(
+                                context,
+                                slideRoute(IdiomaScreen(
+                                  selected: _idioma,
+                                  accent: accent,
+                                  onSave: (lang) async {
+                                    if (uid != null) {
+                                      await AppPrefsNotifier.instance
+                                          .setIdioma(uid, lang);
+                                    }
+                                    if (mounted) setState(() {});
+                                  },
+                                )),
+                              );
+                              if (mounted) setState(() {});
+                            },
                           ),
                           _SettingsItem(
-                            title: 'Apariencia',
+                            title: L10n.t('Apariencia'),
                             sub: _aparienciaLabel,
                             color: AppColors.blue,
                             icon: '◐',
-                            onTap: () => Navigator.push(
-                              context,
-                              slideRoute(AparienciaScreen(
-                                selected: _apariencia,
-                                accent: accent,
-                                onSave: (a) =>
-                                    setState(() => _apariencia = a),
-                              )),
-                            ),
+                            onTap: () async {
+                              final uid = FirebaseAuth
+                                  .instance.currentUser?.uid;
+                              await Navigator.push(
+                                context,
+                                slideRoute(AparienciaScreen(
+                                  selected: _apariencia,
+                                  accent: accent,
+                                  onSave: (a) async {
+                                    if (uid != null) {
+                                      await AppPrefsNotifier.instance
+                                          .setTema(uid, a);
+                                    }
+                                    if (mounted) setState(() {});
+                                  },
+                                )),
+                              );
+                              if (mounted) setState(() {});
+                            },
                           ),
                           _SettingsItem(
-                            title: 'Unidades',
+                            title: L10n.t('Unidades'),
                             sub: '$_distancia · $_hora',
                             color: AppColors.cyan,
                             icon: '△',
-                            onTap: () => Navigator.push(
-                              context,
-                              slideRoute(UnidadesScreen(
-                                distancia: _distancia,
-                                hora: _hora,
-                                accent: accent,
-                                onSave: (d, h) => setState(() {
-                                  _distancia = d;
-                                  _hora = h;
-                                }),
-                              )),
-                            ),
+                            onTap: () async {
+                              final uid = FirebaseAuth
+                                  .instance.currentUser?.uid;
+                              await Navigator.push(
+                                context,
+                                slideRoute(UnidadesScreen(
+                                  distancia: _distancia,
+                                  hora: _hora,
+                                  accent: accent,
+                                  onSave: (d, h) async {
+                                    if (uid != null) {
+                                      await AppPrefsNotifier.instance
+                                          .setDistancia(uid, d);
+                                      await AppPrefsNotifier.instance
+                                          .setHora(uid, h);
+                                    }
+                                    if (mounted) setState(() {});
+                                  },
+                                )),
+                              );
+                              if (mounted) setState(() {});
+                            },
                           ),
                         ],
                       ),
                       const SizedBox(height: 18),
 
-                      // Sección legal y de privacidad
+                      // Legal
                       _Section(
-                        header: 'Legal',
+                        header: L10n.t('Legal'),
                         items: [
                           _SettingsItem(
-                            title: 'Política de privacidad',
+                            title: L10n.t('Política de privacidad'),
                             color: AppColors.textMute,
                             icon: '§',
                             onTap: () => Navigator.push(
@@ -439,7 +611,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             ),
                           ),
                           _SettingsItem(
-                            title: 'Términos y condiciones',
+                            title: L10n.t('Términos y condiciones'),
                             color: AppColors.textMute,
                             icon: '§',
                             onTap: () => Navigator.push(
@@ -448,7 +620,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             ),
                           ),
                           _SettingsItem(
-                            title: 'Cerrar sesión',
+                            title: L10n.t('Cerrar sesión'),
                             color: AppColors.pink,
                             icon: '⎋',
                             danger: true,
@@ -475,7 +647,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   }
 }
 
-// Widget reutilizable para filas de configuración
+// ─── Modelos de fila ─────────────────────────────────────────────────────────
+
 class _SettingsItem {
   final String title, icon;
   final String? sub;
@@ -491,7 +664,6 @@ class _SettingsItem {
       this.onTap});
 }
 
-// Widget para filas con switch
 class _ToggleItem {
   final String title, sub, icon, key;
   final Color color;
@@ -503,7 +675,8 @@ class _ToggleItem {
       required this.color});
 }
 
-// Título de sección con línea separadora
+// ─── Sección de ajustes con flechas ──────────────────────────────────────────
+
 class _Section extends StatelessWidget {
   final String header;
   final List<_SettingsItem> items;
@@ -526,7 +699,8 @@ class _Section extends StatelessWidget {
                 child: Container(
                   decoration: BoxDecoration(
                     border: i < items.length - 1
-                        ? Border(bottom: BorderSide(color: AppColors.stroke))
+                        ? Border(
+                            bottom: BorderSide(color: AppColors.stroke))
                         : null,
                   ),
                   child: Padding(
@@ -586,7 +760,8 @@ class _Section extends StatelessWidget {
   }
 }
 
-// Sección de ciudades con esqueleto de carga
+// ─── Skeleton de carga para ciudades ─────────────────────────────────────────
+
 class _CiudadLoadingSection extends StatelessWidget {
   final List<Color> accent;
   const _CiudadLoadingSection({required this.accent});
@@ -617,7 +792,8 @@ class _CiudadLoadingSection extends StatelessWidget {
   }
 }
 
-// Sección con lista de toggles
+// ─── Sección con toggles animados ────────────────────────────────────────────
+
 class _ToggleSection extends StatelessWidget {
   final String header;
   final List<_ToggleItem> items;
@@ -660,12 +836,13 @@ class _ToggleSection extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: r.color.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(9),
-                          border:
-                              Border.all(color: r.color.withValues(alpha: 0.2)),
+                          border: Border.all(
+                              color: r.color.withValues(alpha: 0.2)),
                         ),
                         child: Center(
                           child: Text(r.icon,
-                              style: TextStyle(fontSize: 13, color: r.color)),
+                              style:
+                                  TextStyle(fontSize: 13, color: r.color)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -680,7 +857,8 @@ class _ToggleSection extends StatelessWidget {
                                     color: AppColors.text)),
                             Text(r.sub,
                                 style: GoogleFonts.rubik(
-                                    fontSize: 11, color: AppColors.textMute)),
+                                    fontSize: 11,
+                                    color: AppColors.textMute)),
                           ],
                         ),
                       ),

@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
+import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
@@ -35,28 +37,35 @@ class _ClienteShellState extends State<ClienteShell> {
   LiveMatchData? _liveMatch;
   String? _lastShownMatchId;
 
-  static const _tabs = [
-    BrawlTabBarItem(icon: '◎', label: 'Eventos'),
-    BrawlTabBarItem(icon: '⬡', label: 'Mapa'),
-    BrawlTabBarItem(icon: '＃', label: 'Reglas'),
-    BrawlTabBarItem(icon: '♢', label: 'Perfil'),
-  ];
+  List<BrawlTabBarItem> get _tabs => [
+        BrawlTabBarItem(icon: '◎', label: L10n.t('Eventos')),
+        BrawlTabBarItem(icon: '⬡', label: L10n.t('Mapa')),
+        BrawlTabBarItem(icon: '＃', label: L10n.t('Reglas')),
+        BrawlTabBarItem(icon: '♢', label: L10n.t('Perfil')),
+      ];
 
-  static const _screens = [
-    ClienteEventosScreen(),
-    ClienteMapaScreen(),
-    SharedReglasScreen(),
-    SharedConfigScreen(isOrg: false),
-  ];
+  // No const: Flutter crea nuevas instancias en cada build, permitiendo
+  // que el diffing propague los cambios de tema/idioma a los hijos.
+  List<Widget> get _screens => const [
+        ClienteEventosScreen(),
+        ClienteMapaScreen(),
+        SharedReglasScreen(),
+        SharedConfigScreen(isOrg: false),
+      ];
 
   @override
   void initState() {
     super.initState();
     _uid = FirebaseAuth.instance.currentUser?.uid;
+    AppPrefsNotifier.instance.addListener(_onPrefsChanged);
     if (_uid != null) {
       _startListening();
       _startMatchListener();
     }
+  }
+
+  void _onPrefsChanged() {
+    if (mounted) setState(() {});
   }
 
   void _startMatchListener() {
@@ -135,6 +144,7 @@ class _ClienteShellState extends State<ClienteShell> {
 
   @override
   void dispose() {
+    AppPrefsNotifier.instance.removeListener(_onPrefsChanged);
     _notiSub?.cancel();
     _matchSub?.cancel();
     _dismissBanner();

@@ -16,7 +16,7 @@ class OrgParticipantesScreen extends StatelessWidget {
         backgroundColor: AppColors.bgDeep,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
+          icon: Icon(Icons.arrow_back_ios_new,
               color: AppColors.text, size: 18),
           onPressed: () => Navigator.pop(context),
         ),

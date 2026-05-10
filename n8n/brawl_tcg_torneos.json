@@ -1,0 +1,510 @@
+{
+  "name": "Brawl TCG — Buscador Torneos por Ciudad",
+  "nodes": [
+    {
+      "id": "schedule-trigger",
+      "name": "Cada 6 Horas",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "get-users",
+      "name": "Obtener Usuarios",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/User?pageSize=500",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firestore-cred",
+          "name": "Firestore Auth"
+        }
+      }
+    },
+    {
+      "id": "agrupar-ciudad",
+      "name": "Agrupar por Ciudad",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst documents = response.documents || [];\nconst cityMap = {};\n\nfor (const doc of documents) {\n  const f = doc.fields || {};\n  const city = f.localidad?.stringValue;\n  const fcmToken = f.fcmToken?.stringValue;\n  const uid = doc.name.split('/').pop();\n  const email = f.email?.stringValue || '';\n\n  if (city && fcmToken) {\n    if (!cityMap[city]) cityMap[city] = [];\n    cityMap[city].push({ uid, fcmToken, email });\n  }\n}\n\nreturn Object.entries(cityMap).map(([city, users]) => ({\n  json: { city, users }\n}));"
+      }
+    },
+    {
+      "id": "loop-ciudades",
+      "name": "Por Cada Ciudad",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [860, 300],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "preparar-hashtags",
+      "name": "Preparar Hashtags",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 160],
+      "parameters": {
+        "jsCode": "const city = $json.city || '';\nconst cityTag = city.normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/\\s+/g, '').toLowerCase();\nconst hashtags = [\n  `torneo${cityTag}`,\n  'torneotcg',\n  'torneomtg',\n  'torneoyugioh',\n  'torneopokemon',\n  'pokemontcg',\n  'magictcg',\n  'yugiohtorneo'\n];\nconst directUrls = hashtags.map(h => `https://www.instagram.com/explore/tags/${h}/`);\nreturn [{ json: { ...$json, cityTag, directUrls } }];"
+      }
+    },
+    {
+      "id": "buscar-instagram",
+      "name": "Buscar en Instagram",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/apify~instagram-scraper/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "timeout", "value": "120" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"directUrls\": {{ JSON.stringify($json.directUrls) }},\n  \"resultsType\": \"posts\",\n  \"resultsLimit\": 15\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "apify-cred",
+          "name": "Apify API Token"
+        }
+      }
+    },
+    {
+      "id": "buscar-reddit",
+      "name": "Buscar en Reddit",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 440],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.reddit.com/r/pkmntcg+magicTCG+yugioh+OnePieceTCG/search.json",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "q",
+              "value": "={{ 'torneo ' + $json.city + ' OR tournament ' + $json.city }}"
+            },
+            { "name": "sort", "value": "new" },
+            { "name": "t", "value": "week" },
+            { "name": "limit", "value": "15" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "merge-redes",
+      "name": "Unir Resultados",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [1340, 300],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "id": "normalizar-posts",
+      "name": "Normalizar Posts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300],
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst normalized = [];\n\nfor (const item of items) {\n  const data = item.json;\n\n  // Formato Instagram via Apify (array de posts)\n  if (Array.isArray(data)) {\n    for (const post of data) {\n      if (!post.url) continue;\n      normalized.push({\n        json: {\n          platform: 'instagram',\n          sourceUrl: post.url,\n          text: post.caption || '',\n          imageUrl: post.displayUrl || post.imageUrl || null,\n          hashtags: (post.hashtags || []).map(h => '#' + h),\n          rawDate: post.timestamp || new Date().toISOString(),\n          city: post.locationName || ''\n        }\n      });\n    }\n  }\n\n  // Formato Reddit\n  if (data.data?.children) {\n    for (const post of data.data.children) {\n      const p = post.data;\n      normalized.push({\n        json: {\n          platform: 'reddit',\n          sourceUrl: `https://reddit.com${p.permalink}`,\n          text: `${p.title} ${p.selftext || ''}`,\n          imageUrl: p.url_overridden_by_dest?.match(/\\.(jpg|png|gif|jpeg)/i)\n            ? p.url_overridden_by_dest\n            : null,\n          hashtags: [],\n          rawDate: new Date(p.created_utc * 1000).toISOString(),\n          city: ''\n        }\n      });\n    }\n  }\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { skip: true } }];"
+      }
+    },
+    {
+      "id": "tiene-imagen",
+      "name": "Tiene Imagen",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1780, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "img-check",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "google-vision",
+      "name": "Analizar Imagen con Google Vision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2020, 160],
+      "parameters": {
+        "method": "POST",
+        "url": "https://vision.googleapis.com/v1/images:annotate",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"requests\": [\n    {\n      \"image\": {\n        \"source\": { \"imageUri\": \"{{ $json.imageUrl }}\" }\n      },\n      \"features\": [\n        { \"type\": \"TEXT_DETECTION\",  \"maxResults\": 1 },\n        { \"type\": \"LABEL_DETECTION\", \"maxResults\": 10 }\n      ]\n    }\n  ]\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firestore-cred",
+          "name": "Firestore Auth"
+        }
+      }
+    },
+    {
+      "id": "procesar-vision",
+      "name": "Procesar Respuesta Vision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2260, 160],
+      "parameters": {
+        "jsCode": "const visionResponse = $input.first().json;\nconst originalPost = $('Tiene Imagen').first().json;\n\nconst response = visionResponse.responses?.[0] || {};\nconst fullText = (response.textAnnotations?.[0]?.description || '').toLowerCase();\nconst labels   = (response.labelAnnotations || []).map(l => l.description.toLowerCase());\n\nconst games = [\n  { key: 'Pokemon',  terms: ['pokemon', 'pokémon', 'pkmn'] },\n  { key: 'Magic',    terms: ['magic', 'mtg', 'commander'] },\n  { key: 'YuGiOh',  terms: ['yugioh', 'yu-gi-oh', 'ygo'] },\n  { key: 'OnePiece',terms: ['one piece', 'optcg'] },\n  { key: 'Lorcana', terms: ['lorcana'] },\n  { key: 'FaB',     terms: ['flesh and blood', 'fab'] }\n];\n\nlet juego = null;\nfor (const g of games) {\n  if (g.terms.some(t => fullText.includes(t) || labels.some(l => l.includes(t)))) {\n    juego = g.key;\n    break;\n  }\n}\n\nconst esTorneo =\n  fullText.includes('torneo') ||\n  fullText.includes('tournament') ||\n  fullText.includes('campeonato') ||\n  labels.some(l => ['card game', 'games', 'tabletop game', 'collectible card game'].includes(l));\n\n// Extraer primera línea como título aproximado\nconst titulo = response.textAnnotations?.[0]?.description\n  ?.split('\\n')\n  .find(l => l.trim().length > 3) || null;\n\nreturn [{ json: { ...originalPost, analysis: { esTorneo, titulo, fecha: null, lugar: originalPost.city || null, juego } } }];"
+      }
+    },
+    {
+      "id": "inferir-texto",
+      "name": "Inferir del Texto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2020, 440],
+      "parameters": {
+        "jsCode": "const post = $input.first().json;\nconst text = (post.text || '').toLowerCase();\nconst hashtags = post.hashtags || [];\n\nconst games = [\n  { key: 'Pokemon',  terms: ['pokemon', 'pokémon', 'pkmn'] },\n  { key: 'Magic',    terms: ['magic', 'mtg', 'commander'] },\n  { key: 'YuGiOh',  terms: ['yugioh', 'yu-gi-oh', 'ygo'] },\n  { key: 'OnePiece',terms: ['one piece', 'optcg'] },\n  { key: 'Lorcana', terms: ['lorcana'] },\n  { key: 'FaB',     terms: ['flesh and blood', 'fab'] }\n];\n\nlet juego = null;\nfor (const g of games) {\n  if (g.terms.some(t => text.includes(t) || hashtags.some(h => h.toLowerCase().includes(t)))) {\n    juego = g.key;\n    break;\n  }\n}\n\nconst esTorneo = text.includes('torneo') || text.includes('tournament') || text.includes('campeonato');\n\nreturn [{\n  json: {\n    ...post,\n    analysis: { esTorneo, titulo: null, fecha: null, lugar: post.city || null, juego }\n  }\n}];"
+      }
+    },
+    {
+      "id": "merge-analisis",
+      "name": "Unir Analisis",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [2500, 300],
+      "parameters": {
+        "mode": "append"
+      }
+    },
+    {
+      "id": "es-torneo",
+      "name": "Es Torneo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2720, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "torneo-check",
+              "leftValue": "={{ $json.analysis.esTorneo }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "true" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "check-duplicado",
+      "name": "Buscar Duplicado",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2960, 180],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents:runQuery",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"structuredQuery\": {\n    \"from\": [{ \"collectionId\": \"evento ia\" }],\n    \"where\": {\n      \"fieldFilter\": {\n        \"field\": { \"fieldPath\": \"sourceUrl\" },\n        \"op\": \"EQUAL\",\n        \"value\": { \"stringValue\": \"{{ $json.sourceUrl }}\" }\n      }\n    },\n    \"limit\": 1\n  }\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firestore-cred",
+          "name": "Firestore Auth"
+        }
+      }
+    },
+    {
+      "id": "es-nuevo",
+      "name": "Es Nuevo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3180, 180],
+      "parameters": {
+        "jsCode": "const queryResult = $input.all();\nconst postData = $('Es Torneo').first().json;\n\nconst exists = queryResult.some(r => r.json.document);\n\nreturn [{ json: { ...postData, isDuplicate: exists } }];"
+      }
+    },
+    {
+      "id": "filtrar-dup",
+      "name": "Filtrar Duplicados",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3400, 180],
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "dup-check",
+              "leftValue": "={{ $json.isDuplicate }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "false" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "guardar-evento-ia",
+      "name": "Guardar en evento ia",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3640, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/evento%20ia",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"sourceUrl\":     { \"stringValue\": \"{{ $json.sourceUrl }}\" },\n    \"platform\":      { \"stringValue\": \"{{ $json.platform }}\" },\n    \"city\":          { \"stringValue\": \"{{ $json.city }}\" },\n    \"title\":         { \"stringValue\": \"{{ $json.analysis.titulo || $json.text.substring(0,100) }}\" },\n    \"description\":   { \"stringValue\": \"{{ $json.text }}\" },\n    \"imageUrl\":      { \"stringValue\": \"{{ $json.imageUrl || '' }}\" },\n    \"game\":          { \"stringValue\": \"{{ $json.analysis.juego || 'TCG' }}\" },\n    \"eventDate\":     { \"stringValue\": \"{{ $json.analysis.fecha || '' }}\" },\n    \"hashtags\":      { \"arrayValue\": { \"values\": [] } },\n    \"detectedAt\":    { \"timestampValue\": \"{{ new Date().toISOString() }}\" },\n    \"notifiedUsers\": { \"arrayValue\": { \"values\": [] } }\n  }\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firestore-cred",
+          "name": "Firestore Auth"
+        }
+      }
+    },
+    {
+      "id": "get-users-ciudad",
+      "name": "Usuarios de la Ciudad",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3880, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents:runQuery",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"structuredQuery\": {\n    \"from\": [{ \"collectionId\": \"User\" }],\n    \"where\": {\n      \"compositeFilter\": {\n        \"op\": \"AND\",\n        \"filters\": [\n          {\n            \"fieldFilter\": {\n              \"field\": { \"fieldPath\": \"localidad\" },\n              \"op\": \"EQUAL\",\n              \"value\": { \"stringValue\": \"{{ $json.city }}\" }\n            }\n          },\n          {\n            \"fieldFilter\": {\n              \"field\": { \"fieldPath\": \"organizer\" },\n              \"op\": \"EQUAL\",\n              \"value\": { \"booleanValue\": false }\n            }\n          }\n        ]\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firestore-cred",
+          "name": "Firestore Auth"
+        }
+      }
+    },
+    {
+      "id": "preparar-usuarios",
+      "name": "Preparar Usuarios",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4120, 100],
+      "parameters": {
+        "jsCode": "const queryResults = $input.all();\nconst eventSaved = $('Guardar en evento ia').first().json;\n\nconst eventFields = eventSaved.fields || {};\nconst eventTitle = eventFields.title?.stringValue || 'Nuevo torneo TCG';\nconst eventCity  = eventFields.city?.stringValue  || '';\nconst eventGame  = eventFields.game?.stringValue  || 'TCG';\nconst sourceUrl  = eventFields.sourceUrl?.stringValue || '';\nconst platform   = eventFields.platform?.stringValue  || '';\n\nconst users = [];\nfor (const result of queryResults) {\n  if (result.json.document) {\n    const f   = result.json.document.fields || {};\n    const uid = result.json.document.name.split('/').pop();\n    const fcm = f.fcmToken?.stringValue;\n    if (fcm) users.push({ uid, fcmToken: fcm, email: f.email?.stringValue || '' });\n  }\n}\n\nreturn users.map(u => ({\n  json: { ...u, eventTitle, eventCity, eventGame, sourceUrl, platform }\n}));"
+      }
+    },
+    {
+      "id": "loop-usuarios",
+      "name": "Por Cada Usuario",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [4360, 100],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "crear-notif-inapp",
+      "name": "Crear Notificacion In-App",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4600, -40],
+      "parameters": {
+        "method": "POST",
+        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/Notifications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"fields\": {\n    \"date\":    { \"timestampValue\": \"{{ new Date().toISOString() }}\" },\n    \"mensaje\": { \"stringValue\": \"Torneo {{ $json.eventGame }} encontrado en {{ $json.eventCity }}: {{ $json.eventTitle }}\" },\n    \"type\":    { \"stringValue\": \"discovered_event\" },\n    \"userID\":  { \"referenceValue\": \"projects/YOUR_PROJECT_ID/databases/(default)/documents/User/{{ $json.uid }}\" },\n    \"link\":    { \"stringValue\": \"{{ $json.sourceUrl }}\" }\n  }\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "firestore-cred",
+          "name": "Firestore Auth"
+        }
+      }
+    },
+    {
+      "id": "enviar-push-fcm",
+      "name": "Enviar Push FCM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4600, 240],
+      "parameters": {
+        "method": "POST",
+        "url": "https://fcm.googleapis.com/v1/projects/YOUR_PROJECT_ID/messages:send",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {\n    \"token\": \"{{ $json.fcmToken }}\",\n    \"notification\": {\n      \"title\": \"Torneo {{ $json.eventGame }} en {{ $json.eventCity }}\",\n      \"body\":  \"{{ $json.eventTitle }}\"\n    },\n    \"data\": {\n      \"type\":     \"discovered_event\",\n      \"link\":     \"{{ $json.sourceUrl }}\",\n      \"platform\": \"{{ $json.platform }}\",\n      \"city\":     \"{{ $json.eventCity }}\"\n    },\n    \"android\": {\n      \"notification\": {\n        \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\"\n      }\n    }\n  }\n}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fcm-cred",
+          "name": "FCM Bearer Token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Cada 6 Horas": {
+      "main": [[{ "node": "Obtener Usuarios", "type": "main", "index": 0 }]]
+    },
+    "Obtener Usuarios": {
+      "main": [[{ "node": "Agrupar por Ciudad", "type": "main", "index": 0 }]]
+    },
+    "Agrupar por Ciudad": {
+      "main": [[{ "node": "Por Cada Ciudad", "type": "main", "index": 0 }]]
+    },
+    "Por Cada Ciudad": {
+      "main": [
+        [{ "node": "Preparar Hashtags", "type": "main", "index": 0 }]
+      ]
+    },
+    "Preparar Hashtags": {
+      "main": [
+        [
+          { "node": "Buscar en Instagram", "type": "main", "index": 0 },
+          { "node": "Buscar en Reddit",    "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Buscar en Instagram": {
+      "main": [[{ "node": "Unir Resultados", "type": "main", "index": 0 }]]
+    },
+    "Buscar en Reddit": {
+      "main": [[{ "node": "Unir Resultados", "type": "main", "index": 1 }]]
+    },
+    "Unir Resultados": {
+      "main": [[{ "node": "Normalizar Posts", "type": "main", "index": 0 }]]
+    },
+    "Normalizar Posts": {
+      "main": [[{ "node": "Tiene Imagen", "type": "main", "index": 0 }]]
+    },
+    "Tiene Imagen": {
+      "main": [
+        [{ "node": "Analizar Imagen con Google Vision", "type": "main", "index": 0 }],
+        [{ "node": "Inferir del Texto",                 "type": "main", "index": 0 }]
+      ]
+    },
+    "Analizar Imagen con Google Vision": {
+      "main": [[{ "node": "Procesar Respuesta Vision", "type": "main", "index": 0 }]]
+    },
+    "Procesar Respuesta Vision": {
+      "main": [[{ "node": "Unir Analisis", "type": "main", "index": 0 }]]
+    },
+    "Inferir del Texto": {
+      "main": [[{ "node": "Unir Analisis", "type": "main", "index": 1 }]]
+    },
+    "Unir Analisis": {
+      "main": [[{ "node": "Es Torneo", "type": "main", "index": 0 }]]
+    },
+    "Es Torneo": {
+      "main": [
+        [{ "node": "Buscar Duplicado", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Buscar Duplicado": {
+      "main": [[{ "node": "Es Nuevo", "type": "main", "index": 0 }]]
+    },
+    "Es Nuevo": {
+      "main": [[{ "node": "Filtrar Duplicados", "type": "main", "index": 0 }]]
+    },
+    "Filtrar Duplicados": {
+      "main": [
+        [{ "node": "Guardar en evento ia", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Guardar en evento ia": {
+      "main": [[{ "node": "Usuarios de la Ciudad", "type": "main", "index": 0 }]]
+    },
+    "Usuarios de la Ciudad": {
+      "main": [[{ "node": "Preparar Usuarios", "type": "main", "index": 0 }]]
+    },
+    "Preparar Usuarios": {
+      "main": [[{ "node": "Por Cada Usuario", "type": "main", "index": 0 }]]
+    },
+    "Por Cada Usuario": {
+      "main": [
+        [
+          { "node": "Crear Notificacion In-App", "type": "main", "index": 0 },
+          { "node": "Enviar Push FCM",           "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

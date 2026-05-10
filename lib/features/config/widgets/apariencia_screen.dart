@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 
@@ -49,7 +50,7 @@ class _AparienciaScreenState extends State<AparienciaScreen> {
                   children: [
                     const BackBtn(),
                     const SizedBox(width: 14),
-                    Text('Apariencia',
+                    Text(L10n.t('Apariencia'),
                         style: GoogleFonts.rubik(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -66,7 +67,7 @@ class _AparienciaScreenState extends State<AparienciaScreen> {
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 14),
                         child: Text(
-                          'TEMA DE LA APLICACIÓN',
+                          L10n.t('TEMA DE LA APLICACIÓN'),
                           style: GoogleFonts.rubik(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -78,7 +79,7 @@ class _AparienciaScreenState extends State<AparienciaScreen> {
                         children: [
                           Expanded(
                               child: _ThemeCard(
-                            label: 'Oscuro',
+                            label: L10n.t('Oscuro'),
                             icon: '🌙',
                             value: 'dark',
                             selected: _selected,
@@ -91,7 +92,7 @@ class _AparienciaScreenState extends State<AparienciaScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                               child: _ThemeCard(
-                            label: 'Claro',
+                            label: L10n.t('Claro'),
                             icon: '☀️',
                             value: 'light',
                             selected: _selected,
@@ -113,7 +114,7 @@ class _AparienciaScreenState extends State<AparienciaScreen> {
                             const SizedBox(width: 10),
                             Expanded(
                               child: Text(
-                                'El modo claro está disponible pero la experiencia está optimizada para el modo oscuro.',
+                                L10n.t('El modo claro está disponible pero la experiencia está optimizada para el modo oscuro.'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 12, color: AppColors.textDim),
                               ),

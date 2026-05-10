@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/features/notificaciones/services/notificaciones_service.dart';
@@ -125,7 +126,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
         backgroundColor: AppColors.surface,
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text('Enlace de tu mazo',
+        title: Text(L10n.t('Enlace de tu mazo'),
             style: GoogleFonts.rubik(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -165,14 +166,14 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancelar',
+            child: Text(L10n.t('Cancelar'),
                 style: GoogleFonts.rubik(
                     fontSize: 13, color: AppColors.textMute)),
           ),
           TextButton(
             onPressed: () =>
                 Navigator.pop(ctx, deckController.text.trim()),
-            child: Text('Inscribirme',
+            child: Text(L10n.t('Inscribirme'),
                 style: GoogleFonts.rubik(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -208,7 +209,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       if (!mounted) return;
       if (existing.docs.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ya estás inscrito en este torneo')),
+          SnackBar(content: Text(L10n.t('Ya estás inscrito en este torneo'))),
         );
         setState(() => _enrolling = false);
         return;
@@ -261,7 +262,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al inscribirse: $e')),
+        SnackBar(content: Text(L10n.fmt('Error al inscribirse: {e}', {'e': '$e'}))),
       );
     } finally {
       if (mounted) setState(() => _enrolling = false);
@@ -329,7 +330,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                         children: [
                           const BackBtn(),
                           const SizedBox(width: 12),
-                          Text('Unirme a un torneo',
+                          Text(L10n.t('Unirme a un torneo'),
                               style: GoogleFonts.rubik(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w600,
@@ -383,7 +384,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                                     AppColors.clienteGradient)
                                             .createShader(bounds),
                                     blendMode: BlendMode.srcIn,
-                                    child: Text('código del torneo',
+                                    child: Text(L10n.t('código del torneo'),
                                         style: GoogleFonts.rubik(
                                             fontSize: 32,
                                             fontWeight: FontWeight.w700,
@@ -543,7 +544,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                               color: AppColors.stroke),
                                         ),
                                         child: Center(
-                                          child: Text('Otro código',
+                                          child: Text(L10n.t('Otro código'),
                                               style: GoogleFonts.rubik(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
@@ -565,7 +566,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                                   ? _showDeckDialog
                                                   : () => _enroll(''),
                                               child:
-                                                  const Text('Inscribirme ✓'),
+                                                  Text(L10n.t('Inscribirme ✓')),
                                             ),
                                     ),
                                   ],

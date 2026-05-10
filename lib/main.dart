@@ -1,3 +1,4 @@
+import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/screens/cliente/Login.dart';
 import 'package:brawl_tcg/screens/cliente/rol_selection_screen.dart';
 import 'package:brawl_tcg/shell/cliente_shell.dart';
@@ -8,13 +9,11 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 
-// VAPID key (Web Push certificate) de Firebase Console:
-// Project Settings → Cloud Messaging → Web Push certificates → Key pair
-// Reemplaza este valor con el tuyo antes de desplegar en web.
 const String _kVapidKey =
     'BKrkI2AVVga5ebHmlxojbCNydEmshrHkncp9TGup8MglYe51l_qXC8uVrfl7HIr1Ac3s92ggMdKd7HcXkNVBpmA';
 
@@ -34,16 +33,59 @@ void main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
 
   @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+    AppPrefsNotifier.instance.addListener(_onPrefsChanged);
+  }
+
+  @override
+  void dispose() {
+    AppPrefsNotifier.instance.removeListener(_onPrefsChanged);
+    super.dispose();
+  }
+
+  void _onPrefsChanged() => setState(() {});
+
+  @override
   Widget build(BuildContext context) {
+    final prefs = AppPrefsNotifier.instance;
+    final isDark = prefs.tema == 'dark';
+    final locale = Locale(prefs.idioma);
+
+    final textTheme = GoogleFonts.rubikTextTheme();
+
     return MaterialApp(
-      title: 'Flutter Demo',
+      title: 'Brawl TCG',
+      debugShowCheckedModeBanner: false,
+      locale: locale,
+      supportedLocales: const [Locale('es'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      themeMode: isDark ? ThemeMode.dark : ThemeMode.light,
       theme: ThemeData(
-        textTheme: GoogleFonts.rubikTextTheme(),
+        brightness: Brightness.light,
+        textTheme: textTheme,
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+      ),
+      darkTheme: ThemeData(
+        brightness: Brightness.dark,
+        textTheme: textTheme,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.deepPurple,
+          brightness: Brightness.dark,
+        ),
       ),
       home: const _AuthGate(),
     );
@@ -58,7 +100,6 @@ class _AuthGate extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Mientras Firebase comprueba si hay sesión activa muestro el spinner
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
             backgroundColor: Color(0xFF1A1C20),
@@ -68,12 +109,10 @@ class _AuthGate extends StatelessWidget {
           );
         }
 
-        // Si no hay usuario logueado voy al login
         if (!snapshot.hasData || snapshot.data == null) {
           return const Login();
         }
 
-        // Si hay sesión compruebo el rol del usuario para mandarlo al shell correcto
         return _RoleRouter(uid: snapshot.data!.uid);
       },
     );
@@ -96,6 +135,7 @@ class _RoleRouterState extends State<_RoleRouter> {
     super.initState();
     _roleFuture = _fetchRole();
     _saveFcmToken();
+    AppPrefsNotifier.instance.loadFromFirestore(widget.uid);
   }
 
   Future<String> _fetchRole() async {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 
@@ -27,6 +28,11 @@ class _IdiomaScreenState extends State<IdiomaScreen> {
     ('en', '🇬🇧', 'English', 'United Kingdom'),
   ];
 
+  // La pantalla de idioma siempre muestra ambas opciones en su idioma nativo,
+  // pero el título sí se traduce.
+  String get _title => L10n.t('Idioma');
+  String get _sectionLabel => L10n.t('SELECCIONA UN IDIOMA');
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +54,7 @@ class _IdiomaScreenState extends State<IdiomaScreen> {
                   children: [
                     const BackBtn(),
                     const SizedBox(width: 14),
-                    Text('Idioma',
+                    Text(_title,
                         style: GoogleFonts.rubik(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -65,7 +71,7 @@ class _IdiomaScreenState extends State<IdiomaScreen> {
                       Padding(
                         padding: const EdgeInsets.only(left: 4, bottom: 10),
                         child: Text(
-                          'SELECCIONA UN IDIOMA',
+                          _sectionLabel,
                           style: GoogleFonts.rubik(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,

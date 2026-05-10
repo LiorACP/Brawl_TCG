@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
@@ -99,7 +100,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
             const SizedBox(height: 16),
             _OptionRow(
               icon: '✉',
-              label: 'Ver inscripciones pendientes',
+              label: L10n.t('Ver inscripciones pendientes'),
               color: AppColors.violet,
               onTap: () {
                 Navigator.pop(context);
@@ -112,7 +113,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
             const SizedBox(height: 2),
             _OptionRow(
               icon: '👥',
-              label: 'Ver participantes',
+              label: L10n.t('Ver participantes'),
               color: AppColors.cyan,
               onTap: () {
                 Navigator.pop(context);
@@ -125,7 +126,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
             const SizedBox(height: 2),
             _OptionRow(
               icon: '✎',
-              label: 'Editar torneo',
+              label: L10n.t('Editar torneo'),
               color: AppColors.cyan,
               onTap: () {
                 Navigator.pop(context);
@@ -140,7 +141,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
             const SizedBox(height: 2),
             _OptionRow(
               icon: '🗑',
-              label: 'Eliminar torneo',
+              label: L10n.t('Eliminar torneo'),
               color: AppColors.pink,
               onTap: () {
                 Navigator.pop(context);
@@ -154,13 +155,13 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
   }
 
   Future<void> _confirmDeleteTournament(Tournament t) async {
-    final confirm = await _showDeleteDialog('Eliminar torneo', t.name);
+    final confirm = await _showDeleteDialog(L10n.t('Eliminar torneo'), t.name);
     if (confirm != true) return;
     await _doDeleteTournament(t, notifyPlayers: true);
   }
 
   Future<void> _deleteDraft(Tournament t) async {
-    final confirm = await _showDeleteDialog('Eliminar borrador', t.name);
+    final confirm = await _showDeleteDialog(L10n.t('Eliminar borrador'), t.name);
     if (confirm != true) return;
     await _doDeleteTournament(t, notifyPlayers: false);
   }
@@ -183,13 +184,13 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancelar',
+            child: Text(L10n.t('Cancelar'),
                 style:
                     GoogleFonts.rubik(fontSize: 13, color: AppColors.textMute)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: Text('Eliminar',
+            child: Text(L10n.t('Eliminar'),
                 style: GoogleFonts.rubik(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
@@ -310,7 +311,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '$_storeName · ORGANIZADOR',
+                              '$_storeName · ${L10n.t('ORGANIZADOR')}',
                               style: GoogleFonts.rubik(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
@@ -320,7 +321,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Eventos',
+                              L10n.t('Eventos'),
                               style: GoogleFonts.rubik(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w700,
@@ -386,7 +387,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                               size: GradBtnSize.sm,
                               gradient: AppColors.organizadorGradient,
                               onTap: _openCrear,
-                              child: const Text('＋ Crear'),
+                              child: Text(L10n.t('＋ Crear')),
                             ),
                           ],
                         ),
@@ -410,13 +411,13 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                               return Row(
                                 children: [
                                   _KpiCard(
-                                    label: 'Hoy',
+                                    label: L10n.t('Hoy'),
                                     value: kpi.todayCount.toString(),
-                                    suffix: 'torneos',
+                                    suffix: L10n.t('Torneos').toLowerCase(),
                                   ),
                                   const SizedBox(width: 8),
                                   _KpiCard(
-                                    label: 'Inscritos',
+                                    label: L10n.t('Inscritos'),
                                     value: kpi.totalEnrolled.toString(),
                                     badge: kpi.newEnrollments > 0
                                         ? '+${kpi.newEnrollments}'
@@ -424,7 +425,7 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   _KpiCard(
-                                    label: 'Este mes',
+                                    label: L10n.t('Este mes'),
                                     value: kpi.revenueLabel,
                                   ),
                                 ],
@@ -488,10 +489,10 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
           if (all.isEmpty) {
             return _EmptyContent(
               icon: '◈',
-              message: 'Sin torneos activos',
-              sub: 'Crea tu primer torneo con el botón ＋ Crear',
+              message: L10n.t('Sin torneos activos'),
+              sub: L10n.t('Crea tu primer torneo con el botón ＋ Crear'),
               onAction: _openCrear,
-              actionLabel: '＋ Crear torneo',
+              actionLabel: L10n.t('＋ Crear'),
             );
           }
           return _EnCursoContent(
@@ -510,10 +511,10 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
         builder: (ctx, snap) {
           if (!snap.hasData) return const _LoadingContent();
           if (snap.data!.isEmpty) {
-            return const _EmptyContent(
+            return _EmptyContent(
               icon: '✎',
-              message: 'Sin borradores',
-              sub: 'Los torneos guardados sin publicar aparecerán aquí',
+              message: L10n.t('Sin borradores'),
+              sub: L10n.t('Los torneos guardados sin publicar aparecerán aquí'),
             );
           }
           return _TournamentList(
@@ -531,10 +532,10 @@ class _OrgEventosScreenState extends State<OrgEventosScreen> {
       builder: (ctx, snap) {
         if (!snap.hasData) return const _LoadingContent();
         if (snap.data!.isEmpty) {
-          return const _EmptyContent(
+          return _EmptyContent(
             icon: '🏁',
-            message: 'Sin torneos finalizados',
-            sub: 'Aquí verás el historial de torneos completados',
+            message: L10n.t('Sin torneos finalizados'),
+            sub: L10n.t('Aquí verás el historial de torneos completados'),
           );
         }
         return _TournamentList(tournaments: snap.data!, finished: true);
@@ -566,7 +567,7 @@ class _TabCountsRow extends StatelessWidget {
             GestureDetector(
               onTap: () => onTab('encurso'),
               child: _UnderlineTab(
-                label: 'En curso',
+                label: L10n.t('En curso'),
                 count: c.enCurso,
                 active: activeTab == 'encurso',
               ),
@@ -575,7 +576,7 @@ class _TabCountsRow extends StatelessWidget {
             GestureDetector(
               onTap: () => onTab('borradores'),
               child: _UnderlineTab(
-                label: 'Borradores',
+                label: L10n.t('Borradores'),
                 count: c.draft,
                 active: activeTab == 'borradores',
               ),
@@ -584,7 +585,7 @@ class _TabCountsRow extends StatelessWidget {
             GestureDetector(
               onTap: () => onTab('finalizados'),
               child: _UnderlineTab(
-                label: 'Finalizados',
+                label: L10n.t('Finalizados'),
                 count: c.finished,
                 active: activeTab == 'finalizados',
               ),
@@ -704,7 +705,7 @@ class _TournamentList extends StatelessWidget {
                       ),
                     ),
                     if (finished)
-                      BrawlTag(label: 'Finalizado', color: AppColors.textMute)
+                      BrawlTag(label: L10n.t('Finalizado'), color: AppColors.textMute)
                     else ...[
                       if (onDelete != null)
                         GestureDetector(
@@ -728,7 +729,7 @@ class _TournamentList extends StatelessWidget {
                             ),
                           ),
                         ),
-                      BrawlTag(label: 'Borrador', color: AppColors.yellow),
+                      BrawlTag(label: L10n.t('Borrador'), color: AppColors.yellow),
                       if (onTap != null) ...[
                         const SizedBox(width: 8),
                         Text(
@@ -1006,7 +1007,7 @@ class _LiveCardState extends State<_LiveCard> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
-        title: Text('Finalizar torneo',
+        title: Text(L10n.t('Finalizar torneo'),
             style: GoogleFonts.rubik(
                 color: AppColors.text, fontWeight: FontWeight.w700)),
         content: Text(
@@ -1017,12 +1018,12 @@ class _LiveCardState extends State<_LiveCard> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancelar',
+            child: Text(L10n.t('Cancelar'),
                 style: GoogleFonts.rubik(color: AppColors.textMute)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Finalizar',
+            child: Text(L10n.t('Finalizar'),
                 style: GoogleFonts.rubik(
                     color: AppColors.pink, fontWeight: FontWeight.w700)),
           ),
@@ -1036,7 +1037,7 @@ class _LiveCardState extends State<_LiveCard> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al finalizar: $e')),
+          SnackBar(content: Text(L10n.fmt('Error al finalizar: {e}', {'e': '$e'}))),
         );
       }
     } finally {
@@ -1065,7 +1066,7 @@ class _LiveCardState extends State<_LiveCard> {
                 _PulseDot(color: AppColors.pink),
                 const SizedBox(width: 10),
                 Text(
-                  'EN VIVO · RONDA $currentRound / $totalRounds',
+                  L10n.fmt('EN VIVO · RONDA {r} / {t}', {'r': '$currentRound', 't': '$totalRounds'}),
                   style: GoogleFonts.rubik(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -1200,7 +1201,7 @@ class _LiveCardState extends State<_LiveCard> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Ronda $currentRound en juego',
+                        L10n.fmt('Ronda {r} en juego', {'r': '$currentRound'}),
                         style: GoogleFonts.rubik(
                           fontSize: 11,
                           color: AppColors.textMute,
@@ -1242,7 +1243,7 @@ class _LiveCardState extends State<_LiveCard> {
                                 ),
                               )
                             : Text(
-                                'Finalizar torneo',
+                                L10n.t('Finalizar torneo'),
                                 style: GoogleFonts.rubik(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,
@@ -1323,7 +1324,7 @@ class _UpcomingCardState extends State<_UpcomingCard> {
     ).catchError((e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al iniciar: $e')),
+          SnackBar(content: Text(L10n.fmt('Error al iniciar: {e}', {'e': '$e'}))),
         );
       }
     }).whenComplete(() {

@@ -14,6 +14,7 @@ class AppNotification {
   final NotificationType type;
   final bool isRead;
   final DateTime createdAt;
+  final String? link;
 
   AppNotification({
     required this.id,
@@ -25,6 +26,7 @@ class AppNotification {
     required this.type,
     this.isRead = false,
     required this.createdAt,
+    this.link,
   });
 
   // Campos del documento en Firestore (colección Notifications):
@@ -41,7 +43,8 @@ class AppNotification {
     // El campo puede llamarse 'mensaje' o 'body' según quién escribió la notificación
     final body = d['mensaje'] as String? ?? d['body'] as String? ?? '';
     final title = d['title'] as String? ?? _defaultTitle(typeStr);
-    final icon = d['icon'] as String? ?? _defaultIcon(type);
+    final icon = d['icon'] as String? ?? _defaultIcon(type, typeStr);
+    final link = d['link'] as String?;
 
     return AppNotification(
       id: doc.id,
@@ -53,12 +56,14 @@ class AppNotification {
       type: type,
       isRead: d['isRead'] as bool? ?? false,
       createdAt: createdAt,
+      link: link,
     );
   }
 
   static NotificationType _parseType(String s) {
     final lower = s.toLowerCase();
-    if (lower == 'event' || lower == 'torneo' || lower == 'evento') {
+    if (lower == 'event' || lower == 'torneo' || lower == 'evento' ||
+        lower == 'discovered_event') {
       return NotificationType.event;
     }
     if (lower == 'result' || lower == 'resultado') {
@@ -74,6 +79,7 @@ class AppNotification {
 
   static String _defaultTitle(String typeStr) {
     final lower = typeStr.toLowerCase();
+    if (lower == 'discovered_event') return 'Torneo encontrado cerca de ti';
     if (lower == 'torneo' || lower == 'evento' || lower == 'event') {
       return 'Nuevo torneo disponible';
     }
@@ -93,12 +99,15 @@ class AppNotification {
         NotificationType.system => AppColors.orange,
       };
 
-  static String _defaultIcon(NotificationType type) => switch (type) {
-        NotificationType.event => '◉',
-        NotificationType.result => '🏆',
-        NotificationType.social => '✉',
-        NotificationType.system => '★',
-      };
+  static String _defaultIcon(NotificationType type, [String typeStr = '']) {
+    if (typeStr == 'discovered_event') return '🔍';
+    return switch (type) {
+      NotificationType.event => '◉',
+      NotificationType.result => '🏆',
+      NotificationType.social => '✉',
+      NotificationType.system => '★',
+    };
+  }
 
   static String _timeLabel(DateTime dt) {
     final diff = DateTime.now().difference(dt);
@@ -117,5 +126,6 @@ class AppNotification {
         type: type,
         isRead: isRead ?? this.isRead,
         createdAt: createdAt,
+        link: link,
       );
 }

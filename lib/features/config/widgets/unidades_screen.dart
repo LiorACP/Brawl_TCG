@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'config_field.dart';
@@ -48,7 +49,7 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
                   children: [
                     const BackBtn(),
                     const SizedBox(width: 14),
-                    Text('Unidades',
+                    Text(L10n.t('Unidades'),
                         style: GoogleFonts.rubik(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -62,22 +63,22 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const ConfigSectionHeader('Distancia'),
+                      ConfigSectionHeader(L10n.t('Distancia')),
                       _SegmentedPicker(
-                        options: const [
-                          ('km', '📍 Kilómetros'),
-                          ('mi', '📍 Millas'),
+                        options: [
+                          ('km', L10n.t('📍 Kilómetros')),
+                          ('mi', L10n.t('📍 Millas')),
                         ],
                         selected: _distancia,
                         accent: widget.accent,
                         onChanged: (v) => setState(() => _distancia = v),
                       ),
                       const SizedBox(height: 24),
-                      const ConfigSectionHeader('Formato de hora'),
+                      ConfigSectionHeader(L10n.t('Formato de hora')),
                       _SegmentedPicker(
-                        options: const [
-                          ('24h', '🕐 24 horas'),
-                          ('12h', '🕐 12 horas (AM/PM)'),
+                        options: [
+                          ('24h', L10n.t('🕐 24 horas')),
+                          ('12h', L10n.t('🕐 12 horas (AM/PM)')),
                         ],
                         selected: _hora,
                         accent: widget.accent,
@@ -92,7 +93,7 @@ class _UnidadesScreenState extends State<UnidadesScreen> {
                           widget.onSave?.call(_distancia, _hora);
                           Navigator.pop(context);
                         },
-                        child: const Text('Guardar cambios'),
+                        child: Text(L10n.t('Guardar cambios')),
                       ),
                     ],
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'services/tienda_service.dart';
@@ -132,13 +133,13 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                           _editMode
                               ? _HeaderField(
                                   controller: _nameCtrl,
-                                  hint: 'Nombre de tu tienda',
+                                  hint: L10n.t('Nombre de tu tienda'),
                                   fontSize: 28,
                                   fontWeight: FontWeight.w800,
                                 )
                               : _PlaceholderText(
                                   value: _nameCtrl.text,
-                                  placeholder: 'Nombre de tu tienda',
+                                  placeholder: L10n.t('Nombre de tu tienda'),
                                   style: GoogleFonts.rubik(
                                     fontSize: 28,
                                     fontWeight: FontWeight.w800,
@@ -153,13 +154,13 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                                   children: [
                                     _HeaderField(
                                       controller: _addressCtrl,
-                                      hint: 'Dirección',
+                                      hint: L10n.t('Dirección'),
                                       fontSize: 13,
                                     ),
                                     const SizedBox(height: 4),
                                     _HeaderField(
                                       controller: _foundedCtrl,
-                                      hint: 'Año de apertura',
+                                      hint: L10n.t('Año de apertura'),
                                       fontSize: 13,
                                       keyboardType: TextInputType.number,
                                     ),
@@ -167,7 +168,7 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                                 )
                               : _PlaceholderText(
                                   value: _subtitle,
-                                  placeholder: 'Dirección · Año de apertura',
+                                  placeholder: '${L10n.t('Dirección')} · ${L10n.t('Año de apertura')}',
                                   style: GoogleFonts.rubik(
                                     fontSize: 13,
                                     color: AppColors.textDim,
@@ -196,12 +197,12 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                             child: _StatTile(
                               icon: '◈',
                               number: snap.hasData ? snap.data!.toString() : '…',
-                              label: 'Torneos',
+                              label: L10n.t('Torneos'),
                             ),
                           );
                         },
                       ),
-                      const SectionLabel('Administración'),
+                      SectionLabel(L10n.t('Administración')),
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final isWide = constraints.maxWidth >= 600;
@@ -215,7 +216,7 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                             children: [
                               _AdminTile(
                                 icon: '⏱',
-                                title: 'Horarios',
+                                title: L10n.t('Horarios'),
                                 controller: _horariosCtrl,
                                 hint: 'Ej: Lun–Dom 10h–22h',
                                 color: AppColors.cyan,
@@ -223,7 +224,7 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                               ),
                               _AdminTile(
                                 icon: '⬢',
-                                title: 'Productos vendidos',
+                                title: L10n.t('Productos vendidos'),
                                 controller: _juegosCtrl,
                                 hint: 'Ej: Cartas · Sobres · Accesorios',
                                 color: AppColors.violet,
@@ -231,7 +232,7 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                               ),
                               _AdminTile(
                                 icon: '⬡',
-                                title: 'Capacidad',
+                                title: L10n.t('Capacidad'),
                                 controller: _capacidadCtrl,
                                 hint: 'Ej: 40 jugadores · 20 mesas',
                                 color: AppColors.orange,
@@ -239,7 +240,7 @@ class _OrgTiendaScreenState extends State<OrgTiendaScreen> {
                               ),
                               _AdminTile(
                                 icon: '◉',
-                                title: 'Redes sociales',
+                                title: L10n.t('Redes sociales'),
                                 controller: _redesCtrl,
                                 hint: 'Instagram · Twitter · Discord',
                                 color: AppColors.pink,

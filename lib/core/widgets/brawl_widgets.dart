@@ -1,14 +1,37 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 
-// BrawlBackground: fondo oscuro con círculos decorativos en las esquinas
-class BrawlBackground extends StatelessWidget {
+// BrawlBackground: fondo con círculos decorativos. Escucha AppPrefsNotifier
+// para redibujar cuando cambia el tema o el idioma.
+class BrawlBackground extends StatefulWidget {
   final Widget child;
   final int seed;
 
   const BrawlBackground({super.key, required this.child, this.seed = 3});
+
+  @override
+  State<BrawlBackground> createState() => _BrawlBackgroundState();
+}
+
+class _BrawlBackgroundState extends State<BrawlBackground> {
+  @override
+  void initState() {
+    super.initState();
+    AppPrefsNotifier.instance.addListener(_rebuild);
+  }
+
+  @override
+  void dispose() {
+    AppPrefsNotifier.instance.removeListener(_rebuild);
+    super.dispose();
+  }
+
+  void _rebuild() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -96,11 +119,11 @@ class BrawlBackground extends StatelessWidget {
           // Memphis scattered shapes
           IgnorePointer(
             child: CustomPaint(
-              painter: _MemphisPainter(seed: seed),
+              painter: _MemphisPainter(seed: widget.seed),
               size: Size.infinite,
             ),
           ),
-          child,
+          widget.child,
         ],
       ),
     );
@@ -145,8 +168,16 @@ class _MemphisPainter extends CustomPainter {
 
       switch (shape) {
         case 'x':
-          canvas.drawLine(Offset(-sz / 2, -sz / 2), Offset(sz / 2, sz / 2), paint);
-          canvas.drawLine(Offset(sz / 2, -sz / 2), Offset(-sz / 2, sz / 2), paint);
+          canvas.drawLine(
+            Offset(-sz / 2, -sz / 2),
+            Offset(sz / 2, sz / 2),
+            paint,
+          );
+          canvas.drawLine(
+            Offset(sz / 2, -sz / 2),
+            Offset(-sz / 2, sz / 2),
+            paint,
+          );
         case 'o':
           canvas.drawCircle(Offset.zero, sz / 2, paint);
         case 'plus':
@@ -160,7 +191,11 @@ class _MemphisPainter extends CustomPainter {
             ..close();
           canvas.drawPath(path, paint);
         case 'dot':
-          canvas.drawCircle(Offset.zero, sz * 0.15, paint..style = PaintingStyle.fill);
+          canvas.drawCircle(
+            Offset.zero,
+            sz * 0.15,
+            paint..style = PaintingStyle.fill,
+          );
       }
 
       canvas.restore();
@@ -198,7 +233,8 @@ class BrawlCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         padding: padding ?? const EdgeInsets.all(16),
-        decoration: decoration ??
+        decoration:
+            decoration ??
             BoxDecoration(
               color: tint ?? AppColors.surface,
               borderRadius: BorderRadius.circular(radius),
@@ -219,7 +255,8 @@ class GameBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = AppColors.gameBadgePalettes[game] ??
+    final colors =
+        AppColors.gameBadgePalettes[game] ??
         AppColors.gameBadgePalettes['MTG']!;
     return Container(
       width: size,
@@ -280,11 +317,17 @@ class GradBtn extends StatelessWidget {
     final double fs;
     switch (size) {
       case GradBtnSize.sm:
-        h = 36; px = 14; fs = 13;
+        h = 36;
+        px = 14;
+        fs = 13;
       case GradBtnSize.md:
-        h = 48; px = 20; fs = 15;
+        h = 48;
+        px = 20;
+        fs = 15;
       case GradBtnSize.lg:
-        h = 56; px = 24; fs = 16;
+        h = 56;
+        px = 24;
+        fs = 16;
     }
     return GestureDetector(
       onTap: onTap,
@@ -493,7 +536,10 @@ class _BrawlTabBarState extends State<BrawlTabBar> {
                               child: Center(
                                 child: Text(
                                   widget.tabs[i].icon,
-                                  style: const TextStyle(fontSize: 20, color: Colors.black),
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
@@ -565,20 +611,26 @@ class _NotchBarPainter extends CustomPainter {
       clockwise: true,
     );
     path.lineTo(barW - barR, offsetY);
-    path.arcToPoint(Offset(barW, offsetY + barR), radius: Radius.circular(barR));
+    path.arcToPoint(
+      Offset(barW, offsetY + barR),
+      radius: Radius.circular(barR),
+    );
     path.lineTo(barW, offsetY + barH - barR);
-    path.arcToPoint(Offset(barW - barR, offsetY + barH), radius: Radius.circular(barR));
+    path.arcToPoint(
+      Offset(barW - barR, offsetY + barH),
+      radius: Radius.circular(barR),
+    );
     path.lineTo(barR, offsetY + barH);
-    path.arcToPoint(Offset(0, offsetY + barH - barR), radius: Radius.circular(barR));
+    path.arcToPoint(
+      Offset(0, offsetY + barH - barR),
+      radius: Radius.circular(barR),
+    );
     path.lineTo(0, offsetY + barR);
     path.arcToPoint(Offset(barR, offsetY), radius: Radius.circular(barR));
     path.close();
 
     canvas.drawShadow(path, Colors.black, 10, false);
-    canvas.drawPath(
-      path,
-      Paint()..color = Colors.black,
-    );
+    canvas.drawPath(path, Paint()..color = Colors.black);
     canvas.drawPath(
       path,
       Paint()
@@ -802,7 +854,9 @@ class _BrawlDrawer extends StatelessWidget {
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 13),
+                            horizontal: 14,
+                            vertical: 13,
+                          ),
                           decoration: BoxDecoration(
                             gradient: isActive
                                 ? LinearGradient(
@@ -817,7 +871,8 @@ class _BrawlDrawer extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                             border: isActive
                                 ? Border.all(
-                                    color: accent.first.withValues(alpha: 0.28))
+                                    color: accent.first.withValues(alpha: 0.28),
+                                  )
                                 : null,
                           ),
                           child: Row(
@@ -847,9 +902,9 @@ class _BrawlDrawer extends StatelessWidget {
                                 ),
                               ),
                               ShaderMask(
-                                shaderCallback: (b) =>
-                                    LinearGradient(colors: accent)
-                                        .createShader(b),
+                                shaderCallback: (b) => LinearGradient(
+                                  colors: accent,
+                                ).createShader(b),
                                 blendMode: BlendMode.srcIn,
                                 child: AnimatedOpacity(
                                   opacity: isActive ? 1.0 : 0.0,
@@ -879,7 +934,9 @@ class _BrawlDrawer extends StatelessWidget {
               child: Text(
                 'Brawl TCG · v1.4.2',
                 style: GoogleFonts.rubik(
-                    fontSize: 10, color: AppColors.textMute),
+                  fontSize: 10,
+                  color: AppColors.textMute,
+                ),
               ),
             ),
           ],

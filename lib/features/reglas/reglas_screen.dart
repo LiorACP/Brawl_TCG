@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/features/eventos/data/tournament.dart';
@@ -34,7 +35,7 @@ class SharedReglasScreen extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'BIBLIOTECA',
+                            L10n.t('BIBLIOTECA'),
                             style: GoogleFonts.rubik(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -44,7 +45,7 @@ class SharedReglasScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 2),
                           Text(
-                            'Juegos & Reglas',
+                            L10n.t('Juegos & Reglas'),
                             style: GoogleFonts.rubik(
                               fontSize: 26,
                               fontWeight: FontWeight.w700,
@@ -143,21 +144,20 @@ class SharedReglasScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SectionLabel('Juegos soportados',
-                          margin: EdgeInsets.only(left: 4, bottom: 10)),
+                      SectionLabel(L10n.t('Juegos soportados'),
+                          margin: const EdgeInsets.only(left: 4, bottom: 10)),
 
                       // Aquí cada fila lee su versión en tiempo real desde Firestore
                       ...vm.games.map((g) => _GameRuleRowFirestore(rule: g)),
 
-                      const SectionLabel('Recursos rápidos',
-                          margin:
-                              EdgeInsets.only(left: 4, top: 6, bottom: 10)),
+                      SectionLabel(L10n.t('Recursos rápidos'),
+                          margin: const EdgeInsets.only(left: 4, top: 6, bottom: 10)),
                       IntrinsicHeight(
                         child: Row(
                           children: [
                             Expanded(
                               child: _ResourceTile(
-                                title: 'Glosario',
+                                title: L10n.t('Glosario'),
                                 color: AppColors.violet,
                                 icon: 'A',
                                 onTap: () {},
@@ -166,7 +166,7 @@ class SharedReglasScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _ResourceTile(
-                                title: 'Árbitro FAQ',
+                                title: L10n.t('Árbitro FAQ'),
                                 color: AppColors.cyan,
                                 icon: '?',
                                 onTap: () {},
@@ -175,7 +175,7 @@ class SharedReglasScreen extends StatelessWidget {
                             const SizedBox(width: 10),
                             Expanded(
                               child: _ResourceTile(
-                                title: 'Eventos oficiales',
+                                title: L10n.t('Eventos oficiales'),
                                 color: AppColors.orange,
                                 icon: '★',
                                 onTap: () =>
@@ -257,7 +257,7 @@ class _GameRuleRowFirestore extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'NUEVO',
+                                L10n.t('NUEVO'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 9,
                                     fontWeight: FontWeight.w700,
@@ -277,7 +277,7 @@ class _GameRuleRowFirestore extends StatelessWidget {
                       const SizedBox(height: 3),
                       // ← versión desde Firestore (fallback al mock mientras carga)
                       Text(
-                        'Reglas v.$version',
+                        L10n.fmt('Reglas v.{v}', {'v': version}),
                         style: GoogleFonts.rubik(
                             fontSize: 10.5, color: AppColors.textMute),
                       ),

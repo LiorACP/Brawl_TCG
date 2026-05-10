@@ -30,6 +30,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   metaballs: ^1.5.0
   google_fonts: ^6.2.1
 

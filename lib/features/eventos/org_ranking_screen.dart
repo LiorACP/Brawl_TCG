@@ -18,21 +18,24 @@ class OrgRankingScreen extends StatelessWidget {
         backgroundColor: AppColors.bgDeep,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: AppColors.text, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new, color: AppColors.text, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Ranking',
-                style: GoogleFonts.rubik(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.text)),
-            Text(tournament.name,
-                style:
-                    GoogleFonts.rubik(fontSize: 11, color: AppColors.textMute)),
+            Text(
+              'Ranking',
+              style: GoogleFonts.rubik(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.text,
+              ),
+            ),
+            Text(
+              tournament.name,
+              style: GoogleFonts.rubik(fontSize: 11, color: AppColors.textMute),
+            ),
           ],
         ),
         actions: [
@@ -46,18 +49,22 @@ class OrgRankingScreen extends StatelessWidget {
                 ),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                        colors: AppColors.organizadorGradient),
+                      colors: AppColors.organizadorGradient,
+                    ),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     'Gestionar Ronda ${tournament.currentRound}',
                     style: GoogleFonts.rubik(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -74,13 +81,15 @@ class OrgRankingScreen extends StatelessWidget {
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
-                child: CircularProgressIndicator(color: AppColors.cyan));
+              child: CircularProgressIndicator(color: AppColors.cyan),
+            );
           }
 
           final docs = snapshot.data?.docs ?? [];
 
           // Ordenar por puntos descendente en cliente
-          final sorted = [...docs]..sort((a, b) {
+          final sorted = [...docs]
+            ..sort((a, b) {
               final pa = (a.data()['points'] as num?)?.toInt() ?? 0;
               final pb = (b.data()['points'] as num?)?.toInt() ?? 0;
               return pb.compareTo(pa);
@@ -95,15 +104,21 @@ class OrgRankingScreen extends StatelessWidget {
                   children: [
                     const Text('🏆', style: TextStyle(fontSize: 48)),
                     const SizedBox(height: 12),
-                    Text('Sin puntuaciones aún',
-                        style: GoogleFonts.rubik(
-                            fontSize: 15, color: AppColors.textMute)),
+                    Text(
+                      'Sin puntuaciones aún',
+                      style: GoogleFonts.rubik(
+                        fontSize: 15,
+                        color: AppColors.textMute,
+                      ),
+                    ),
                     const SizedBox(height: 4),
                     Text(
                       'Los puntos aparecerán cuando se registren resultados de rondas',
                       textAlign: TextAlign.center,
                       style: GoogleFonts.rubik(
-                          fontSize: 12, color: AppColors.textMute),
+                        fontSize: 12,
+                        color: AppColors.textMute,
+                      ),
                     ),
                   ],
                 ),
@@ -120,14 +135,19 @@ class OrgRankingScreen extends StatelessWidget {
                     Text(
                       '${sorted.length} jugador${sorted.length == 1 ? '' : 'es'}',
                       style: GoogleFonts.rubik(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textDim),
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textDim,
+                      ),
                     ),
                     const SizedBox(width: 6),
-                    Text('· en vivo',
-                        style: GoogleFonts.rubik(
-                            fontSize: 12, color: AppColors.pink)),
+                    Text(
+                      '· en vivo',
+                      style: GoogleFonts.rubik(
+                        fontSize: 12,
+                        color: AppColors.pink,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -138,11 +158,13 @@ class OrgRankingScreen extends StatelessWidget {
                   separatorBuilder: (_, __) => const SizedBox(height: 8),
                   itemBuilder: (context, i) {
                     final data = sorted[i].data();
-                    final name =
-                        data['player_name'] as String? ?? 'Jugador';
+                    final name = data['player_name'] as String? ?? 'Jugador';
                     final points = (data['points'] as num?)?.toInt() ?? 0;
                     return _RankingCard(
-                        position: i + 1, playerName: name, points: points);
+                      position: i + 1,
+                      playerName: name,
+                      points: points,
+                    );
                   },
                 ),
               ),
@@ -158,17 +180,18 @@ class _RankingCard extends StatelessWidget {
   final int position;
   final String playerName;
   final int points;
-  const _RankingCard(
-      {required this.position,
-      required this.playerName,
-      required this.points});
+  const _RankingCard({
+    required this.position,
+    required this.playerName,
+    required this.points,
+  });
 
   Color get _borderColor => switch (position) {
-        1 => const Color(0xFFFFD700),
-        2 => const Color(0xFFC0C0C0),
-        3 => const Color(0xFFCD7F32),
-        _ => AppColors.stroke,
-      };
+    1 => const Color(0xFFFFD700),
+    2 => const Color(0xFFC0C0C0),
+    3 => const Color(0xFFCD7F32),
+    _ => AppColors.stroke,
+  };
 
   @override
   Widget build(BuildContext context) {
@@ -187,9 +210,13 @@ class _RankingCard extends StatelessWidget {
               1 => const Text('🥇', style: TextStyle(fontSize: 18)),
               2 => const Text('🥈', style: TextStyle(fontSize: 18)),
               3 => const Text('🥉', style: TextStyle(fontSize: 18)),
-              _ => Text('$position',
-                  style: GoogleFonts.rubikMonoOne(
-                      fontSize: 11, color: AppColors.textMute)),
+              _ => Text(
+                '$position',
+                style: GoogleFonts.rubikMonoOne(
+                  fontSize: 11,
+                  color: AppColors.textMute,
+                ),
+              ),
             },
           ),
           const SizedBox(width: 10),
@@ -208,9 +235,10 @@ class _RankingCard extends StatelessWidget {
               child: Text(
                 playerName.isNotEmpty ? playerName[0].toUpperCase() : '?',
                 style: GoogleFonts.rubik(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
               ),
             ),
           ),
@@ -219,26 +247,26 @@ class _RankingCard extends StatelessWidget {
             child: Text(
               playerName,
               style: GoogleFonts.rubik(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.text,
+              ),
             ),
           ),
           Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
               color: AppColors.cyan.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
+              border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
             ),
             child: Text(
               '$points pts',
               style: GoogleFonts.rubik(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.cyan),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.cyan,
+              ),
             ),
           ),
         ],

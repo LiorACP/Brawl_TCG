@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
@@ -77,7 +78,7 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'HOLA, $_userName',
+                              L10n.fmt('HOLA, {name}', {'name': _userName}),
                               style: GoogleFonts.rubik(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -87,7 +88,7 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              'Mis eventos',
+                              L10n.t('Mis eventos'),
                               style: GoogleFonts.rubik(
                                 fontSize: 28,
                                 fontWeight: FontWeight.w700,
@@ -160,12 +161,12 @@ class _ClienteEventosScreenState extends State<ClienteEventosScreen> {
                       child: Row(
                         children: [
                           _TabPill(
-                            label: 'Apuntados',
+                            label: L10n.t('Apuntados'),
                             active: _tab == 'apuntados',
                             onTap: () => setState(() => _tab = 'apuntados'),
                           ),
                           _TabPill(
-                            label: 'Participados',
+                            label: L10n.t('Participados'),
                             active: _tab == 'participados',
                             onTap: () =>
                                 setState(() => _tab = 'participados'),
@@ -358,7 +359,7 @@ class _ApuntadosTab extends StatelessWidget {
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('MESA',
+                              Text(L10n.t('MESA'),
                                   style: GoogleFonts.rubik(
                                       fontSize: 9,
                                       color: AppColors.textMute,
@@ -378,7 +379,7 @@ class _ApuntadosTab extends StatelessWidget {
                 const SizedBox(width: 10),
                 GradBtn(
                   size: GradBtnSize.sm,
-                  child: const Text('Ver →'),
+                  child: Text(L10n.t('Ver →')),
                 ),
               ],
             ),
@@ -389,21 +390,21 @@ class _ApuntadosTab extends StatelessWidget {
             child: Center(
               child: _EmptyState(
                 icon: '📅',
-                message: 'No tienes torneos próximos',
-                sub: 'Usa el botón ＋ para inscribirte con un código',
+                message: L10n.t('No tienes torneos próximos'),
+                sub: L10n.t('Usa el botón ＋ para inscribirte con un código'),
               ),
             ),
           ),
         ],
         SectionLabel(
-          'Próximos (${upcoming.length})',
+          L10n.fmt('Próximos ({n})', {'n': '${upcoming.length}'}),
           margin: const EdgeInsets.only(left: 4, top: 18, bottom: 10),
         ),
         if (upcoming.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8, bottom: 20),
             child: Text(
-              'Aquí aparecerán tus próximas inscripciones aceptadas.',
+              L10n.t('Aquí aparecerán tus próximas inscripciones aceptadas.'),
               style: GoogleFonts.rubik(
                   fontSize: 13, color: AppColors.textMute),
             ),
@@ -487,8 +488,8 @@ class _ParticipadosTab extends StatelessWidget {
     if (stats.played == 0) {
       return _EmptyState(
         icon: '🏆',
-        message: 'Aún no has participado',
-        sub: 'Tus resultados de torneos aparecerán aquí',
+        message: L10n.t('Aún no has participado'),
+        sub: L10n.t('Tus resultados de torneos aparecerán aquí'),
       );
     }
     return Column(
@@ -496,11 +497,11 @@ class _ParticipadosTab extends StatelessWidget {
       children: [
         Row(
           children: [
-            _StatCard(number: stats.played.toString(), label: 'Jugados'),
+            _StatCard(number: stats.played.toString(), label: L10n.t('Jugados')),
             const SizedBox(width: 10),
-            _StatCard(number: stats.podiums.toString(), label: 'Podios'),
+            _StatCard(number: stats.podiums.toString(), label: L10n.t('Podios')),
             const SizedBox(width: 10),
-            _StatCard(number: stats.titles.toString(), label: 'Títulos'),
+            _StatCard(number: stats.titles.toString(), label: L10n.t('Títulos')),
           ],
         ),
         const SizedBox(height: 14),
