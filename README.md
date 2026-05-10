@@ -74,4 +74,6 @@ flutter run
 pip install -r api/requirements.txt
 uvicorn api.main:app --reload
 
+
+# Imagen del flujo de N8N
 ![alt text](image.png)
