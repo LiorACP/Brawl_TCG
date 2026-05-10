@@ -1,0 +1,180 @@
+================================================================================
+                          BRAWL TCG — GUÍA PARA EL PROFESOR
+================================================================================
+
+Plataforma móvil para la gestión y descubrimiento de torneos de juegos de
+cartas coleccionables (TCG). Desarrollada como Trabajo de Fin de Grado.
+
+================================================================================
+  TECNOLOGÍAS UTILIZADAS
+================================================================================
+
+  - Flutter (Dart)       -> App móvil multiplataforma
+  - Firebase Auth        -> Autenticación (email/Google)
+  - Firebase Firestore   -> Base de datos en la nube
+  - Firebase Messaging   -> Notificaciones push
+  - Python 3 + FastAPI   -> API REST para scraping de reglas
+  - BeautifulSoup        -> Scraping de reglas oficiales de cada juego
+
+================================================================================
+  REQUISITOS PREVIOS
+================================================================================
+
+  Para ejecutar la app Flutter:
+    - Flutter SDK >= 3.9.2
+    - Dart SDK >= 3.9.2
+    - Un emulador Android/iOS o dispositivo físico conectado
+
+  Para ejecutar la API de reglas (opcional):
+    - Python 3.9 o superior
+    - pip
+
+  Nota: el backend Firebase ya está configurado y en la nube. No hace falta
+  crear ningún proyecto de Firebase propio.
+
+================================================================================
+  INSTALACIÓN Y PUESTA EN MARCHA
+================================================================================
+
+  1. INSTALAR DEPENDENCIAS DE FLUTTER
+  
+  Abrir una terminal en la raíz del proyecto y ejecutar:
+
+    flutter pub get
+
+  2. LANZAR LA APLICACIÓN
+  
+  Con un emulador abierto o dispositivo conectado:
+
+    flutter run
+
+  Si hay varios dispositivos disponibles, seleccionar el deseado con:
+
+    flutter run -d <id_dispositivo>
+
+  Para listar los dispositivos disponibles:
+
+    flutter devices
+
+  3. (OPCIONAL) LANZAR LA API DE REGLAS
+  
+  La API es necesaria solo para consultar las reglas de cada juego.
+  Si no se lanza, el resto de la app funciona con normalidad.
+
+    pip install -r api/requirements.txt
+    uvicorn api.main:app --reload
+
+  La API quedará disponible en: http://127.0.0.1:8000
+
+================================================================================
+  CUENTAS DE PRUEBA
+================================================================================
+
+  Se pueden usar las siguientes cuentas ya creadas en Firebase:
+
+  ROL JUGADOR (Cliente)
+  
+    Email:      admin@admin.com
+    Contraseña: admin1
+
+    Acceso a: explorar torneos, ver mapa, inscribirse en torneos,
+    consultar reglas, ver notificaciones y gestionar perfil.
+
+  ROL ORGANIZADOR
+  
+    Email:      admin@gmail.com
+    Contraseña: admin2
+
+    Acceso a: crear y gestionar torneos (flujo de 4 pasos),
+    gestionar tienda, ver inscripciones y estadísticas.
+
+  También es posible registrar una cuenta nueva desde la pantalla de inicio,
+  eligiendo el rol deseado durante el registro.
+
+================================================================================
+  FLUJO PRINCIPAL DE LA APLICACIÓN
+================================================================================
+
+  
+  COMO JUGADOR (admin@admin.com):
+
+  1. Iniciar sesión → se entra directamente en la vista de Jugador.
+  
+  2. Pestaña "Eventos": explorar torneos disponibles, filtrar por juego o ciudad,
+    pulsar en un torneo para ver detalles e inscribirse.
+  
+  3. Pestaña "Mapa": ver en el mapa dónde se celebran los torneos cercanos.
+  
+  4. Pestaña "Código QR": mostrar el código QR de identificación del jugador.
+  
+  5. Pestaña "Notificaciones": recibir alertas de eventos y cambios.
+  
+  6. Pestaña "Perfil": editar datos personales, cambiar idioma (ES/EN)(hay bugs)
+    y alternar entre modo claro y oscuro.
+
+  
+  COMO ORGANIZADOR (admin@gmail.com):
+
+  1. Iniciar sesión → se entra directamente en la vista de Organizador.
+  2. Pestaña "Eventos": ver torneos propios (activos, borradores, finalizados).
+     - Pulsar "+" para crear un nuevo torneo (flujo de 4 pasos):
+         Paso 1: Nombre, fecha, ciudad y precio de inscripción.
+         Paso 2: Juego, formato y número de participantes.
+         Paso 3: Premio en metálico, producto o carta promo.
+         Paso 4: Texto de anuncio → publicar torneo.
+     - Los borradores guardados aparecen en la pestaña "Borradores".
+  3. Pestaña "Tienda": gestionar la información de la tienda asociada.
+  4. Pestaña "Reglas": consultar las reglas oficiales de cada juego TCG.
+  5. Pestaña "Perfil": editar datos y preferencias de la app.
+
+================================================================================
+  JUEGOS SOPORTADOS
+================================================================================
+
+  - Magic: The Gathering
+  - Pokémon TCG
+  - Yu-Gi-Oh!
+  - Flesh & Blood
+  - Disney Lorcana
+  - One Piece TCG
+
+================================================================================
+  ESTRUCTURA DEL PROYECTO (resumen)
+================================================================================
+
+  lib/
+  ├── main.dart              -> Punto de entrada, enrutamiento por rol
+  ├── core/                  -> Tema, colores, widgets compartidos, navegación
+  ├── shell/                 -> Layout de tabs según rol (jugador / organizador)
+  ├── features/              -> Módulos por funcionalidad:
+  │   ├── auth/              -> Login, registro
+  │   ├── eventos/           -> Lista y detalle de torneos
+  │   ├── org_eventos/       -> Gestión de torneos (organizador)
+  │   ├── mapa/              -> Mapa de eventos
+  │   ├── reglas/            -> Reglas oficiales por juego
+  │   ├── tienda/            -> Gestión de tienda
+  │   ├── notificaciones/    -> Notificaciones push
+  │   ├── perfil/            -> Perfil y configuración
+  │   └── ranking/           -> Ranking de jugadores
+  └── models/                -> Modelos de datos (Tournament, User, Shop…)
+
+  api/
+  ├── main.py                -> Servidor FastAPI
+  ├── routers/               -> Endpoints REST
+  └── scrapers/              -> Scrapers de reglas por juego
+
+================================================================================
+  NOTAS ADICIONALES
+================================================================================
+
+  - La app está disponible en español e inglés. El idioma se cambia desde
+    la pestaña "Perfil" de cualquier rol.
+
+  - La app soporta modo oscuro y modo claro, también configurable desde Perfil.
+
+  - El diseño es responsivo: funciona en móvil y en pantallas grandes (>1024px).
+
+  - Para el ranking se puede acceder desde la pantalla de Versus, que muestra
+    el historial de enfrentamientos entre jugadores.
+
+

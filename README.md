@@ -74,3 +74,4 @@ flutter run
 pip install -r api/requirements.txt
 uvicorn api.main:app --reload
 
+![alt text](image.png)
