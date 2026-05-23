@@ -5,6 +5,7 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'data/tournament.dart';
 import 'org_rondas_screen.dart';
+import 'player_profile_sheet.dart';
 
 class OrgRankingScreen extends StatelessWidget {
   final Tournament tournament;
@@ -160,10 +161,12 @@ class OrgRankingScreen extends StatelessWidget {
                     final data = sorted[i].data();
                     final name = data['player_name'] as String? ?? 'Jugador';
                     final points = (data['points'] as num?)?.toInt() ?? 0;
+                    final playerRef = data['userId'] as DocumentReference?;
                     return _RankingCard(
                       position: i + 1,
                       playerName: name,
                       points: points,
+                      playerRef: playerRef,
                     );
                   },
                 ),
@@ -180,10 +183,12 @@ class _RankingCard extends StatelessWidget {
   final int position;
   final String playerName;
   final int points;
+  final DocumentReference? playerRef;
   const _RankingCard({
     required this.position,
     required this.playerName,
     required this.points,
+    this.playerRef,
   });
 
   Color get _borderColor => switch (position) {
@@ -195,7 +200,13 @@ class _RankingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: () => showPlayerProfileSheet(
+        context,
+        playerName: playerName,
+        playerRef: playerRef,
+      ),
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -271,6 +282,7 @@ class _RankingCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 }

@@ -237,6 +237,7 @@ class EventosService {
         tableNumber: (reg['tableNumber'] as num?)?.toInt(),
         tagLabel: status == 'Pending' ? 'Pendiente' : null,
         tagColor: status == 'Pending' ? const Color(0xFFF7D048) : null,
+        organizerId: t.organizerId,
       );
     } catch (_) {
       return null;

@@ -11,6 +11,7 @@ import 'package:brawl_tcg/features/codigo/cliente_codigo_screen.dart';
 import 'data/tournament.dart';
 import 'data/enrollment.dart';
 import 'services/eventos_service.dart';
+import 'store_profile_sheet.dart';
 
 class ClienteEventosScreen extends StatefulWidget {
   const ClienteEventosScreen({super.key});
@@ -379,6 +380,12 @@ class _ApuntadosTab extends StatelessWidget {
                 const SizedBox(width: 10),
                 GradBtn(
                   size: GradBtnSize.sm,
+                  onTap: active!.organizerId != null
+                      ? () => showStoreProfileSheet(
+                            context,
+                            organizerId: active!.organizerId!,
+                          )
+                      : null,
                   child: Text(L10n.t('Ver →')),
                 ),
               ],

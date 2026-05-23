@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'data/tournament.dart';
+import 'player_profile_sheet.dart';
 
 class OrgInscripcionesScreen extends StatelessWidget {
   final Tournament tournament;
@@ -205,37 +206,57 @@ class _RegistrationCardState extends State<_RegistrationCard> {
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: AppColors.clienteGradient,
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(10),
+              GestureDetector(
+                onTap: () => showPlayerProfileSheet(
+                  context,
+                  playerName: widget.playerName,
+                  playerRef: widget.playerRef,
                 ),
-                child: Center(
-                  child: Text(
-                    widget.playerName.isNotEmpty
-                        ? widget.playerName[0].toUpperCase()
-                        : '?',
-                    style: GoogleFonts.rubik(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white),
-                  ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: AppColors.clienteGradient,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.playerName.isNotEmpty
+                              ? widget.playerName[0].toUpperCase()
+                              : '?',
+                          style: GoogleFonts.rubik(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
                 ),
               ),
-              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  widget.playerName,
-                  style: GoogleFonts.rubik(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.text),
+                child: GestureDetector(
+                  onTap: () => showPlayerProfileSheet(
+                    context,
+                    playerName: widget.playerName,
+                    playerRef: widget.playerRef,
+                  ),
+                  behavior: HitTestBehavior.opaque,
+                  child: Text(
+                    widget.playerName,
+                    style: GoogleFonts.rubik(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text),
+                  ),
                 ),
               ),
               Container(

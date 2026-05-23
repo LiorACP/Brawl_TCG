@@ -152,38 +152,11 @@ class SharedReglasScreen extends StatelessWidget {
 
                       SectionLabel(L10n.t('Recursos rápidos'),
                           margin: const EdgeInsets.only(left: 4, top: 6, bottom: 10)),
-                      IntrinsicHeight(
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: _ResourceTile(
-                                title: L10n.t('Glosario'),
-                                color: AppColors.violet,
-                                icon: 'A',
-                                onTap: () {},
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _ResourceTile(
-                                title: L10n.t('Árbitro FAQ'),
-                                color: AppColors.cyan,
-                                icon: '?',
-                                onTap: () {},
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _ResourceTile(
-                                title: L10n.t('Eventos oficiales'),
-                                color: AppColors.orange,
-                                icon: '★',
-                                onTap: () =>
-                                    showEventosOficialesSheet(context),
-                              ),
-                            ),
-                          ],
-                        ),
+                      _ResourceTile(
+                        title: L10n.t('Eventos oficiales'),
+                        color: AppColors.orange,
+                        icon: '★',
+                        onTap: () => showEventosOficialesSheet(context),
                       ),
                       const SizedBox(height: 20),
                     ],

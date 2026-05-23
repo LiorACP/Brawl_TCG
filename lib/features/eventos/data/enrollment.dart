@@ -13,6 +13,7 @@ class Enrollment {
   final int? tableNumber;
   final String? tagLabel;
   final Color? tagColor;
+  final String? organizerId;
 
   String get tableLabel =>
       tableNumber != null ? '#${tableNumber.toString().padLeft(2, '0')}' : '—';
@@ -31,6 +32,7 @@ class Enrollment {
     this.tableNumber,
     this.tagLabel,
     this.tagColor,
+    this.organizerId,
   });
 }
 

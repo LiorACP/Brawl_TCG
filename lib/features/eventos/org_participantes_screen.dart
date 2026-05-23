@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'data/tournament.dart';
+import 'player_profile_sheet.dart';
 
 class OrgParticipantesScreen extends StatelessWidget {
   final Tournament tournament;
@@ -274,39 +275,52 @@ class _ParticipantCardState extends State<_ParticipantCard> {
             ),
           ),
           const SizedBox(width: 10),
-          // Avatar
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: AppColors.clienteGradient,
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Text(
-                widget.playerName.isNotEmpty
-                    ? widget.playerName[0].toUpperCase()
-                    : '?',
-                style: GoogleFonts.rubik(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Nombre
+          // Avatar + Nombre (tappable → perfil)
           Expanded(
-            child: Text(
-              widget.playerName,
-              style: GoogleFonts.rubik(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text),
+            child: GestureDetector(
+              onTap: () => showPlayerProfileSheet(
+                context,
+                playerName: widget.playerName,
+                playerRef: widget.playerRef,
+              ),
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: AppColors.clienteGradient,
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Center(
+                      child: Text(
+                        widget.playerName.isNotEmpty
+                            ? widget.playerName[0].toUpperCase()
+                            : '?',
+                        style: GoogleFonts.rubik(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.playerName,
+                      style: GoogleFonts.rubik(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.text),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           // Mesa o puntos
