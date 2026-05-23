@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/screens/cliente/Registro.dart';
 import 'package:brawl_tcg/screens/cliente/forgot_password_screen.dart';
 import 'package:brawl_tcg/screens/cliente/rol_selection_screen.dart';
@@ -164,7 +165,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
     final password = _passwordController.text;
     if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Rellena todos los campos')),
+        SnackBar(content: Text(L10n.t('Rellena todos los campos'))),
       );
       return;
     }
@@ -179,11 +180,11 @@ class _LoginFormContentState extends State<LoginFormContent> {
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       final msg = switch (e.code) {
-        'user-not-found' => 'No existe una cuenta con ese email',
-        'wrong-password' || 'invalid-credential' => 'Contraseña incorrecta',
-        'invalid-email' => 'El email no es válido',
-        'too-many-requests' => 'Demasiados intentos. Inténtalo más tarde',
-        _ => 'Error al iniciar sesión',
+        'user-not-found' => L10n.t('No existe una cuenta con ese email'),
+        'wrong-password' || 'invalid-credential' => L10n.t('Contraseña incorrecta'),
+        'invalid-email' => L10n.t('El email no es válido'),
+        'too-many-requests' => L10n.t('Demasiados intentos. Inténtalo más tarde'),
+        _ => L10n.t('Error al iniciar sesión'),
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
@@ -233,7 +234,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error con Google: $e')),
+        SnackBar(content: Text(L10n.fmt('Error con Google: {e}', {'e': '$e'}))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -250,7 +251,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
         if (widget.isDesktop) ...[
           Center(
             child: Text(
-              "HOLA  JUGADOR",
+              L10n.t("HOLA  JUGADOR"),
               style: GoogleFonts.rubik(
                 fontSize: 42,
                 color: Colors.white,
@@ -260,7 +261,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
           ),
           Center(
             child: Text(
-              "Bienvenido a BRAWL TCG",
+              L10n.t("Bienvenido a BRAWL TCG"),
               style: GoogleFonts.rubik(fontSize: 16, color: Colors.white70),
             ),
           ),
@@ -361,7 +362,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
         ),
         child: Text(
-          "INICIAR SESIÓN",
+          L10n.t("INICIAR SESIÓN"),
           style: GoogleFonts.rubik(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -381,7 +382,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
           );
         },
         child: Text(
-          "¿Olvidaste tu contraseña?",
+          L10n.t("¿Olvidaste tu contraseña?"),
           style: GoogleFonts.rubik(
             color: Colors.white70,
             fontWeight: FontWeight.bold,
@@ -401,7 +402,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
           );
         },
         child: Text(
-          "¿No tienes cuenta? Regístrate",
+          L10n.t("¿No tienes cuenta? Regístrate"),
           style: GoogleFonts.rubik(
             color: Colors.white70,
             fontWeight: FontWeight.bold,
@@ -423,7 +424,7 @@ class _LoginFormContentState extends State<LoginFormContent> {
         onPressed: _loginWithGoogle,
         icon: Image.asset('assets/images/google_icon.png', height: 24),
         label: Text(
-          "CONTINUAR CON GOOGLE",
+          L10n.t("CONTINUAR CON GOOGLE"),
           style: GoogleFonts.rubik(
             color: Colors.white,
             fontWeight: FontWeight.bold,

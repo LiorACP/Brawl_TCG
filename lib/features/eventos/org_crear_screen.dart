@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
@@ -167,7 +168,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar el formato')),
+          SnackBar(content: Text(L10n.t('Error al guardar el formato'))),
         );
       }
     } finally {
@@ -196,12 +197,12 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('NUEVO TORNEO',
+                              Text(L10n.t('NUEVO TORNEO'),
                                   style: GoogleFonts.rubik(
                                       fontSize: 11,
                                       color: AppColors.textMute,
                                       letterSpacing: 0.5)),
-                              Text('Paso 2 de 4 · Formato',
+                              Text(L10n.t('Paso 2 de 4 · Formato'),
                                   style: GoogleFonts.rubik(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -211,7 +212,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         ),
                         GestureDetector(
                           onTap: _isSaving ? null : _saveDraft,
-                          child: Text('Guardar',
+                          child: Text(L10n.t('Guardar'),
                               style: GoogleFonts.rubik(
                                   fontSize: 12, color: AppColors.textDim)),
                         ),
@@ -254,7 +255,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('TORNEO',
+                            Text(L10n.t('TORNEO'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 11,
                                     color: AppColors.textMute,
@@ -272,8 +273,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         ),
                       ),
                       // Selector del juego de cartas
-                      const SectionLabel('Juego',
-                          margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
+                      SectionLabel(L10n.t('Juego'),
+                          margin: const EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       GridView.count(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -319,8 +320,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                         }).toList(),
                       ),
                       // Selector del formato de juego
-                      const SectionLabel('Formato',
-                          margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
+                      SectionLabel(L10n.t('Formato'),
+                          margin: const EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       ...List.generate(_formats.length, (i) {
                         final fmt = _formats[i];
                         final active = i == _selectedFormat;
@@ -371,7 +372,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                                                 fontWeight: FontWeight.w600,
                                                 color: AppColors.text)),
                                         const SizedBox(height: 2),
-                                        Text(fmt.description,
+                                        Text(L10n.t(fmt.description),
                                             style: GoogleFonts.rubik(
                                                 fontSize: 11.5,
                                                 color: AppColors.textDim)),
@@ -395,7 +396,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('PLAZAS',
+                                  Text(L10n.t('PLAZAS'),
                                       style: GoogleFonts.rubik(
                                           fontSize: 11,
                                           color: AppColors.textMute,
@@ -461,7 +462,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('INSCRIPCIÓN',
+                                  Text(L10n.t('INSCRIPCIÓN'),
                                       style: GoogleFonts.rubik(
                                           fontSize: 11,
                                           color: AppColors.textMute,
@@ -523,7 +524,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           border: Border.all(color: AppColors.stroke),
                         ),
                         child: Center(
-                          child: Text('Atrás',
+                          child: Text(L10n.t('Atrás'),
                               style: GoogleFonts.rubik(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -542,7 +543,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                               gradient: AppColors.organizadorGradient,
                               width: double.infinity,
                               onTap: _next,
-                              child: const Text('Siguiente · Premios →'),
+                              child: Text(L10n.t('Siguiente · Premios →')),
                             ),
                     ),
                   ],

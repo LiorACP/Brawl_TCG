@@ -425,7 +425,7 @@ class _FilterChip extends StatelessWidget {
         border: active ? null : Border.all(color: AppColors.stroke),
       ),
       child: Text(
-        label,
+        L10n.t(label),
         style: GoogleFonts.rubik(
           fontSize: 12,
           fontWeight: FontWeight.w600,

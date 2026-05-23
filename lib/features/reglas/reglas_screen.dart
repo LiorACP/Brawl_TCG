@@ -104,12 +104,12 @@ class SharedReglasScreen extends StatelessWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           BrawlTag(
-                                            label: '⚡ Actualizado · $dateLabel',
+                                            label: L10n.fmt('⚡ Actualizado · {date}', {'date': dateLabel}),
                                             color: AppColors.yellow,
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            'Reglas actualizadas · $gameName',
+                                            L10n.fmt('Reglas actualizadas · {game}', {'game': gameName}),
                                             style: GoogleFonts.rubik(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
@@ -118,7 +118,7 @@ class SharedReglasScreen extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            '${meta.rulesCount} reglas · v.${meta.version}',
+                                            L10n.fmt('{n} reglas · v.{v}', {'n': '${meta.rulesCount}', 'v': meta.version}),
                                             style: GoogleFonts.rubik(
                                                 fontSize: 11,
                                                 color: AppColors.textDim),
@@ -357,5 +357,5 @@ String _shortDate(DateTime d) {
     'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
     'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
   ];
-  return '${d.day} ${months[d.month - 1]}';
+  return '${d.day} ${L10n.t(months[d.month - 1])}';
 }

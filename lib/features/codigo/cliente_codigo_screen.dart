@@ -100,7 +100,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       if (!mounted) return;
       if (snap.docs.isEmpty) {
         setState(() {
-          _errorMsg = 'Código no encontrado';
+          _errorMsg = L10n.t('Código no encontrado');
           _searching = false;
         });
       } else {
@@ -112,7 +112,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMsg = 'Error al buscar el torneo';
+        _errorMsg = L10n.t('Error al buscar el torneo');
         _searching = false;
       });
     }
@@ -136,7 +136,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Pega el enlace de tu lista en Moxfield, Limitless, etc.',
+              L10n.t('Pega el enlace de tu lista en Moxfield, Limitless, etc.'),
               style: GoogleFonts.rubik(
                   fontSize: 12, color: AppColors.textDim),
             ),
@@ -254,9 +254,8 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       if (!mounted) return;
       HapticFeedback.heavyImpact();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-                '¡Inscripción enviada! Espera confirmación del organizador.')),
+        SnackBar(
+            content: Text(L10n.t('¡Inscripción enviada! Espera confirmación del organizador.'))),
       );
       Navigator.pop(context);
     } catch (e) {
@@ -375,7 +374,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                 height: 1.1,
                               ),
                               children: [
-                                const TextSpan(text: 'Introduce el\n'),
+                                TextSpan(text: '${L10n.t('Introduce el')}\n'),
                                 WidgetSpan(
                                   child: ShaderMask(
                                     shaderCallback: (bounds) =>
@@ -396,7 +395,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                           ),
                           const SizedBox(height: 10),
                           Text(
-                            'El organizador te lo habrá enviado por email o lo encontrarás en el cartel del evento.',
+                            L10n.t('El organizador te lo habrá enviado por email o lo encontrarás en el cartel del evento.'),
                             textAlign: TextAlign.center,
                             style: GoogleFonts.rubik(
                                 fontSize: 13,
@@ -470,7 +469,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                     key: const ValueKey('found'),
                                     color: AppColors.cyan,
                                     icon: '✓',
-                                    text: '¡Torneo encontrado!',
+                                    text: L10n.t('¡Torneo encontrado!'),
                                   )
                                 : _searching
                                     ? AnimatedBuilder(
@@ -480,7 +479,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                           opacity: _pulseAnim.value,
                                           color: AppColors.cyan,
                                           icon: '●',
-                                          text: 'Buscando torneo…',
+                                          text: L10n.t('Buscando torneo…'),
                                         ),
                                       )
                                     : _errorMsg != null

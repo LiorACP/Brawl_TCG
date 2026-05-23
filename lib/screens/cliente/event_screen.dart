@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 
 class EventScreen extends StatefulWidget {
   const EventScreen({super.key});
@@ -69,7 +70,7 @@ class _EventScreenState extends State<EventScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            "MIS EVENTOS",
+            L10n.t("MIS EVENTOS"),
             style: GoogleFonts.rubik(
               fontSize: esPC ? 32 : 24,
               fontWeight: FontWeight.bold,
@@ -96,7 +97,7 @@ class _EventScreenState extends State<EventScreen> {
           dropdownColor: const Color(0xFF1E1E1E),
           style: GoogleFonts.rubik(color: Colors.white),
           items: ['Eventos Inscritos', 'Ya Participados']
-              .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+              .map((e) => DropdownMenuItem(value: e, child: Text(L10n.t(e))))
               .toList(),
           onChanged: (val) => setState(() => _filtro = val!),
         ),
@@ -113,8 +114,8 @@ class _EventScreenState extends State<EventScreen> {
           const SizedBox(height: 16),
           Text(
             _filtro == 'Eventos Inscritos'
-                ? 'No estás inscrito en ningún evento'
-                : 'Todavía no has participado en ningún evento',
+                ? L10n.t('No estás inscrito en ningún evento')
+                : L10n.t('Todavía no has participado en ningún evento'),
             style: GoogleFonts.rubik(color: Colors.white38, fontSize: 15),
             textAlign: TextAlign.center,
           ),
@@ -173,15 +174,15 @@ class _EventScreenState extends State<EventScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1C20),
-        title: const Text(
-          "CÓDIGO DE TORNEO",
-          style: TextStyle(color: Colors.white),
+        title: Text(
+          L10n.t("CÓDIGO DE TORNEO"),
+          style: const TextStyle(color: Colors.white),
         ),
         content: TextField(
           controller: codigoController,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
-            hintText: "Introduce el código",
+            hintText: L10n.t("Introduce el código"),
             hintStyle: const TextStyle(color: Colors.white24),
             filled: true,
             fillColor: Colors.black26,
@@ -195,7 +196,7 @@ class _EventScreenState extends State<EventScreen> {
               codigoController.dispose();
               Navigator.pop(ctx);
             },
-            child: const Text("CANCELAR"),
+            child: Text(L10n.t("CANCELAR")),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -204,7 +205,7 @@ class _EventScreenState extends State<EventScreen> {
               Navigator.pop(ctx);
               await _unirseConCodigo(codigo);
             },
-            child: const Text("UNIRME"),
+            child: Text(L10n.t("UNIRME")),
           ),
         ],
       ),
@@ -223,7 +224,7 @@ class _EventScreenState extends State<EventScreen> {
       if (query.docs.isEmpty) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Código de torneo no encontrado')),
+          SnackBar(content: Text(L10n.t('Código de torneo no encontrado'))),
         );
         return;
       }
@@ -233,12 +234,12 @@ class _EventScreenState extends State<EventScreen> {
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('¡Te has unido al torneo!')),
+        SnackBar(content: Text(L10n.t('¡Te has unido al torneo!'))),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al unirse: $e')),
+        SnackBar(content: Text(L10n.fmt('Error al unirse: {e}', {'e': '$e'}))),
       );
     }
   }

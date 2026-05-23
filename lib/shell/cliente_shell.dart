@@ -44,18 +44,21 @@ class _ClienteShellState extends State<ClienteShell> {
         BrawlTabBarItem(icon: '♢', label: L10n.t('Perfil')),
       ];
 
-  // No const: Flutter crea nuevas instancias en cada build, permitiendo
-  // que el diffing propague los cambios de tema/idioma a los hijos.
-  List<Widget> get _screens => const [
-        ClienteEventosScreen(),
-        ClienteMapaScreen(),
-        SharedReglasScreen(),
-        SharedConfigScreen(isOrg: false),
-      ];
+  late List<Widget> _screens;
+
+  void _buildScreens() {
+    _screens = [
+      ClienteEventosScreen(),
+      ClienteMapaScreen(),
+      SharedReglasScreen(),
+      SharedConfigScreen(isOrg: false),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
+    _buildScreens();
     _uid = FirebaseAuth.instance.currentUser?.uid;
     AppPrefsNotifier.instance.addListener(_onPrefsChanged);
     if (_uid != null) {
@@ -65,7 +68,7 @@ class _ClienteShellState extends State<ClienteShell> {
   }
 
   void _onPrefsChanged() {
-    if (mounted) setState(() {});
+    if (mounted) setState(_buildScreens);
   }
 
   void _startMatchListener() {

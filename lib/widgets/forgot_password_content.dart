@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 
 class ForgotPasswordContent extends StatefulWidget {
   final bool isDesktop;
@@ -25,7 +26,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
     final email = _emailController.text.trim();
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Introduce tu email')),
+        SnackBar(content: Text(L10n.t('Introduce tu email'))),
       );
       return;
     }
@@ -37,8 +38,8 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       final msg = e.code == 'user-not-found'
-          ? 'No existe una cuenta con ese email'
-          : 'Error al enviar el correo';
+          ? L10n.t('No existe una cuenta con ese email')
+          : L10n.t('Error al enviar el correo');
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -63,7 +64,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
           : CrossAxisAlignment.center,
       children: [
         Text(
-          "¿OLVIDASTE TU CONTRASEÑA?",
+          L10n.t("¿OLVIDASTE TU CONTRASEÑA?"),
           textAlign: widget.isDesktop ? TextAlign.left : TextAlign.center,
           style: GoogleFonts.rubik(
             fontSize: widget.isDesktop ? 32 : 24,
@@ -74,13 +75,13 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         ),
         const SizedBox(height: 15),
         Text(
-          "Introduce tu email y te enviaremos las instrucciones para recuperarla.",
+          L10n.t("Introduce tu email y te enviaremos las instrucciones para recuperarla."),
           textAlign: widget.isDesktop ? TextAlign.left : TextAlign.center,
           style: GoogleFonts.rubik(color: Colors.white54, fontSize: 14),
         ),
         const SizedBox(height: 40),
 
-        _buildField(Icons.email_outlined, "Tu correo electrónico"),
+        _buildField(Icons.email_outlined, L10n.t("Tu correo electrónico")),
 
         const SizedBox(height: 40),
 
@@ -89,7 +90,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
                 child: CircularProgressIndicator(color: Color(0XFFF8BF54)),
               )
             : _buildGradientButton(
-                text: "ENVIAR INSTRUCCIONES",
+                text: L10n.t("ENVIAR INSTRUCCIONES"),
                 onPressed: _sendReset,
               ),
       ],
@@ -109,7 +110,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         ),
         const SizedBox(height: 30),
         Text(
-          "¡CORREO ENVIADO!",
+          L10n.t("¡CORREO ENVIADO!"),
           style: GoogleFonts.rubik(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -118,7 +119,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         ),
         const SizedBox(height: 15),
         Text(
-          "Revisa tu bandeja de entrada para cambiar la contraseña. No olvides mirar en la carpeta de spam.",
+          L10n.t("Revisa tu bandeja de entrada para cambiar la contraseña. No olvides mirar en la carpeta de spam."),
           textAlign: TextAlign.center,
           style: GoogleFonts.rubik(
             color: Colors.white54,
@@ -138,7 +139,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
             ),
           ),
           child: Text(
-            "NO HE RECIBIDO NADA, REENVIAR",
+            L10n.t("NO HE RECIBIDO NADA, REENVIAR"),
             style: GoogleFonts.rubik(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -149,7 +150,7 @@ class _ForgotPasswordContentState extends State<ForgotPasswordContent> {
         TextButton(
           onPressed: () => setState(() => _mailSent = false),
           child: Text(
-            "Intentar con otro email",
+            L10n.t("Intentar con otro email"),
             style: GoogleFonts.rubik(color: Colors.white38, fontSize: 13),
           ),
         ),

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
@@ -101,7 +102,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
     const weekdays = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
     final h = d.hour.toString().padLeft(2, '0');
     final m = d.minute.toString().padLeft(2, '0');
-    return '${weekdays[d.weekday - 1]} · $h:$m';
+    return '${L10n.t(weekdays[d.weekday - 1])} · $h:$m';
   }
 
   Future<void> _saveDraft() async {
@@ -164,7 +165,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al publicar el torneo')),
+          SnackBar(content: Text(L10n.t('Error al publicar el torneo'))),
         );
         setState(() => _isSaving = false);
       }
@@ -200,12 +201,12 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                               ? Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('NUEVO TORNEO',
+                                    Text(L10n.t('NUEVO TORNEO'),
                                         style: GoogleFonts.rubik(
                                             fontSize: 11,
                                             color: AppColors.textMute,
                                             letterSpacing: 0.5)),
-                                    Text('Paso 4 de 4 · Publicar',
+                                    Text(L10n.t('Paso 4 de 4 · Publicar'),
                                         style: GoogleFonts.rubik(
                                             fontSize: 16,
                                             fontWeight: FontWeight.w700,
@@ -215,13 +216,13 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                               : Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('COMPARTIR',
+                                    Text(L10n.t('COMPARTIR'),
                                         style: GoogleFonts.rubik(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w600,
                                             color: AppColors.textMute,
                                             letterSpacing: 0.5)),
-                                    Text('Publicar anuncio',
+                                    Text(L10n.t('Publicar anuncio'),
                                         style: GoogleFonts.rubik(
                                             fontSize: 22,
                                             fontWeight: FontWeight.w700,
@@ -233,7 +234,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         if (widget.isCreationFlow)
                           GestureDetector(
                             onTap: _isSaving ? null : _saveDraft,
-                            child: Text('Guardar',
+                            child: Text(L10n.t('Guardar'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 12, color: AppColors.textDim)),
                           ),
@@ -369,7 +370,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('TEXTO DEL ANUNCIO',
+                                  Text(L10n.t('TEXTO DEL ANUNCIO'),
                                       style: GoogleFonts.rubik(
                                           fontSize: 10.5,
                                           color: AppColors.textMute,
@@ -386,8 +387,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                         height: 1.45),
                                     cursorColor: AppColors.violet,
                                     decoration: InputDecoration(
-                                      hintText:
-                                          '¡Vuelve el torneo! Escribe aquí el texto del anuncio...',
+                                      hintText: L10n.t('¡Vuelve el torneo! Escribe aquí el texto del anuncio...'),
                                       hintStyle: GoogleFonts.rubik(
                                           fontSize: 13.5,
                                           color: AppColors.textMute,
@@ -409,7 +409,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('CÓDIGO DE INSCRIPCIÓN',
+                                  Text(L10n.t('CÓDIGO DE INSCRIPCIÓN'),
                                       style: GoogleFonts.rubik(
                                           fontSize: 10.5,
                                           color: AppColors.textMute,
@@ -484,7 +484,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                                   style:
                                                       TextStyle(fontSize: 13)),
                                               const SizedBox(width: 5),
-                                              Text('Generar',
+                                              Text(L10n.t('Generar'),
                                                   style: GoogleFonts.rubik(
                                                       fontSize: 13,
                                                       fontWeight:
@@ -498,7 +498,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                   ),
                                   const SizedBox(height: 6),
                                   Text(
-                                    'Los jugadores usarán este código para inscribirse.',
+                                    L10n.t('Los jugadores usarán este código para inscribirse.'),
                                     style: GoogleFonts.rubik(
                                         fontSize: 11,
                                         color: AppColors.textMute),
@@ -522,8 +522,8 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         width: double.infinity,
                         onTap: widget.isCreationFlow ? _publish : _saveChanges,
                         child: Text(widget.isCreationFlow
-                            ? 'Publicar ahora ✦'
-                            : 'Guardar cambios'),
+                            ? L10n.t('Publicar ahora ✦')
+                            : L10n.t('Guardar cambios')),
                       ),
               ),
             ],

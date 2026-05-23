@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'config_field.dart';
@@ -75,9 +76,8 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
         await user.verifyBeforeUpdateEmail(nuevoEmail);
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-                'Revisa tu nuevo correo para confirmar el cambio de email.'),
+          SnackBar(
+            content: Text(L10n.t('Revisa tu nuevo correo para confirmar el cambio de email.')),
             duration: Duration(seconds: 4),
           ),
         );
@@ -89,13 +89,13 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       final msg = e.code == 'requires-recent-login'
-          ? 'Por seguridad, cierra sesión, vuelve a entrar y repite el cambio.'
-          : 'Error al actualizar el email: ${e.message}';
+          ? L10n.t('Por seguridad, cierra sesión, vuelve a entrar y repite el cambio.')
+          : L10n.fmt('Error al actualizar el email: {message}', {'message': e.message ?? ''});
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar los cambios.')),
+        SnackBar(content: Text(L10n.t('Error al guardar los cambios.'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -117,7 +117,7 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
                   children: [
                     const BackBtn(),
                     const SizedBox(width: 14),
-                    Text('Datos personales',
+                    Text(L10n.t('Datos personales'),
                         style: GoogleFonts.rubik(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -149,20 +149,20 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
                         ),
                       ),
                       ConfigField(
-                        label: 'Nombre completo',
+                        label: L10n.t('Nombre completo'),
                         controller: _nombreCtrl,
                         icon: '✏',
                       ),
                       const SizedBox(height: 14),
                       ConfigField(
-                        label: 'Email',
+                        label: L10n.t('Email'),
                         controller: _emailCtrl,
                         icon: '✉',
                         keyboardType: TextInputType.emailAddress,
                       ),
                       const SizedBox(height: 14),
                       ConfigField(
-                        label: 'Teléfono',
+                        label: L10n.t('Teléfono'),
                         controller: _telefonoCtrl,
                         icon: '📱',
                         keyboardType: TextInputType.phone,
@@ -178,7 +178,7 @@ class _DatosPersonalesScreenState extends State<DatosPersonalesScreen> {
                               size: GradBtnSize.lg,
                               gradient: widget.accent,
                               onTap: _save,
-                              child: const Text('Guardar cambios'),
+                              child: Text(L10n.t('Guardar cambios')),
                             ),
                     ],
                   ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'config_field.dart';
@@ -35,7 +36,7 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
     if (_nuevaCtrl.text != _confirmarCtrl.text) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Las contraseñas no coinciden',
+          content: Text(L10n.t('Las contraseñas no coinciden'),
               style: GoogleFonts.rubik(color: Colors.white)),
           backgroundColor: AppColors.pink,
           behavior: SnackBarBehavior.floating,
@@ -46,7 +47,7 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Contraseña actualizada',
+        content: Text(L10n.t('Contraseña actualizada'),
             style: GoogleFonts.rubik(color: Colors.white)),
         backgroundColor: AppColors.cyan.withValues(alpha: 0.9),
         behavior: SnackBarBehavior.floating,
@@ -73,7 +74,7 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                   children: [
                     const BackBtn(),
                     const SizedBox(width: 14),
-                    Text('Contraseña y seguridad',
+                    Text(L10n.t('Contraseña y seguridad'),
                         style: GoogleFonts.rubik(
                             fontSize: 20,
                             fontWeight: FontWeight.w700,
@@ -114,7 +115,7 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Email registrado',
+                                    Text(L10n.t('Email registrado'),
                                         style: GoogleFonts.rubik(
                                             fontSize: 11,
                                             color: AppColors.textMute)),
@@ -131,24 +132,24 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                         ),
                         const SizedBox(height: 24),
                       ],
-                      const ConfigSectionHeader('Cambiar contraseña'),
+                      ConfigSectionHeader(L10n.t('Cambiar contraseña')),
                       BrawlCard(
                         padding: const EdgeInsets.all(16),
                         radius: 18,
                         child: Column(
                           children: [
                             ConfigPasswordField(
-                              label: 'Contraseña actual',
+                              label: L10n.t('Contraseña actual'),
                               controller: _actualCtrl,
                             ),
                             const SizedBox(height: 14),
                             ConfigPasswordField(
-                              label: 'Nueva contraseña',
+                              label: L10n.t('Nueva contraseña'),
                               controller: _nuevaCtrl,
                             ),
                             const SizedBox(height: 14),
                             ConfigPasswordField(
-                              label: 'Confirmar contraseña',
+                              label: L10n.t('Confirmar contraseña'),
                               controller: _confirmarCtrl,
                             ),
                           ],
@@ -159,10 +160,10 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                         width: double.infinity,
                         gradient: widget.accent,
                         onTap: _savePassword,
-                        child: const Text('Actualizar contraseña'),
+                        child: Text(L10n.t('Actualizar contraseña')),
                       ),
                       const SizedBox(height: 28),
-                      const ConfigSectionHeader('Verificación en dos pasos'),
+                      ConfigSectionHeader(L10n.t('Verificación en dos pasos')),
                       BrawlCard(
                         padding: EdgeInsets.zero,
                         radius: 18,
@@ -190,15 +191,15 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Autenticación 2FA',
+                                        Text(L10n.t('Autenticación 2FA'),
                                             style: GoogleFonts.rubik(
                                                 fontSize: 13.5,
                                                 fontWeight: FontWeight.w600,
                                                 color: AppColors.text)),
                                         Text(
                                             _twoFa
-                                                ? 'Activada · App autenticadora'
-                                                : 'Desactivada',
+                                                ? L10n.t('Activada · App autenticadora')
+                                                : L10n.t('Desactivada'),
                                             style: GoogleFonts.rubik(
                                                 fontSize: 11,
                                                 color: AppColors.textMute)),
@@ -248,7 +249,7 @@ class _ContrasenaSeguridadScreenState extends State<ContrasenaSeguridadScreen> {
                                 ),
                                 padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
                                 child: Text(
-                                  'Usa una app como Google Authenticator o Authy para escanear el código QR al iniciar sesión.',
+                                  L10n.t('Usa una app como Google Authenticator o Authy para escanear el código QR al iniciar sesión.'),
                                   style: GoogleFonts.rubik(
                                       fontSize: 12, color: AppColors.textDim),
                                 ),
