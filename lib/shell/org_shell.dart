@@ -37,23 +37,28 @@ class _OrgShellState extends State<OrgShell> {
         BrawlTabBarItem(icon: '♢', label: L10n.t('Perfil')),
       ];
 
-  List<Widget> get _screens => const [
-        OrgEventosScreen(),
-        OrgTiendaScreen(),
-        SharedReglasScreen(),
-        SharedConfigScreen(isOrg: true),
-      ];
+  late List<Widget> _screens;
+
+  void _buildScreens() {
+    _screens = [
+      OrgEventosScreen(),
+      OrgTiendaScreen(),
+      SharedReglasScreen(),
+      SharedConfigScreen(isOrg: true),
+    ];
+  }
 
   @override
   void initState() {
     super.initState();
+    _buildScreens();
     _uid = FirebaseAuth.instance.currentUser?.uid;
     AppPrefsNotifier.instance.addListener(_onPrefsChanged);
     if (_uid != null) _startListening();
   }
 
   void _onPrefsChanged() {
-    if (mounted) setState(() {});
+    if (mounted) setState(_buildScreens);
   }
 
   void _startListening() {

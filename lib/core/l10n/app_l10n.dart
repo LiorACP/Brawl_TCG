@@ -298,5 +298,215 @@ class L10n {
     // ── Comunes ───────────────────────────────────────────────────────────────
     'Atrás': 'Back',
     '· en vivo': '· live',
+
+    // ── Días de la semana (abreviados) ────────────────────────────────────────
+    'LUN': 'MON',
+    'MAR': 'TUE',
+    'MIÉ': 'WED',
+    'JUE': 'THU',
+    'VIE': 'FRI',
+    'SÁB': 'SAT',
+    'DOM': 'SUN',
+
+    // ── Anuncios ──────────────────────────────────────────────────────────────
+    'COMPARTIR': 'SHARE',
+    'Publicar ahora ✦': 'Publish now ✦',
+    'Los jugadores usarán este código para inscribirse.':
+        'Players will use this code to register.',
+    '¡Vuelve el torneo! Escribe aquí el texto del anuncio...':
+        'The tournament is back! Write the announcement text here...',
+
+    // ── Registro / Login ──────────────────────────────────────────────────────
+    'ÚNETE AL BRAWL': 'JOIN THE BRAWL',
+    'Crea tu cuenta para empezar a competir y demostrar lo que vales.':
+        "Create your account to start competing and show what you're worth.",
+    'Sé el mejor tiendero en organizar los mejores torneos.':
+        'Be the best organiser of the best tournaments.',
+    'Nombre de Usuario': 'Username',
+    'Correo Electrónico': 'Email address',
+    'Ciudad': 'City',
+    'Contraseña': 'Password',
+    '¿Ya tienes cuenta? Inicia sesión': 'Already have an account? Sign in',
+    'CREAR CUENTA': 'CREATE ACCOUNT',
+    'Ya existe una cuenta con ese email':
+        'An account with this email already exists',
+    'El email no es válido': 'The email is not valid',
+    'La contraseña es demasiado débil': 'Password is too weak',
+    'Error al crear la cuenta': 'Error creating account',
+    'HOLA  JUGADOR': 'HELLO PLAYER',
+    'Bienvenido a BRAWL TCG': 'Welcome to BRAWL TCG',
+    '¿Olvidaste tu contraseña?': 'Forgot your password?',
+    '¿No tienes cuenta? Regístrate': "Don't have an account? Register",
+    'INICIAR SESIÓN': 'SIGN IN',
+    'CONTINUAR CON GOOGLE': 'CONTINUE WITH GOOGLE',
+    'No existe una cuenta con ese email': 'No account found with that email',
+    'Contraseña incorrecta': 'Incorrect password',
+    'Demasiados intentos. Inténtalo más tarde':
+        'Too many attempts. Please try again later',
+    'Error al iniciar sesión': 'Error signing in',
+
+    // ── Recuperar contraseña ──────────────────────────────────────────────────
+    '¿OLVIDASTE TU CONTRASEÑA?': 'FORGOT YOUR PASSWORD?',
+    'Introduce tu email y te enviaremos las instrucciones para recuperarla.':
+        "Enter your email and we'll send you the instructions to recover it.",
+    'Tu correo electrónico': 'Your email address',
+    'ENVIAR INSTRUCCIONES': 'SEND INSTRUCTIONS',
+    '¡CORREO ENVIADO!': 'EMAIL SENT!',
+    'Revisa tu bandeja de entrada para cambiar la contraseña. No olvides mirar en la carpeta de spam.':
+        "Check your inbox to change your password. Don't forget to check the spam folder.",
+    'NO HE RECIBIDO NADA, REENVIAR': "I HAVEN'T RECEIVED ANYTHING, RESEND",
+    'Intentar con otro email': 'Try another email',
+    'Error al enviar el correo': 'Error sending email',
+
+    // ── Pantalla Código (extra) ───────────────────────────────────────────────
+    'Error al buscar el torneo': 'Error searching for tournament',
+    '¡Inscripción enviada! Espera confirmación del organizador.':
+        'Registration sent! Awaiting organiser confirmation.',
+    'El organizador te lo habrá enviado por email o lo encontrarás en el cartel del evento.':
+        "Your organiser will have sent it by email or you'll find it on the event poster.",
+    'Introduce el': 'Enter the',
+    '¡Torneo encontrado!': 'Tournament found!',
+    'Buscando torneo…': 'Searching tournament…',
+    'Pega el enlace de tu lista en Moxfield, Limitless, etc.':
+        'Paste your deck list link from Moxfield, Limitless, etc.',
+
+    // ── Inscripciones ─────────────────────────────────────────────────────────
+    'Inscripciones': 'Registrations',
+    'Error cargando inscripciones': 'Error loading registrations',
+    'No hay inscripciones pendientes': 'No pending registrations',
+    'Pendiente': 'Pending',
+    'Inscripción aceptada': 'Registration accepted',
+    'Inscripción rechazada': 'Registration rejected',
+    'Tu inscripción a "{name}" ha sido aceptada. ¡Nos vemos!':
+        'Your registration to "{name}" has been accepted. See you there!',
+    'Tu inscripción a "{name}" ha sido rechazada.':
+        'Your registration to "{name}" has been rejected.',
+
+    // ── Rondas ────────────────────────────────────────────────────────────────
+    'Ronda {n}': 'Round {n}',
+    '{n} / {total} puntuados': '{n} / {total} scored',
+    'Iniciar Ronda {n}': 'Start Round {n}',
+    'Guardar puntuación': 'Save score',
+
+    // ── Ranking ───────────────────────────────────────────────────────────────
+    'Los puntos aparecerán cuando se registren resultados de rondas':
+        'Points will appear once round results are recorded',
+    '{n} jugador': '{n} player',
+    '{n} jugadores': '{n} players',
+    'Gestionar Ronda {n}': 'Manage Round {n}',
+
+    // ── Datos personales (extra) ──────────────────────────────────────────────
+    'Por seguridad, cierra sesión, vuelve a entrar y repite el cambio.':
+        'For security, sign out, sign back in and repeat the change.',
+    'Error al actualizar el email: {message}':
+        'Error updating email: {message}',
+    'Revisa tu nuevo correo para confirmar el cambio de email.':
+        'Check your new email to confirm the email change.',
+
+    // ── Mapa (filtros) ────────────────────────────────────────────────────────
+    'Todos': 'All',
+
+    // ── Contraseña y seguridad (extra) ────────────────────────────────────────
+    'Autenticación 2FA': '2FA Authentication',
+    'Activada · App autenticadora': 'Enabled · Authenticator app',
+    'Desactivada': 'Disabled',
+    'Verificación en dos pasos': 'Two-step verification',
+    'Usa una app como Google Authenticator o Authy para escanear el código QR al iniciar sesión.':
+        'Use an app like Google Authenticator or Authy to scan the QR code when signing in.',
+
+    // ── Crear torneo – juego y formato ────────────────────────────────────────
+    'Juego': 'Game',
+    'Formato': 'Format',
+    'Swiss · rotativo': 'Swiss · rotating',
+    'Swiss · 5 rondas · Top 8': 'Swiss · 5 rounds · Top 8',
+    'Swiss · 4 rondas': 'Swiss · 4 rounds',
+    'Swiss · eternal irrestricto': 'Swiss · unrestricted eternal',
+    'Mesas de 4 · 3 rondas': '4-player tables · 3 rounds',
+    'Mesas de 4 · estándar': '4-player tables · standard',
+    'Solo comunes': 'Commons only',
+    'Pods de 8 · sellado': '8-pod sealed',
+    '6 sobres · construcción': '6 packs · build',
+    'Parejas · 2v2': 'Pairs · 2v2',
+    'Swiss · B&W en adelante': 'Swiss · B&W onwards',
+    'Swiss · sin restricciones': 'Swiss · no restrictions',
+    'Mazos predefinidos': 'Prebuilt decks',
+    '60 cartas · sin repetidos': '60 cards · no duplicates',
+    'Swiss · ban list vigente': 'Swiss · current ban list',
+    'Swiss · sin ban list': 'Swiss · no ban list',
+    'Formato reducido oficial': 'Official reduced format',
+    'Formato Rush': 'Rush format',
+    'Swiss · formato 2005': 'Swiss · 2005 format',
+    'Swiss · formato 2010': 'Swiss · 2010 format',
+    'Swiss · formato principal': 'Swiss · main format',
+    'Swiss · partidas rápidas': 'Swiss · quick rounds',
+    'Swiss · héroes retirados': 'Swiss · retired heroes',
+    'Multijugador · último en pie': 'Multiplayer · last standing',
+    'Formato casual': 'Casual format',
+    'Swiss · por saga': 'Swiss · by saga',
+    'Mesas de 4 o más': '4+ player tables',
+    'Apertura competitiva': 'Competitive pack opening',
+
+    // ── Mis eventos (event_screen) ────────────────────────────────────────────
+    'MIS EVENTOS': 'MY EVENTS',
+    'Eventos Inscritos': 'Registered Events',
+    'Ya Participados': 'Past Events',
+    'No estás inscrito en ningún evento': 'You are not registered in any event',
+    'Todavía no has participado en ningún evento':
+        "You haven't participated in any event yet",
+    'CÓDIGO DE TORNEO': 'TOURNAMENT CODE',
+    'Introduce el código': 'Enter the code',
+    'CANCELAR': 'CANCEL',
+    'UNIRME': 'JOIN',
+    '¡Te has unido al torneo!': 'You have joined the tournament!',
+
+    // ── Selección de rol ──────────────────────────────────────────────────────
+    '¡Hola, {nombre}!': 'Hello, {nombre}!',
+    '¿Cómo vas a usar Brawl TCG?': 'How will you use Brawl TCG?',
+    'Compite en torneos y sigue tus resultados.':
+        'Compete in tournaments and track your results.',
+    'Crea y gestiona torneos para tu tienda.':
+        'Create and manage tournaments for your store.',
+    'CONTINUAR COMO CLIENTE': 'CONTINUE AS CLIENT',
+    'CONTINUAR COMO ORGANIZADOR': 'CONTINUE AS ORGANIZER',
+
+    // ── Pantalla VS / Espera ──────────────────────────────────────────────────
+    'Toca para saltar': 'Tap to skip',
+    'TÚ': 'YOU',
+    'JUGADOR 1': 'PLAYER 1',
+    'JUGADOR 2': 'PLAYER 2',
+    'RONDA': 'ROUND',
+    '¿Has terminado tu ronda?': 'Have you finished your round?',
+    'He terminado mi ronda  ✓': "I've finished my round  ✓",
+    'RONDA {n} COMPLETADA': 'ROUND {n} COMPLETED',
+    'Esperando a los demás\njugadores...': 'Waiting for other\nplayers...',
+    'Volver al inicio': 'Back to home',
+
+    // ── Reglamento ────────────────────────────────────────────────────────────
+    'REGLAMENTO': 'RULEBOOK',
+    'Buscar término…': 'Search term…',
+    'Sin resultados para "{query}"': 'No results for "{query}"',
+    '{n} resultado': '{n} result',
+    '{n} resultados': '{n} results',
+    '{n} pregunta': '{n} question',
+    '{n} preguntas': '{n} questions',
+    'Sin resultados': 'No results',
+    'Prueba con otro término': 'Try another term',
+
+    // ── Biblioteca – meses y textos dinámicos ─────────────────────────────────
+    'Ene': 'Jan',
+    'Feb': 'Feb',
+    'Mar': 'Mar',
+    'Abr': 'Apr',
+    'May': 'May',
+    'Jun': 'Jun',
+    'Jul': 'Jul',
+    'Ago': 'Aug',
+    'Sep': 'Sep',
+    'Oct': 'Oct',
+    'Nov': 'Nov',
+    'Dic': 'Dec',
+    'Reglas actualizadas · {game}': 'Rules updated · {game}',
+    '{n} reglas · v.{v}': '{n} rules · v.{v}',
+    '⚡ Actualizado · {date}': '⚡ Updated · {date}',
   };
 }

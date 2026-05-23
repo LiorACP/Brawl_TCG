@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'data/tournament.dart';
 import 'player_profile_sheet.dart';
@@ -25,7 +26,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Inscripciones',
+              L10n.t('Inscripciones'),
               style: GoogleFonts.rubik(
                   fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text),
             ),
@@ -53,7 +54,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return Center(
               child: Text(
-                'Error cargando inscripciones',
+                L10n.t('Error cargando inscripciones'),
                 style: GoogleFonts.rubik(color: AppColors.textMute),
               ),
             );
@@ -69,7 +70,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
                   Text('✉', style: const TextStyle(fontSize: 48)),
                   const SizedBox(height: 12),
                   Text(
-                    'No hay inscripciones pendientes',
+                    L10n.t('No hay inscripciones pendientes'),
                     style: GoogleFonts.rubik(
                         fontSize: 15, color: AppColors.textMute),
                   ),
@@ -164,10 +165,10 @@ class _RegistrationCardState extends State<_RegistrationCard> {
           'userID': widget.playerRef,
           'date': FieldValue.serverTimestamp(),
           'type': 'inscripcion_respuesta',
-          'title': isAccepted ? 'Inscripción aceptada' : 'Inscripción rechazada',
+          'title': isAccepted ? L10n.t('Inscripción aceptada') : L10n.t('Inscripción rechazada'),
           'mensaje': isAccepted
-              ? 'Tu inscripción a "${widget.tournamentName}" ha sido aceptada. ¡Nos vemos!'
-              : 'Tu inscripción a "${widget.tournamentName}" ha sido rechazada.',
+              ? L10n.fmt('Tu inscripción a "{name}" ha sido aceptada. ¡Nos vemos!', {'name': widget.tournamentName})
+              : L10n.fmt('Tu inscripción a "{name}" ha sido rechazada.', {'name': widget.tournamentName}),
           'icon': isAccepted ? '✅' : '❌',
           'isRead': false,
           'tournamentId': widget.tournamentId,
@@ -269,7 +270,7 @@ class _RegistrationCardState extends State<_RegistrationCard> {
                       color: AppColors.yellow.withValues(alpha: 0.4)),
                 ),
                 child: Text(
-                  'Pendiente',
+                  L10n.t('Pendiente'),
                   style: GoogleFonts.rubik(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
@@ -327,7 +328,7 @@ class _RegistrationCardState extends State<_RegistrationCard> {
                   children: [
                     Expanded(
                       child: _ActionButton(
-                        label: 'Rechazar',
+                        label: L10n.t('Rechazar'),
                         color: AppColors.pink,
                         onTap: () => _updateStatus('Rejected'),
                       ),
@@ -335,7 +336,7 @@ class _RegistrationCardState extends State<_RegistrationCard> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _ActionButton(
-                        label: 'Aceptar',
+                        label: L10n.t('Aceptar'),
                         color: AppColors.cyan,
                         onTap: () => _updateStatus('Accepted'),
                       ),

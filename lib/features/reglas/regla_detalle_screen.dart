@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/features/eventos/data/tournament.dart';
@@ -103,7 +104,7 @@ class _ReglaDetalleScreenState extends State<ReglaDetalleScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'REGLAMENTO',
+                          L10n.t('REGLAMENTO'),
                           style: GoogleFonts.rubik(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -150,7 +151,7 @@ class _ReglaDetalleScreenState extends State<ReglaDetalleScreen> {
                           style: GoogleFonts.rubik(
                               fontSize: 13.5, color: AppColors.text),
                           decoration: InputDecoration(
-                            hintText: 'Buscar término…',
+                            hintText: L10n.t('Buscar término…'),
                             hintStyle: GoogleFonts.rubik(
                                 fontSize: 13.5, color: AppColors.textMute),
                             border: InputBorder.none,
@@ -203,8 +204,8 @@ class _ReglaDetalleScreenState extends State<ReglaDetalleScreen> {
                               alignment: Alignment.centerLeft,
                               child: Text(
                                 filtered.isEmpty
-                                    ? 'Sin resultados para "$_query"'
-                                    : '$totalResults resultado${totalResults == 1 ? '' : 's'}',
+                                    ? L10n.fmt('Sin resultados para "{query}"', {'query': _query})
+                                    : L10n.fmt(totalResults == 1 ? '{n} resultado' : '{n} resultados', {'n': '$totalResults'}),
                                 style: GoogleFonts.rubik(
                                     fontSize: 11, color: AppColors.textMute),
                               ),
@@ -252,7 +253,7 @@ class _ReglaDetalleScreenState extends State<ReglaDetalleScreen> {
           const Text('🔍', style: TextStyle(fontSize: 36)),
           const SizedBox(height: 12),
           Text(
-            'Sin resultados',
+            L10n.t('Sin resultados'),
             style: GoogleFonts.rubik(
                 fontSize: 15,
                 color: AppColors.textDim,
@@ -260,7 +261,7 @@ class _ReglaDetalleScreenState extends State<ReglaDetalleScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Prueba con otro término',
+            L10n.t('Prueba con otro término'),
             style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textMute),
           ),
         ],
@@ -337,7 +338,7 @@ class _SectionAccordion extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            '${faqs.length} ${faqs.length == 1 ? 'pregunta' : 'preguntas'}',
+                            L10n.fmt(faqs.length == 1 ? '{n} pregunta' : '{n} preguntas', {'n': '${faqs.length}'}),
                             style: GoogleFonts.rubik(
                                 fontSize: 11, color: AppColors.textMute),
                           ),

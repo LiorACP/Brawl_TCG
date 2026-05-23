@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'data/tournament.dart';
@@ -102,7 +103,7 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Ronda $_round',
+              L10n.fmt('Ronda {n}', {'n': '$_round'}),
               style: GoogleFonts.rubik(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -145,7 +146,7 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
                 child: Row(
                   children: [
                     Text(
-                      '$scored / ${matches.length} puntuados',
+                      L10n.fmt('{n} / {total} puntuados', {'n': '$scored', 'total': '${matches.length}'}),
                       style: GoogleFonts.rubik(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -162,7 +163,7 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
                           border: Border.all(
                               color: AppColors.cyan.withValues(alpha: 0.3)),
                         ),
-                        child: Text('Todos terminaron',
+                        child: Text(L10n.t('Todos terminaron'),
                             style: GoogleFonts.rubik(
                                 fontSize: 11, color: AppColors.cyan)),
                       ),
@@ -198,7 +199,7 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
                           gradient: AppColors.organizadorGradient,
                           onTap: _nextRound,
                           child: Text(
-                            'Iniciar Ronda ${_round + 1}',
+                            L10n.fmt('Iniciar Ronda {n}', {'n': '${_round + 1}'}),
                             style: GoogleFonts.rubik(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w700,
@@ -286,7 +287,7 @@ class _MatchCard extends StatelessWidget {
                   gradient: AppColors.organizadorGradient,
                   onTap: onSave,
                   child: Text(
-                    'Guardar puntuación',
+                    L10n.t('Guardar puntuación'),
                     style: GoogleFonts.rubik(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,

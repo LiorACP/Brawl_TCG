@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'services/torneo_live_service.dart';
 
@@ -131,7 +132,7 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'RONDA ${widget.matchData.roundNum} COMPLETADA',
+                      L10n.fmt('RONDA {n} COMPLETADA', {'n': '${widget.matchData.roundNum}'}),
                       style: GoogleFonts.rubikMonoOne(
                         fontSize: 11,
                         color: AppColors.cyan.withValues(alpha: 0.8),
@@ -140,7 +141,7 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'Esperando a los demás\njugadores...',
+                      L10n.t('Esperando a los demás\njugadores...'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.rubik(
                         fontSize: 20,
@@ -182,7 +183,7 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
                 ),
                 child: Center(
                   child: Text(
-                    'Volver al inicio',
+                    L10n.t('Volver al inicio'),
                     style: GoogleFonts.rubik(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

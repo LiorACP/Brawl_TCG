@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/screens/cliente/Login.dart';
 
 class RegisterFormContent extends StatefulWidget {
@@ -40,13 +41,13 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
     if (nombre.isEmpty || email.isEmpty || ciudad.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Rellena todos los campos')));
+      ).showSnackBar(SnackBar(content: Text(L10n.t('Rellena todos los campos'))));
       return;
     }
     if (password.length < 6) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('La contraseña debe tener al menos 6 caracteres'),
+        SnackBar(
+          content: Text(L10n.t('La contraseña debe tener al menos 6 caracteres')),
         ),
       );
       return;
@@ -74,9 +75,9 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
       await FirebaseAuth.instance.signOut();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cuenta creada. Revisa tu correo para verificar la cuenta antes de iniciar sesión.'),
-          duration: Duration(seconds: 5),
+        SnackBar(
+          content: Text(L10n.t('Cuenta creada. Revisa tu correo para verificar la cuenta antes de iniciar sesión.')),
+          duration: const Duration(seconds: 5),
         ),
       );
       Navigator.pushAndRemoveUntil(
@@ -87,16 +88,16 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
       final msg = switch (e.code) {
-        'email-already-in-use' => 'Ya existe una cuenta con ese email',
-        'invalid-email' => 'El email no es válido',
-        'weak-password' => 'La contraseña es demasiado débil',
-        _ => 'Error al crear la cuenta',
+        'email-already-in-use' => L10n.t('Ya existe una cuenta con ese email'),
+        'invalid-email' => L10n.t('El email no es válido'),
+        'weak-password' => L10n.t('La contraseña es demasiado débil'),
+        _ => L10n.t('Error al crear la cuenta'),
       };
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar el perfil en la base de datos')),
+        SnackBar(content: Text(L10n.t('Error al guardar el perfil en la base de datos'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -113,7 +114,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
       children: [
         Center(
           child: Text(
-            "ÚNETE AL BRAWL",
+            L10n.t("ÚNETE AL BRAWL"),
             style: GoogleFonts.rubik(
               fontSize: widget.isDesktop ? 40 : 28,
               fontWeight: FontWeight.bold,
@@ -128,8 +129,8 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
             duration: const Duration(milliseconds: 300),
             child: Text(
               _selectedRole == 'Cliente'
-                  ? "Crea tu cuenta para empezar a competir y demostrar lo que vales."
-                  : "Sé el mejor tiendero en organizar los mejores torneos.",
+                  ? L10n.t("Crea tu cuenta para empezar a competir y demostrar lo que vales.")
+                  : L10n.t("Sé el mejor tiendero en organizar los mejores torneos."),
               key: ValueKey(_selectedRole),
               textAlign: widget.isDesktop ? TextAlign.left : TextAlign.center,
               style: GoogleFonts.rubik(
@@ -149,21 +150,21 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
         const SizedBox(height: 30),
         _buildField(
           Icons.person_outline,
-          "Nombre de Usuario",
+          L10n.t("Nombre de Usuario"),
           controller: _nombreController,
         ),
         const SizedBox(height: 20),
         _buildField(
           Icons.email_outlined,
-          "Correo Electrónico",
+          L10n.t("Correo Electrónico"),
           controller: _emailController,
         ),
         const SizedBox(height: 20),
-        _buildField(Icons.public, "Ciudad", controller: _ciudadController),
+        _buildField(Icons.public, L10n.t("Ciudad"), controller: _ciudadController),
         const SizedBox(height: 20),
         _buildField(
           Icons.lock_outline,
-          "Contraseña",
+          L10n.t("Contraseña"),
           isPass: true,
           controller: _passwordController,
         ),
@@ -178,7 +179,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
           onPressed: () => Navigator.pop(context),
           child: Center(
             child: Text(
-              "¿Ya tienes cuenta? Inicia sesión",
+              L10n.t("¿Ya tienes cuenta? Inicia sesión"),
               style: GoogleFonts.rubik(
                 color: Colors.white70,
                 fontWeight: FontWeight.w500,
@@ -303,7 +304,7 @@ class _RegisterFormContentState extends State<RegisterFormContent> {
           ),
         ),
         child: Text(
-          "CREAR CUENTA",
+          L10n.t("CREAR CUENTA"),
           style: GoogleFonts.rubik(
             color: Colors.white,
             fontWeight: FontWeight.bold,

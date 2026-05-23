@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/shell/cliente_shell.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
 
@@ -42,7 +43,7 @@ class _RolSelectionScreenState extends State<RolSelectionScreen> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar el perfil.')),
+        SnackBar(content: Text(L10n.t('Error al guardar el perfil.'))),
       );
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -76,7 +77,7 @@ class _RolSelectionScreenState extends State<RolSelectionScreen> {
                 ),
               const SizedBox(height: 16),
               Text(
-                '¡Hola, $nombre!',
+                L10n.fmt('¡Hola, {nombre}!', {'nombre': nombre}),
                 style: GoogleFonts.rubik(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -85,14 +86,14 @@ class _RolSelectionScreenState extends State<RolSelectionScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                '¿Cómo vas a usar Brawl TCG?',
+                L10n.t('¿Cómo vas a usar Brawl TCG?'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.rubik(fontSize: 15, color: Colors.white54),
               ),
               const SizedBox(height: 40),
               _RolCard(
                 title: 'Cliente',
-                subtitle: 'Compite en torneos y sigue tus resultados.',
+                subtitle: L10n.t('Compite en torneos y sigue tus resultados.'),
                 icon: '⚔',
                 selected: _selectedRole == 'Cliente',
                 gradient: const [Color(0xFF00C6FF), Color(0xFF5B5BFF)],
@@ -101,7 +102,7 @@ class _RolSelectionScreenState extends State<RolSelectionScreen> {
               const SizedBox(height: 14),
               _RolCard(
                 title: 'Organizador',
-                subtitle: 'Crea y gestiona torneos para tu tienda.',
+                subtitle: L10n.t('Crea y gestiona torneos para tu tienda.'),
                 icon: '◈',
                 selected: _selectedRole == 'Organizador',
                 gradient: const [Color(0xFFEC5544), Color(0xFF9120A6)],
@@ -137,7 +138,7 @@ class _RolSelectionScreenState extends State<RolSelectionScreen> {
                             ),
                           ),
                           child: Text(
-                            'CONTINUAR COMO ${_selectedRole.toUpperCase()}',
+                            L10n.t('CONTINUAR COMO ${_selectedRole.toUpperCase()}'),
                             style: GoogleFonts.rubik(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,

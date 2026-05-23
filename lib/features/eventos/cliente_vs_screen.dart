@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'services/torneo_live_service.dart';
 import 'cliente_espera_screen.dart';
@@ -290,7 +291,7 @@ class _ClienteVsScreenState extends State<ClienteVsScreen>
                             ),
                           ),
                           child: Text(
-                            '${md.tournamentName}  ·  RONDA ${md.roundNum}',
+                            '${md.tournamentName}  ·  ${L10n.t('RONDA')} ${md.roundNum}',
                             style: GoogleFonts.rubikMonoOne(
                               fontSize: 10,
                               color: Colors.white.withValues(alpha: 0.7),
@@ -330,7 +331,7 @@ class _ClienteVsScreenState extends State<ClienteVsScreen>
                     child: Opacity(
                       opacity: (0.4 * (1 - _buttonFade.value)).clamp(0, 0.4),
                       child: Text(
-                        'Toca para saltar',
+                        L10n.t('Toca para saltar'),
                         style: GoogleFonts.rubik(
                           fontSize: 11,
                           color: Colors.white.withValues(alpha: 0.4),
@@ -410,7 +411,7 @@ class _Panel extends StatelessWidget {
                           ),
                         ),
                         child: Text(
-                          'TÚ',
+                          L10n.t('TÚ'),
                           style: GoogleFonts.rubikMonoOne(
                             fontSize: 10,
                             color: accentColor,
@@ -438,7 +439,7 @@ class _Panel extends StatelessWidget {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      isLeft ? 'JUGADOR 1' : 'JUGADOR 2',
+                      isLeft ? L10n.t('JUGADOR 1') : L10n.t('JUGADOR 2'),
                       style: GoogleFonts.rubikMonoOne(
                         fontSize: 9,
                         color: accentColor.withValues(alpha: 0.7),
@@ -553,7 +554,7 @@ class _DoneButton extends StatelessWidget {
     return Column(
       children: [
         Text(
-          '¿Has terminado tu ronda?',
+          L10n.t('¿Has terminado tu ronda?'),
           style: GoogleFonts.rubik(
             fontSize: 15,
             fontWeight: FontWeight.w600,
@@ -584,7 +585,7 @@ class _DoneButton extends StatelessWidget {
             ),
             child: Center(
               child: Text(
-                'He terminado mi ronda  ✓',
+                L10n.t('He terminado mi ronda  ✓'),
                 style: GoogleFonts.rubik(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,

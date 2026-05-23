@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'data/tournament.dart';
@@ -26,7 +27,7 @@ class OrgRankingScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Ranking',
+              L10n.t('Ranking'),
               style: GoogleFonts.rubik(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
@@ -60,7 +61,7 @@ class OrgRankingScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
-                    'Gestionar Ronda ${tournament.currentRound}',
+                    L10n.fmt('Gestionar Ronda {n}', {'n': '${tournament.currentRound}'}),
                     style: GoogleFonts.rubik(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -106,7 +107,7 @@ class OrgRankingScreen extends StatelessWidget {
                     const Text('🏆', style: TextStyle(fontSize: 48)),
                     const SizedBox(height: 12),
                     Text(
-                      'Sin puntuaciones aún',
+                      L10n.t('Sin puntuaciones aún'),
                       style: GoogleFonts.rubik(
                         fontSize: 15,
                         color: AppColors.textMute,
@@ -114,7 +115,7 @@ class OrgRankingScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Los puntos aparecerán cuando se registren resultados de rondas',
+                      L10n.t('Los puntos aparecerán cuando se registren resultados de rondas'),
                       textAlign: TextAlign.center,
                       style: GoogleFonts.rubik(
                         fontSize: 12,
@@ -134,7 +135,7 @@ class OrgRankingScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     Text(
-                      '${sorted.length} jugador${sorted.length == 1 ? '' : 'es'}',
+                      L10n.fmt(sorted.length == 1 ? '{n} jugador' : '{n} jugadores', {'n': '${sorted.length}'}),
                       style: GoogleFonts.rubik(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
@@ -143,7 +144,7 @@ class OrgRankingScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      '· en vivo',
+                      L10n.t('· en vivo'),
                       style: GoogleFonts.rubik(
                         fontSize: 12,
                         color: AppColors.pink,
