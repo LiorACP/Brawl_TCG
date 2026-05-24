@@ -1,7 +1,7 @@
 # Script para generar el token de Google para n8n
 # Ejecutar con: powershell -ExecutionPolicy Bypass -File n8n/get_google_token.ps1
 
-$keyFile = Join-Path $PSScriptRoot '..\brawl-tcg-database-firebase-adminsdk-fbsvc-870d49525b.json'
+$keyFile = Join-Path $PSScriptRoot '..\api\serviceAccount.json'
 
 if (-not (Test-Path $keyFile)) {
     Write-Host "ERROR: No se encuentra el archivo JSON." -ForegroundColor Red

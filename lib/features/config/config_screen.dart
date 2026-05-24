@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +6,7 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
+import 'viewmodels/config_viewmodel.dart';
 import 'widgets/datos_personales_screen.dart';
 import 'widgets/contrasena_seguridad_screen.dart';
 import 'widgets/juegos_favoritos_screen.dart';
@@ -15,8 +15,6 @@ import 'widgets/apariencia_screen.dart';
 import 'widgets/unidades_screen.dart';
 import 'widgets/politica_privacidad_screen.dart';
 import 'widgets/terminos_condiciones_screen.dart';
-import '../eventos/services/eventos_service.dart';
-import '../notificaciones/services/notificaciones_service.dart';
 
 class SharedConfigScreen extends StatefulWidget {
   final bool isOrg;
@@ -28,17 +26,7 @@ class SharedConfigScreen extends StatefulWidget {
 
 class _SharedConfigScreenState extends State<SharedConfigScreen> {
   late bool _isOrg;
-
-  Map<String, bool> _toggles = {};
-  Map<String, bool> _ciudadToggles = {};
-  bool _loadingCiudades = true;
-
-  String _nombre = '';
-  String _email = '';
-  String _telefono = '';
-  String _localidad = '';
-  String _joinYear = '';
-  Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
+  final _vm = ConfigViewModel();
 
   @override
   void initState() {
@@ -286,9 +274,9 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   }
 
   String get _idiomaLabel =>
-      _idioma == 'es' ? L10n.t('Español (España)') : L10n.t('English (UK)');
+      _vm.idioma == 'es' ? L10n.t('Español (España)') : L10n.t('English (UK)');
   String get _aparienciaLabel =>
-      _apariencia == 'dark' ? L10n.t('Oscuro') : L10n.t('Claro');
+      _vm.apariencia == 'dark' ? L10n.t('Oscuro') : L10n.t('Claro');
 
   @override
   Widget build(BuildContext context) {
@@ -345,7 +333,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(_nombre,
+                                  Text(_vm.nombre,
                                       style: GoogleFonts.rubik(
                                           fontSize: 17,
                                           fontWeight: FontWeight.w700,
@@ -353,11 +341,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                       [
-                                        if (_nombre.isNotEmpty)
-                                          '@${_nombre.split(' ').first.toLowerCase()}',
-                                        if (_joinYear.isNotEmpty)
+                                        if (_vm.nombre.isNotEmpty)
+                                          '@${_vm.nombre.split(' ').first.toLowerCase()}',
+                                        if (_vm.joinYear.isNotEmpty)
                                           L10n.fmt('desde {year}',
-                                              {'year': _joinYear}),
+                                              {'year': _vm.joinYear}),
                                       ].join(' · '),
                                       style: GoogleFonts.rubik(
                                           fontSize: 12,
@@ -374,11 +362,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               onTap: () => Navigator.push(
                                 context,
                                 slideRoute(DatosPersonalesScreen(
-                                  nombre: _nombre,
-                                  email: _email,
-                                  telefono: _telefono,
+                                  nombre: _vm.nombre,
+                                  email: _vm.email,
+                                  telefono: _vm.telefono,
                                   accent: accent,
-                                  onSave: _savePersonalData,
+                                  onSave: _vm.savePersonalData,
                                 )),
                               ),
                               child: Container(
@@ -407,17 +395,17 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                         items: [
                           _SettingsItem(
                             title: L10n.t('Datos personales'),
-                            sub: '$_nombre · $_email',
+                            sub: '${_vm.nombre} · ${_vm.email}',
                             color: AppColors.cyan,
                             icon: 'i',
                             onTap: () => Navigator.push(
                               context,
                               slideRoute(DatosPersonalesScreen(
-                                nombre: _nombre,
-                                email: _email,
-                                telefono: _telefono,
+                                nombre: _vm.nombre,
+                                email: _vm.email,
+                                telefono: _vm.telefono,
                                 accent: accent,
-                                onSave: _savePersonalData,
+                                onSave: _vm.savePersonalData,
                               )),
                             ),
                           ),
@@ -429,22 +417,22 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             onTap: () => Navigator.push(
                               context,
                               slideRoute(ContrasenaSeguridadScreen(
-                                  accent: accent, email: _email)),
+                                  accent: accent, email: _vm.email)),
                             ),
                           ),
                           _SettingsItem(
                             title: L10n.t('Mis juegos favoritos'),
                             sub: L10n.fmt('{n} seleccionados',
-                                {'n': '${_selectedGames.length}'}),
+                                {'n': '${_vm.selectedGames.length}'}),
                             color: AppColors.pink,
                             icon: '♥',
                             onTap: () => Navigator.push(
                               context,
                               slideRoute(JuegosFavoritosScreen(
-                                selected: _selectedGames,
+                                selected: _vm.selectedGames,
                                 accent: accent,
                                 onSave: (games) =>
-                                    setState(() => _selectedGames = games),
+                                    setState(() => _vm.selectedGames = games),
                               )),
                             ),
                           ),
@@ -475,19 +463,19 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               icon: '⚔',
                               key: 'Resultados y emparejamiento'),
                         ],
-                        toggles: _toggles,
-                        onToggle: _onNotifToggle,
+                        toggles: _vm.toggles,
+                        onToggle: _vm.onNotifToggle,
                         accent: accent,
                       ),
                       const SizedBox(height: 18),
 
                       // Notificaciones por ciudad
-                      if (_loadingCiudades)
+                      if (_vm.loadingCiudades)
                         _CiudadLoadingSection(accent: accent)
-                      else if (_ciudadToggles.isNotEmpty)
+                      else if (_vm.ciudadToggles.isNotEmpty)
                         _ToggleSection(
                           header: L10n.t('Notificaciones por ciudad'),
-                          items: _ciudadToggles.keys
+                          items: _vm.ciudadToggles.keys
                               .map((city) => _ToggleItem(
                                     title: city,
                                     sub: L10n.fmt(
@@ -497,8 +485,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                     color: AppColors.orange,
                                   ))
                               .toList(),
-                          toggles: _ciudadToggles,
-                          onToggle: _saveCiudadToggle,
+                          toggles: _vm.ciudadToggles,
+                          onToggle: _vm.saveCiudadToggle,
                           accent: accent,
                         ),
                       const SizedBox(height: 18),
@@ -513,12 +501,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             color: AppColors.violet,
                             icon: '🌐',
                             onTap: () async {
-                              final uid = FirebaseAuth
-                                  .instance.currentUser?.uid;
+                              final uid = _getUid();
                               await Navigator.push(
                                 context,
                                 slideRoute(IdiomaScreen(
-                                  selected: _idioma,
+                                  selected: _vm.idioma,
                                   accent: accent,
                                   onSave: (lang) async {
                                     if (uid != null) {
@@ -538,12 +525,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             color: AppColors.blue,
                             icon: '◐',
                             onTap: () async {
-                              final uid = FirebaseAuth
-                                  .instance.currentUser?.uid;
+                              final uid = await _getUid();
                               await Navigator.push(
                                 context,
                                 slideRoute(AparienciaScreen(
-                                  selected: _apariencia,
+                                  selected: _vm.apariencia,
                                   accent: accent,
                                   onSave: (a) async {
                                     if (uid != null) {
@@ -559,17 +545,16 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                           ),
                           _SettingsItem(
                             title: L10n.t('Unidades'),
-                            sub: '$_distancia · $_hora',
+                            sub: '${_vm.distancia} · ${_vm.hora}',
                             color: AppColors.cyan,
                             icon: '△',
                             onTap: () async {
-                              final uid = FirebaseAuth
-                                  .instance.currentUser?.uid;
+                              final uid = await _getUid();
                               await Navigator.push(
                                 context,
                                 slideRoute(UnidadesScreen(
-                                  distancia: _distancia,
-                                  hora: _hora,
+                                  distancia: _vm.distancia,
+                                  hora: _vm.hora,
                                   accent: accent,
                                   onSave: (d, h) async {
                                     if (uid != null) {
@@ -616,7 +601,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             color: AppColors.pink,
                             icon: '⎋',
                             danger: true,
-                            onTap: _logout,
+                            onTap: _vm.logout,
                           ),
                         ],
                       ),
@@ -637,6 +622,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
       ),
     );
   }
+
+  String? _getUid() => FirebaseAuth.instance.currentUser?.uid;
 }
 
 // ─── Modelos de fila ─────────────────────────────────────────────────────────

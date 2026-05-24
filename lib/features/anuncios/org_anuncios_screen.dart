@@ -1,5 +1,3 @@
-import 'dart:math';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +5,7 @@ import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/shell/org_shell.dart';
+import 'viewmodels/anuncios_viewmodel.dart';
 
 class OrgAnunciosScreen extends StatefulWidget {
   final bool isCreationFlow;
@@ -25,158 +24,64 @@ class OrgAnunciosScreen extends StatefulWidget {
 class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
   final _textController = TextEditingController();
   final _codeController = TextEditingController();
-  bool _isSaving = false;
-  bool _loading = true;
-
-  // Datos del torneo cargados desde Firestore para mostrar en el resumen
-  String _eventName = '';
-  String _dateTimeLabel = '';
-  String _gameCode = 'MTG';
-  int _plazas = 0;
-  double _entryFee = 0;
-  int _enrolledCount = 0;
+  final _vm = AnunciosViewModel();
 
   @override
   void initState() {
     super.initState();
+    _vm.addListener(_onVmUpdate);
     if (widget.isCreationFlow && widget.eventId != null) {
-      _loadEvent();
-    } else {
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _loadEvent() async {
-    try {
-      final doc = await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .get();
-      final d = doc.data() ?? {};
-
-      final timestamp = d['date'] as Timestamp?;
-      final date = timestamp?.toDate();
-
-      final ruleSet = d['rule_set'] as String? ?? '';
-      final gameCode = _parseGameCode(ruleSet);
-
-      setState(() {
-        _eventName = d['name'] as String? ?? '';
-        _dateTimeLabel = date != null ? _formatDateTime(date) : '';
-        _gameCode = gameCode;
-        _plazas = (d['participants'] as num?)?.toInt() ?? 0;
-        _entryFee = (d['entryFee'] as num?)?.toDouble() ?? 0;
-        _enrolledCount = (d['enrolledCount'] as num?)?.toInt() ?? 0;
-        _loading = false;
+      _vm.loadEvent(widget.eventId!).then((_) {
+        _textController.text = '';
+        _codeController.text = '';
       });
-      // Si estamos editando relleno los campos con los datos que ya había
-      _textController.text = d['announcementText'] as String? ?? '';
-      _codeController.text = d['accessCode'] as String? ?? '';
-    } catch (_) {
-      if (mounted) setState(() => _loading = false);
+    } else {
+      _vm.loading = false;
     }
   }
 
-  static String _parseGameCode(String ruleSet) {
-    final s = ruleSet.toLowerCase();
-    if (s.contains('magic') || s.contains('mtg')) return 'MTG';
-    if (s.contains('pokémon') || s.contains('pokemon')) return 'POK';
-    if (s.contains('yu-gi-oh') || s.contains('yugioh') || s.contains('ygo')) return 'YGO';
-    if (s.contains('lorcana') || s.contains('disney')) return 'LRC';
-    if (s.contains('flesh') || s.contains('blood')) return 'FAB';
-    if (s.contains('one piece')) return 'ONE';
-    if (s.contains('dragon ball')) return 'DBS';
-    return 'MTG';
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
   }
 
-  static const _codeChars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
-
-  void _generateCode() {
-    final rng = Random.secure();
-    final code = List.generate(
-        6, (_) => _codeChars[rng.nextInt(_codeChars.length)]).join();
-    _codeController.text = code;
-  }
-
-  static String _formatDateTime(DateTime d) {
-    const weekdays = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-    final h = d.hour.toString().padLeft(2, '0');
-    final m = d.minute.toString().padLeft(2, '0');
-    return '${L10n.t(weekdays[d.weekday - 1])} · $h:$m';
+  @override
+  void dispose() {
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
+    _textController.dispose();
+    _codeController.dispose();
+    super.dispose();
   }
 
   Future<void> _saveDraft() async {
     if (widget.eventId == null) return;
-    setState(() => _isSaving = true);
-    try {
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'announcementText': _textController.text.trim(),
-        if (_codeController.text.trim().isNotEmpty)
-          'accessCode': _codeController.text.trim(),
-      });
-      if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } catch (_) {
-      if (mounted) setState(() => _isSaving = false);
-    }
+    final ok = await _vm.saveDraft(
+        widget.eventId!, _textController.text, _codeController.text);
+    if (ok && mounted) Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _saveChanges() async {
     if (widget.eventId == null) return;
-    setState(() => _isSaving = true);
-    try {
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'announcementText': _textController.text.trim(),
-        if (_codeController.text.trim().isNotEmpty)
-          'accessCode': _codeController.text.trim(),
-      });
-      if (!mounted) return;
-      Navigator.pop(context);
-    } catch (_) {
-      if (mounted) setState(() => _isSaving = false);
-    }
+    final ok = await _vm.saveChanges(
+        widget.eventId!, _textController.text, _codeController.text);
+    if (ok && mounted) Navigator.pop(context);
   }
 
   Future<void> _publish() async {
-    setState(() => _isSaving = true);
-    try {
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'status': 'Pending',
-        'announcementText': _textController.text.trim(),
-        if (_codeController.text.trim().isNotEmpty)
-          'accessCode': _codeController.text.trim(),
-      });
-
-      if (!mounted) return;
+    if (widget.eventId == null) return;
+    final ok = await _vm.publish(
+        widget.eventId!, _textController.text, _codeController.text);
+    if (ok && mounted) {
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const OrgShell()),
         (_) => false,
       );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(L10n.t('Error al publicar el torneo'))),
-        );
-        setState(() => _isSaving = false);
-      }
+    } else if (!ok && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(L10n.t('Error al publicar el torneo'))),
+      );
     }
-  }
-
-  @override
-  void dispose() {
-    _textController.dispose();
-    _codeController.dispose();
-    super.dispose();
   }
 
   @override
@@ -233,7 +138,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         ),
                         if (widget.isCreationFlow)
                           GestureDetector(
-                            onTap: _isSaving ? null : _saveDraft,
+                            onTap: _vm.isSaving ? null : _saveDraft,
                             child: Text(L10n.t('Guardar'),
                                 style: GoogleFonts.rubik(
                                     fontSize: 12, color: AppColors.textDim)),
@@ -265,7 +170,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                 ),
               ),
               Expanded(
-                child: _loading
+                child: _vm.loading
                     ? const Center(
                         child: CircularProgressIndicator(color: AppColors.orange))
                     : SingleChildScrollView(
@@ -273,7 +178,6 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Resumen del torneo encima del formulario
                             if (widget.isCreationFlow)
                               BrawlCard(
                                 padding: EdgeInsets.zero,
@@ -308,7 +212,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                           Positioned(
                                             top: 14,
                                             left: 16,
-                                            child: GameBadge(game: _gameCode, size: 34),
+                                            child: GameBadge(game: _vm.gameCode, size: 34),
                                           ),
                                           Positioned(
                                             bottom: 14,
@@ -318,7 +222,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                               crossAxisAlignment: CrossAxisAlignment.start,
                                               children: [
                                                 Text(
-                                                  _dateTimeLabel,
+                                                  _vm.dateTimeLabel,
                                                   style: GoogleFonts.rubik(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w700,
@@ -327,7 +231,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  _eventName,
+                                                  _vm.eventName,
                                                   style: GoogleFonts.rubik(
                                                       fontSize: 22,
                                                       fontWeight: FontWeight.w800,
@@ -346,12 +250,12 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            '$_plazas plazas · ${_entryFee % 1 == 0 ? _entryFee.toInt() : _entryFee} €',
+                                            '${_vm.plazas} plazas · ${_vm.entryFee % 1 == 0 ? _vm.entryFee.toInt() : _vm.entryFee} €',
                                             style: GoogleFonts.rubik(
                                                 fontSize: 12, color: AppColors.textDim),
                                           ),
                                           Text(
-                                            '$_enrolledCount/$_plazas',
+                                            '${_vm.enrolledCount}/${_vm.plazas}',
                                             style: GoogleFonts.rubik(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.w600,
@@ -364,7 +268,6 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                 ),
                               ),
                             const SizedBox(height: 14),
-                            // Campo para escribir el texto del anuncio
                             BrawlCard(
                               radius: 18,
                               child: Column(
@@ -403,7 +306,6 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                               ),
                             ),
                             const SizedBox(height: 14),
-                            // Código de 6 dígitos para que los jugadores se unan
                             BrawlCard(
                               radius: 18,
                               child: Column(
@@ -423,26 +325,21 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                           height: 44,
                                           decoration: BoxDecoration(
                                             color: AppColors.surface,
-                                            borderRadius:
-                                                BorderRadius.circular(12),
-                                            border: Border.all(
-                                                color: AppColors.stroke),
+                                            borderRadius: BorderRadius.circular(12),
+                                            border: Border.all(color: AppColors.stroke),
                                           ),
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 14),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14),
                                           alignment: Alignment.centerLeft,
                                           child: TextField(
                                             controller: _codeController,
                                             maxLength: 6,
-                                            textCapitalization:
-                                                TextCapitalization.characters,
+                                            textCapitalization: TextCapitalization.characters,
                                             inputFormatters: [
                                               FilteringTextInputFormatter.allow(
                                                   RegExp(r'[a-zA-Z0-9]')),
                                               TextInputFormatter.withFunction(
                                                   (_, v) => v.copyWith(
-                                                      text: v.text
-                                                          .toUpperCase())),
+                                                      text: v.text.toUpperCase())),
                                             ],
                                             style: GoogleFonts.rubikMonoOne(
                                               fontSize: 20,
@@ -466,29 +363,25 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                       ),
                                       const SizedBox(width: 10),
                                       GestureDetector(
-                                        onTap: _generateCode,
+                                        onTap: () => setState(() =>
+                                            _codeController.text =
+                                                AnunciosViewModel.generateCode()),
                                         child: Container(
                                           height: 44,
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 14),
+                                          padding: const EdgeInsets.symmetric(horizontal: 14),
                                           decoration: BoxDecoration(
                                             gradient: const LinearGradient(
-                                                colors:
-                                                    AppColors.organizadorGradient),
-                                            borderRadius:
-                                                BorderRadius.circular(12),
+                                                colors: AppColors.organizadorGradient),
+                                            borderRadius: BorderRadius.circular(12),
                                           ),
                                           child: Row(
                                             children: [
-                                              const Text('⚡',
-                                                  style:
-                                                      TextStyle(fontSize: 13)),
+                                              const Text('⚡', style: TextStyle(fontSize: 13)),
                                               const SizedBox(width: 5),
                                               Text(L10n.t('Generar'),
                                                   style: GoogleFonts.rubik(
                                                       fontSize: 13,
-                                                      fontWeight:
-                                                          FontWeight.w600,
+                                                      fontWeight: FontWeight.w600,
                                                       color: Colors.white)),
                                             ],
                                           ),
@@ -500,8 +393,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
                                   Text(
                                     L10n.t('Los jugadores usarán este código para inscribirse.'),
                                     style: GoogleFonts.rubik(
-                                        fontSize: 11,
-                                        color: AppColors.textMute),
+                                        fontSize: 11, color: AppColors.textMute),
                                   ),
                                 ],
                               ),
@@ -513,7 +405,7 @@ class _OrgAnunciosScreenState extends State<OrgAnunciosScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
-                child: _isSaving
+                child: _vm.isSaving
                     ? const Center(
                         child: CircularProgressIndicator(color: AppColors.orange))
                     : GradBtn(

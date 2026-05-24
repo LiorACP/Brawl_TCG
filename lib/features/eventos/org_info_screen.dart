@@ -1,11 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/eventos/org_crear_screen.dart';
+import 'viewmodels/org_info_viewmodel.dart';
 
 class OrgInfoScreen extends StatefulWidget {
   const OrgInfoScreen({super.key});
@@ -18,7 +17,7 @@ class _OrgInfoScreenState extends State<OrgInfoScreen> {
   final _nameController = TextEditingController();
   DateTime? _date;
   TimeOfDay? _time;
-  bool _isSaving = false;
+  final _vm = OrgInfoViewModel();
 
   String get _dateText => _date == null
       ? 'dd/MM'
@@ -27,6 +26,24 @@ class _OrgInfoScreenState extends State<OrgInfoScreen> {
   String get _timeText => _time == null
       ? 'HH:mm'
       : '${_time!.hour.toString().padLeft(2, '0')}:${_time!.minute.toString().padLeft(2, '0')}';
+
+  @override
+  void initState() {
+    super.initState();
+    _vm.addListener(_onVmUpdate);
+  }
+
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickDate() async {
     final now = DateTime.now();
@@ -101,74 +118,38 @@ class _OrgInfoScreenState extends State<OrgInfoScreen> {
       );
       return;
     }
-    setState(() => _isSaving = true);
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null || !mounted) return;
-      final orgRef = FirebaseFirestore.instance.collection('User').doc(user.uid);
-      final eventDate = (_date != null && _time != null)
-          ? DateTime(_date!.year, _date!.month, _date!.day, _time!.hour, _time!.minute)
-          : DateTime.now().add(const Duration(days: 365));
-      await FirebaseFirestore.instance.collection('Tournaments').add({
-        'name': name,
-        'date': Timestamp.fromDate(eventDate),
-        'status': 'Draft',
-        'organizerId': orgRef,
-        'enrolledCount': 0,
-        'city': '',
-      });
-      if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } catch (_) {
-      if (mounted) setState(() => _isSaving = false);
-    }
+    final eventDate = (_date != null && _time != null)
+        ? DateTime(_date!.year, _date!.month, _date!.day, _time!.hour, _time!.minute)
+        : DateTime.now().add(const Duration(days: 365));
+    final ok = await _vm.saveDraft(name: name, eventDate: eventDate);
+    if (ok && mounted) Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _next() async {
     if (!_validate()) return;
-    setState(() => _isSaving = true);
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null || !mounted) return;
-
-      final eventDate = DateTime(
-        _date!.year, _date!.month, _date!.day,
-        _time!.hour, _time!.minute,
-      );
-      final orgRef = FirebaseFirestore.instance.collection('User').doc(user.uid);
-      final doc = await FirebaseFirestore.instance.collection('Tournaments').add({
-        'name': _nameController.text.trim(),
-        'date': Timestamp.fromDate(eventDate),
-        'status': 'Draft',
-        'organizerId': orgRef,
-        'enrolledCount': 0,
-        'city': '',
-      });
-
-      if (!mounted) return;
+    final eventDate = DateTime(
+      _date!.year, _date!.month, _date!.day,
+      _time!.hour, _time!.minute,
+    );
+    final id = await _vm.createTournament(
+      name: _nameController.text.trim(),
+      eventDate: eventDate,
+    );
+    if (!mounted) return;
+    if (id != null) {
       Navigator.push(
         context,
         fadeSlideRoute(OrgCrearScreen(
-          eventId: doc.id,
+          eventId: id,
           eventName: _nameController.text.trim(),
           eventDate: eventDate,
         )),
       );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar el evento')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al guardar el evento')),
+      );
     }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
   }
 
   @override
@@ -206,7 +187,7 @@ class _OrgInfoScreenState extends State<OrgInfoScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: _isSaving ? null : _saveDraft,
+                          onTap: _vm.isSaving ? null : _saveDraft,
                           child: Text('Guardar',
                               style: GoogleFonts.rubik(
                                   fontSize: 12, color: AppColors.textDim)),
@@ -366,7 +347,7 @@ class _OrgInfoScreenState extends State<OrgInfoScreen> {
               ),
               Padding(
                 padding: const EdgeInsets.fromLTRB(22, 0, 22, 20),
-                child: _isSaving
+                child: _vm.isSaving
                     ? const Center(
                         child: CircularProgressIndicator(color: AppColors.orange))
                     : GradBtn(

@@ -1,11 +1,10 @@
-import 'dart:async';
 import 'dart:math' as math;
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'services/torneo_live_service.dart';
+import 'viewmodels/cliente_espera_viewmodel.dart';
 
 class ClienteEsperaScreen extends StatefulWidget {
   final LiveMatchData matchData;
@@ -19,7 +18,7 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
     with TickerProviderStateMixin {
   late AnimationController _floatCtrl;
   late AnimationController _glowCtrl;
-  StreamSubscription<LiveMatchData?>? _matchSub;
+  final _vm = ClienteEsperaViewModel();
 
   @override
   void initState() {
@@ -33,18 +32,21 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
       duration: const Duration(milliseconds: 1800),
     )..repeat(reverse: true);
 
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid != null) {
-      _matchSub = TorneoLiveService.watchLiveMatch(uid).listen((data) {
-        if (!mounted) return;
-        if (data == null || !data.active) Navigator.of(context).popUntil((r) => r.isFirst);
-      });
+    _vm.addListener(_onVmUpdate);
+    _vm.startWatching();
+  }
+
+  void _onVmUpdate() {
+    if (!mounted) return;
+    if (_vm.shouldPop) {
+      Navigator.of(context).popUntil((r) => r.isFirst);
     }
   }
 
   @override
   void dispose() {
-    _matchSub?.cancel();
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
     _floatCtrl.dispose();
     _glowCtrl.dispose();
     super.dispose();
@@ -56,7 +58,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Fondo con gradiente
           Container(
             decoration: const BoxDecoration(
               gradient: RadialGradient(
@@ -66,8 +67,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
               ),
             ),
           ),
-
-          // Puntos de luz de fondo
           AnimatedBuilder(
             animation: _glowCtrl,
             builder: (_, __) => CustomPaint(
@@ -75,8 +74,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
               size: Size.infinite,
             ),
           ),
-
-          // Cartas TCG flotando
           AnimatedBuilder(
             animation: _floatCtrl,
             builder: (_, __) {
@@ -94,8 +91,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
               );
             },
           ),
-
-          // Contenido central
           AnimatedBuilder(
             animation: _glowCtrl,
             builder: (_, __) {
@@ -104,7 +99,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Icono de espera con glow
                     Container(
                       width: 80,
                       height: 80,
@@ -123,7 +117,7 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
                           ),
                         ],
                       ),
-                      child: Center(
+                      child: const Center(
                         child: Text(
                           '⚔',
                           style: TextStyle(fontSize: 34),
@@ -165,8 +159,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
               );
             },
           ),
-
-          // Botón volver
           Positioned(
             bottom: 40,
             left: 24,
@@ -205,7 +197,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
     final phase = card.phase;
     final speed = card.speed;
 
-    // Movimiento flotante senoidal
     final x = card.baseX * size.width +
         math.cos(phase + t * speed * math.pi * 2) * card.amplX * size.width;
     final y = card.baseY * size.height +
@@ -254,7 +245,6 @@ class _ClienteEsperaScreenState extends State<ClienteEsperaScreen>
   }
 }
 
-// Datos de las cartas flotantes decorativas
 class _CardData {
   final String label;
   final List<Color> colors;

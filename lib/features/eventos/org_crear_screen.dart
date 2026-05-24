@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -8,6 +7,7 @@ import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/premios/org_premios_screen.dart';
 import 'data/tournament.dart';
+import 'viewmodels/org_crear_viewmodel.dart';
 
 class _FormatOption {
   final String name;
@@ -35,9 +35,8 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
   TcgGame _selectedGame = TcgGame.mtg;
   int _selectedFormat = 0;
   int _plazas = 32;
-  bool _isSaving = false;
-
   final _priceController = TextEditingController(text: '8');
+  final _vm = OrgCrearViewModel();
 
   static const _games = [
     TcgGame.mtg,
@@ -113,66 +112,60 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
       _formatsByGame[_selectedGame] ?? [];
 
   @override
+  void initState() {
+    super.initState();
+    _vm.addListener(_onVmUpdate);
+  }
+
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
     _priceController.dispose();
     super.dispose();
   }
 
+  double get _entryFee =>
+      double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0.0;
+
   Future<void> _saveDraft() async {
-    setState(() => _isSaving = true);
-    try {
-      final formatName = _formats[_selectedFormat].name;
-      final entryFee =
-          double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0.0;
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'rule_set': '${_selectedGame.fullName}. $formatName',
-        'participants': _plazas,
-        'entryFee': entryFee,
-      });
-      if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } catch (_) {
-      if (mounted) setState(() => _isSaving = false);
-    }
+    final ok = await _vm.saveDraft(
+      eventId: widget.eventId,
+      gameFullName: _selectedGame.fullName,
+      formatName: _formats[_selectedFormat].name,
+      plazas: _plazas,
+      entryFee: _entryFee,
+    );
+    if (ok && mounted) Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _next() async {
-    setState(() => _isSaving = true);
-    try {
-      final formatName = _formats[_selectedFormat].name;
-      final entryFee =
-          double.tryParse(_priceController.text.replaceAll(',', '.')) ?? 0.0;
-
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'rule_set': '${_selectedGame.fullName}. $formatName',
-        'participants': _plazas,
-        'entryFee': entryFee,
-      });
-
-      if (!mounted) return;
+    final ok = await _vm.next(
+      eventId: widget.eventId,
+      gameFullName: _selectedGame.fullName,
+      formatName: _formats[_selectedFormat].name,
+      plazas: _plazas,
+      entryFee: _entryFee,
+    );
+    if (!mounted) return;
+    if (ok) {
       Navigator.push(
         context,
         fadeSlideRoute(OrgPremiosScreen(
           eventId: widget.eventId,
           eventName: widget.eventName,
-          entryFee: entryFee,
+          entryFee: _entryFee,
           plazas: _plazas,
         )),
       );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(L10n.t('Error al guardar el formato'))),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(L10n.t('Error al guardar el formato'))),
+      );
     }
   }
 
@@ -211,7 +204,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: _isSaving ? null : _saveDraft,
+                          onTap: _vm.isSaving ? null : _saveDraft,
                           child: Text(L10n.t('Guardar'),
                               style: GoogleFonts.rubik(
                                   fontSize: 12, color: AppColors.textDim)),
@@ -249,7 +242,6 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Nombre y fecha del torneo
                       BrawlCard(
                         radius: 22,
                         child: Column(
@@ -272,7 +264,6 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ],
                         ),
                       ),
-                      // Selector del juego de cartas
                       SectionLabel(L10n.t('Juego'),
                           margin: const EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       GridView.count(
@@ -319,7 +310,6 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           );
                         }).toList(),
                       ),
-                      // Selector del formato de juego
                       SectionLabel(L10n.t('Formato'),
                           margin: const EdgeInsets.only(left: 4, top: 14, bottom: 10)),
                       ...List.generate(_formats.length, (i) {
@@ -385,7 +375,6 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                           ),
                         );
                       }),
-                      // Número de plazas y precio de inscripción
                       const SizedBox(height: 12),
                       Row(
                         children: [
@@ -534,7 +523,7 @@ class _OrgCrearScreenState extends State<OrgCrearScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _isSaving
+                      child: _vm.isSaving
                           ? const Center(
                               child: CircularProgressIndicator(
                                   color: AppColors.orange))

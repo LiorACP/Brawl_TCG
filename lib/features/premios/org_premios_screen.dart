@@ -1,10 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/anuncios/org_anuncios_screen.dart';
+import 'viewmodels/premios_viewmodel.dart';
 
 class OrgPremiosScreen extends StatefulWidget {
   final String eventId;
@@ -28,7 +28,7 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
   int _pool = 200;
   bool _productPrize = true;
   bool _promoPrize = true;
-  bool _isSaving = false;
+  final _vm = PremiosViewModel();
 
   final _prizes = [
     _PrizeSlot(pos: '🏆  1.º', pct: 40),
@@ -37,40 +37,34 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
     _PrizeSlot(pos: '       5.º – 8.º', pct: 15),
   ];
 
+  @override
+  void initState() {
+    super.initState();
+    _vm.addListener(_onVmUpdate);
+  }
+
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
+    super.dispose();
+  }
+
   Future<void> _saveDraft() async {
-    setState(() => _isSaving = true);
-    try {
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'prizePool': _pool,
-        'productPrize': _productPrize,
-        'promoPrize': _promoPrize,
-      });
-      if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } catch (_) {
-      if (mounted) setState(() => _isSaving = false);
-    }
+    final ok = await _vm.saveDraft(
+        widget.eventId, _pool, _productPrize, _promoPrize);
+    if (ok && mounted) Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Future<void> _next() async {
-    setState(() => _isSaving = true);
-    try {
-      await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .doc(widget.eventId)
-          .update({
-        'prizePool': _pool,
-        'productPrize': _productPrize,
-        'promoPrize': _promoPrize,
-        'prizeInfo': '€ $_pool · ${_productPrize ? 'Producto' : ''}'
-            '${_productPrize && _promoPrize ? ' · ' : ''}'
-            '${_promoPrize ? 'Promo Top 4' : ''}',
-      });
-
-      if (!mounted) return;
+    final ok =
+        await _vm.next(widget.eventId, _pool, _productPrize, _promoPrize);
+    if (!mounted) return;
+    if (ok) {
       Navigator.push(
         context,
         fadeSlideRoute(OrgAnunciosScreen(
@@ -78,14 +72,10 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
           eventId: widget.eventId,
         )),
       );
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error al guardar los premios')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _isSaving = false);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al guardar los premios')),
+      );
     }
   }
 
@@ -112,37 +102,49 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                             children: [
                               Text('NUEVO TORNEO',
                                   style: GoogleFonts.rubik(
-                                      fontSize: 11, color: AppColors.textMute, letterSpacing: 0.5)),
+                                      fontSize: 11,
+                                      color: AppColors.textMute,
+                                      letterSpacing: 0.5)),
                               Text('Paso 3 de 4 · Premios',
                                   style: GoogleFonts.rubik(
-                                      fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.text)),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.text)),
                             ],
                           ),
                         ),
                         GestureDetector(
-                          onTap: _isSaving ? null : _saveDraft,
+                          onTap: _vm.isSaving ? null : _saveDraft,
                           child: Text('Guardar',
-                              style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim)),
+                              style: GoogleFonts.rubik(
+                                  fontSize: 12, color: AppColors.textDim)),
                         ),
                       ],
                     ),
                     const SizedBox(height: 18),
                     Row(
-                      children: List.generate(4, (i) => Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.only(right: i < 3 ? 6 : 0),
-                          child: Container(
-                            height: 4,
-                            decoration: BoxDecoration(
-                              gradient: i < 3
-                                  ? const LinearGradient(colors: AppColors.organizadorGradient)
-                                  : null,
-                              color: i >= 3 ? AppColors.surfaceHi : null,
-                              borderRadius: BorderRadius.circular(2),
-                            ),
-                          ),
-                        ),
-                      )),
+                      children: List.generate(
+                          4,
+                          (i) => Expanded(
+                                child: Padding(
+                                  padding:
+                                      EdgeInsets.only(right: i < 3 ? 6 : 0),
+                                  child: Container(
+                                    height: 4,
+                                    decoration: BoxDecoration(
+                                      gradient: i < 3
+                                          ? const LinearGradient(
+                                              colors:
+                                                  AppColors.organizadorGradient)
+                                          : null,
+                                      color: i >= 3
+                                          ? AppColors.surfaceHi
+                                          : null,
+                                      borderRadius: BorderRadius.circular(2),
+                                    ),
+                                  ),
+                                ),
+                              )),
                     ),
                     const SizedBox(height: 22),
                   ],
@@ -161,42 +163,59 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                           children: [
                             Text('BOTE DE PREMIOS',
                                 style: GoogleFonts.rubik(
-                                    fontSize: 11, color: AppColors.textMute,
-                                    fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+                                    fontSize: 11,
+                                    color: AppColors.textMute,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5)),
                             const SizedBox(height: 10),
                             Row(
                               children: [
                                 GestureDetector(
-                                  onTap: () => setState(() => _pool = (_pool - 10).clamp(0, 5000)),
+                                  onTap: () => setState(() =>
+                                      _pool = (_pool - 10).clamp(0, 5000)),
                                   child: Container(
-                                    width: 36, height: 36,
+                                    width: 36,
+                                    height: 36,
                                     decoration: BoxDecoration(
                                       color: AppColors.surfaceHi,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: Center(child: Text('−',
-                                        style: TextStyle(fontSize: 20, color: AppColors.textDim))),
+                                    child: Center(
+                                        child: Text('−',
+                                            style: TextStyle(
+                                                fontSize: 20,
+                                                color: AppColors.textDim))),
                                   ),
                                 ),
                                 Expanded(
                                   child: Center(
                                     child: GradText(
                                       text: '€ $_pool',
-                                      gradient: AppColors.organizadorGradient,
-                                      style: GoogleFonts.rubikMonoOne(fontSize: 28, color: Colors.white),
+                                      gradient:
+                                          AppColors.organizadorGradient,
+                                      style: GoogleFonts.rubikMonoOne(
+                                          fontSize: 28,
+                                          color: Colors.white),
                                     ),
                                   ),
                                 ),
                                 GestureDetector(
-                                  onTap: () => setState(() => _pool = (_pool + 10).clamp(0, 5000)),
+                                  onTap: () => setState(() =>
+                                      _pool = (_pool + 10).clamp(0, 5000)),
                                   child: Container(
-                                    width: 36, height: 36,
+                                    width: 36,
+                                    height: 36,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(colors: AppColors.organizadorGradient),
+                                      gradient: const LinearGradient(
+                                          colors:
+                                              AppColors.organizadorGradient),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: const Center(child: Text('＋',
-                                        style: TextStyle(fontSize: 18, color: Colors.white))),
+                                    child: const Center(
+                                        child: Text('＋',
+                                            style: TextStyle(
+                                                fontSize: 18,
+                                                color: Colors.white))),
                                   ),
                                 ),
                               ],
@@ -204,55 +223,67 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                           ],
                         ),
                       ),
-                      const SectionLabel('Distribución', margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
+                      const SectionLabel('Distribución',
+                          margin: EdgeInsets.only(
+                              left: 4, top: 14, bottom: 10)),
                       ..._prizes.map((p) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: BrawlCard(
-                          padding: const EdgeInsets.all(14),
-                          radius: 18,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 110,
-                                child: Text(p.pos,
-                                    style: GoogleFonts.rubik(
-                                        fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.text)),
-                              ),
-                              Expanded(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(3),
-                                  child: Container(
-                                    height: 5,
-                                    color: AppColors.surfaceHi,
-                                    child: FractionallySizedBox(
-                                      widthFactor: p.pct / 100,
-                                      alignment: Alignment.centerLeft,
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: BrawlCard(
+                              padding: const EdgeInsets.all(14),
+                              radius: 18,
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 110,
+                                    child: Text(p.pos,
+                                        style: GoogleFonts.rubik(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: AppColors.text)),
+                                  ),
+                                  Expanded(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(3),
                                       child: Container(
-                                        decoration: BoxDecoration(
-                                          gradient: const LinearGradient(colors: AppColors.organizadorGradient),
-                                          borderRadius: BorderRadius.circular(3),
+                                        height: 5,
+                                        color: AppColors.surfaceHi,
+                                        child: FractionallySizedBox(
+                                          widthFactor: p.pct / 100,
+                                          alignment: Alignment.centerLeft,
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                  colors: AppColors
+                                                      .organizadorGradient),
+                                              borderRadius:
+                                                  BorderRadius.circular(3),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),
                                   ),
-                                ),
+                                  const SizedBox(width: 12),
+                                  SizedBox(
+                                    width: 60,
+                                    child: Text(
+                                      '€ ${(_pool * p.pct / 100).round()}',
+                                      textAlign: TextAlign.right,
+                                      style: GoogleFonts.rubikMonoOne(
+                                          fontSize: 13,
+                                          color: AppColors.text),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 12),
-                              SizedBox(
-                                width: 60,
-                                child: Text(
-                                  '€ ${(_pool * p.pct / 100).round()}',
-                                  textAlign: TextAlign.right,
-                                  style: GoogleFonts.rubikMonoOne(fontSize: 13, color: AppColors.text),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      )),
-                      const SectionLabel('Extras', margin: EdgeInsets.only(left: 4, top: 14, bottom: 10)),
+                            ),
+                          )),
+                      const SectionLabel('Extras',
+                          margin: EdgeInsets.only(
+                              left: 4, top: 14, bottom: 10)),
                       _ToggleRow(
-                        icon: '◈', color: AppColors.violet,
+                        icon: '◈',
+                        color: AppColors.violet,
                         title: 'Premio en producto',
                         sub: 'Booster packs, sleeves o singles',
                         value: _productPrize,
@@ -260,7 +291,8 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                       ),
                       const SizedBox(height: 8),
                       _ToggleRow(
-                        icon: '✦', color: AppColors.yellow,
+                        icon: '✦',
+                        color: AppColors.yellow,
                         title: 'Promo exclusiva Top 4',
                         sub: 'Carta promo del evento',
                         value: _promoPrize,
@@ -279,7 +311,8 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         height: 50,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 20),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(999),
@@ -288,15 +321,18 @@ class _OrgPremiosScreenState extends State<OrgPremiosScreen> {
                         child: Center(
                           child: Text('Atrás',
                               style: GoogleFonts.rubik(
-                                  fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.text)),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.text)),
                         ),
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _isSaving
+                      child: _vm.isSaving
                           ? const Center(
-                              child: CircularProgressIndicator(color: AppColors.orange))
+                              child: CircularProgressIndicator(
+                                  color: AppColors.orange))
                           : GradBtn(
                               size: GradBtnSize.lg,
                               gradient: AppColors.organizadorGradient,
@@ -328,9 +364,12 @@ class _ToggleRow extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onToggle;
   const _ToggleRow({
-    required this.icon, required this.color,
-    required this.title, required this.sub,
-    required this.value, required this.onToggle,
+    required this.icon,
+    required this.color,
+    required this.title,
+    required this.sub,
+    required this.value,
+    required this.onToggle,
   });
 
   @override
@@ -341,21 +380,30 @@ class _ToggleRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 34, height: 34,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(11),
               border: Border.all(color: color.withValues(alpha: 0.2)),
             ),
-            child: Center(child: Text(icon, style: TextStyle(fontSize: 15, color: color))),
+            child: Center(
+                child: Text(icon,
+                    style: TextStyle(fontSize: 15, color: color))),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.rubik(fontSize: 13.5, fontWeight: FontWeight.w600, color: AppColors.text)),
-                Text(sub, style: GoogleFonts.rubik(fontSize: 11, color: AppColors.textMute)),
+                Text(title,
+                    style: GoogleFonts.rubik(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.text)),
+                Text(sub,
+                    style: GoogleFonts.rubik(
+                        fontSize: 11, color: AppColors.textMute)),
               ],
             ),
           ),
@@ -363,9 +411,13 @@ class _ToggleRow extends StatelessWidget {
             onTap: () => onToggle(!value),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              width: 40, height: 24,
+              width: 40,
+              height: 24,
               decoration: BoxDecoration(
-                gradient: value ? const LinearGradient(colors: AppColors.organizadorGradient) : null,
+                gradient: value
+                    ? const LinearGradient(
+                        colors: AppColors.organizadorGradient)
+                    : null,
                 color: value ? null : AppColors.surfaceHi,
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -377,8 +429,10 @@ class _ToggleRow extends StatelessWidget {
                     left: value ? null : 2,
                     right: value ? 2 : null,
                     child: Container(
-                      width: 20, height: 20,
-                      decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                      width: 20,
+                      height: 20,
+                      decoration: const BoxDecoration(
+                          shape: BoxShape.circle, color: Colors.white),
                     ),
                   ),
                 ],

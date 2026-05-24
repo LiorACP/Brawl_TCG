@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -6,6 +6,7 @@ import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'data/tournament.dart';
 import 'player_profile_sheet.dart';
+import 'viewmodels/org_inscripciones_viewmodel.dart';
 
 class OrgInscripcionesScreen extends StatelessWidget {
   final Tournament tournament;
@@ -13,6 +14,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vm = OrgInscripcionesViewModel();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -38,13 +40,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('Tournaments')
-            .doc(tournament.id)
-            .collection('registration')
-            .where('status', isEqualTo: 'Pending')
-            .orderBy('creadoEn', descending: false)
-            .snapshots(),
+        stream: vm.watchPendingRegistrations(tournament.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -92,6 +88,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
               final regId = doc.id;
 
               return _RegistrationCard(
+                vm: vm,
                 tournamentId: tournament.id,
                 tournamentName: tournament.name,
                 regId: regId,
@@ -109,6 +106,7 @@ class OrgInscripcionesScreen extends StatelessWidget {
 }
 
 class _RegistrationCard extends StatefulWidget {
+  final OrgInscripcionesViewModel vm;
   final String tournamentId;
   final String tournamentName;
   final String regId;
@@ -118,6 +116,7 @@ class _RegistrationCard extends StatefulWidget {
   final bool hasDeck;
 
   const _RegistrationCard({
+    required this.vm,
     required this.tournamentId,
     required this.tournamentName,
     required this.regId,
@@ -137,43 +136,13 @@ class _RegistrationCardState extends State<_RegistrationCard> {
   Future<void> _updateStatus(String newStatus) async {
     setState(() => _loading = true);
     try {
-      final db = FirebaseFirestore.instance;
-      final regRef = db
-          .collection('Tournaments')
-          .doc(widget.tournamentId)
-          .collection('registration')
-          .doc(widget.regId);
-
-      await regRef.update({'status': newStatus});
-
-      // Decremento pendingCount siempre (se acepta o rechaza deja de estar pendiente)
-      await db
-          .collection('Tournaments')
-          .doc(widget.tournamentId)
-          .update({'pendingCount': FieldValue.increment(-1)});
-
-      if (newStatus == 'Accepted') {
-        await db
-            .collection('Tournaments')
-            .doc(widget.tournamentId)
-            .update({'enrolledCount': FieldValue.increment(1)});
-      }
-
-      if (widget.playerRef != null) {
-        final isAccepted = newStatus == 'Accepted';
-        await db.collection('Notifications').add({
-          'userID': widget.playerRef,
-          'date': FieldValue.serverTimestamp(),
-          'type': 'inscripcion_respuesta',
-          'title': isAccepted ? L10n.t('Inscripción aceptada') : L10n.t('Inscripción rechazada'),
-          'mensaje': isAccepted
-              ? L10n.fmt('Tu inscripción a "{name}" ha sido aceptada. ¡Nos vemos!', {'name': widget.tournamentName})
-              : L10n.fmt('Tu inscripción a "{name}" ha sido rechazada.', {'name': widget.tournamentName}),
-          'icon': isAccepted ? '✅' : '❌',
-          'isRead': false,
-          'tournamentId': widget.tournamentId,
-        });
-      }
+      await widget.vm.updateStatus(
+        tournamentId: widget.tournamentId,
+        tournamentName: widget.tournamentName,
+        regId: widget.regId,
+        newStatus: newStatus,
+        playerRef: widget.playerRef,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

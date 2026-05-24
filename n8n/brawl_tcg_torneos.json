@@ -26,7 +26,7 @@
       "position": [420, 300],
       "parameters": {
         "method": "GET",
-        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/User?pageSize=500",
+        "url": "https://firestore.googleapis.com/v1/projects/brawl-tcg-database/databases/(default)/documents/User?pageSize=500",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "options": {}
@@ -166,11 +166,42 @@
       }
     },
     {
+      "id": "imagen-a-base64",
+      "name": "Imagen a Base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2080, 160],
+      "parameters": {
+        "jsCode": "const imageUrl = $json.imageUrl;\ntry {\n  const responseBuffer = await $helpers.httpRequest({\n    method: 'GET',\n    url: imageUrl,\n    headers: {\n      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',\n      'Referer': 'https://www.instagram.com/',\n      'Accept': 'image/webp,image/apng,image/*,*/*;q=0.8'\n    },\n    encoding: 'arraybuffer',\n    returnFullResponse: false\n  });\n  const base64 = Buffer.from(responseBuffer).toString('base64');\n  const visionBody = JSON.stringify({\n    requests: [{\n      image: { content: base64 },\n      features: [\n        { type: 'TEXT_DETECTION', maxResults: 1 },\n        { type: 'LABEL_DETECTION', maxResults: 10 }\n      ]\n    }]\n  });\n  return [{ json: { ...$json, visionBody } }];\n} catch (e) {\n  return [{ json: { ...$json, visionBody: null, downloadError: e.message } }];\n}"
+      }
+    },
+    {
+      "id": "vision-body-check",
+      "name": "Vision Body Listo",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2260, 160],
+      "parameters": {
+        "conditions": {
+          "options": { "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "vbody-check",
+              "leftValue": "={{ $json.visionBody }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
       "id": "google-vision",
       "name": "Analizar Imagen con Google Vision",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2020, 160],
+      "position": [2260, 160],
       "parameters": {
         "method": "POST",
         "url": "https://vision.googleapis.com/v1/images:annotate",
@@ -178,7 +209,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"requests\": [\n    {\n      \"image\": {\n        \"source\": { \"imageUri\": \"{{ $json.imageUrl }}\" }\n      },\n      \"features\": [\n        { \"type\": \"TEXT_DETECTION\",  \"maxResults\": 1 },\n        { \"type\": \"LABEL_DETECTION\", \"maxResults\": 10 }\n      ]\n    }\n  ]\n}",
+        "jsonBody": "={{ $json.visionBody }}",
         "options": {}
       },
       "credentials": {
@@ -247,7 +278,7 @@
       "position": [2960, 180],
       "parameters": {
         "method": "POST",
-        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents:runQuery",
+        "url": "https://firestore.googleapis.com/v1/projects/brawl-tcg-database/databases/(default)/documents:runQuery",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -301,12 +332,12 @@
       "position": [3640, 100],
       "parameters": {
         "method": "POST",
-        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/evento%20ia",
+        "url": "https://firestore.googleapis.com/v1/projects/brawl-tcg-database/databases/(default)/documents/evento%20ia",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"fields\": {\n    \"sourceUrl\":     { \"stringValue\": \"{{ $json.sourceUrl }}\" },\n    \"platform\":      { \"stringValue\": \"{{ $json.platform }}\" },\n    \"city\":          { \"stringValue\": \"{{ $('Por Cada Ciudad').first().json.city }}\" },\n    \"title\":         { \"stringValue\": \"{{ $json.analysis.titulo || $json.text.substring(0,100) }}\" },\n    \"description\":   { \"stringValue\": \"{{ $json.text }}\" },\n    \"imageUrl\":      { \"stringValue\": \"{{ $json.imageUrl || '' }}\" },\n    \"game\":          { \"stringValue\": \"{{ $json.analysis.juego || 'TCG' }}\" },\n    \"eventDate\":     { \"stringValue\": \"{{ $json.analysis.fecha || '' }}\" },\n    \"hashtags\":      { \"arrayValue\": { \"values\": [] } },\n    \"detectedAt\":    { \"timestampValue\": \"{{ new Date().toISOString() }}\" },\n    \"notifiedUsers\": { \"arrayValue\": { \"values\": [] } }\n  }\n}",
+        "jsonBody": "={\n  \"fields\": {\n    \"sourceUrl\":     { \"stringValue\": \"{{ $json.sourceUrl }}\" },\n    \"platform\":      { \"stringValue\": \"{{ $json.platform }}\" },\n    \"city\":          { \"stringValue\": \"{{ $('Por Cada Ciudad').first().json.city }}\" },\n    \"title\":         { \"stringValue\": \"{{ JSON.stringify($json.analysis.titulo || $json.text.substring(0,100)).slice(1,-1) }}\" },\n    \"description\":   { \"stringValue\": \"{{ JSON.stringify($json.text).slice(1,-1) }}\" },\n    \"imageUrl\":      { \"stringValue\": \"{{ $json.imageUrl || '' }}\" },\n    \"game\":          { \"stringValue\": \"{{ $json.analysis.juego || 'TCG' }}\" },\n    \"eventDate\":     { \"stringValue\": \"{{ $json.analysis.fecha || '' }}\" },\n    \"hashtags\":      { \"arrayValue\": { \"values\": [] } },\n    \"detectedAt\":    { \"timestampValue\": \"{{ new Date().toISOString() }}\" },\n    \"notifiedUsers\": { \"arrayValue\": { \"values\": [] } }\n  }\n}",
         "options": {}
       },
       "credentials": {
@@ -324,7 +355,7 @@
       "position": [3880, 100],
       "parameters": {
         "method": "POST",
-        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents:runQuery",
+        "url": "https://firestore.googleapis.com/v1/projects/brawl-tcg-database/databases/(default)/documents:runQuery",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -368,12 +399,12 @@
       "position": [4600, -40],
       "parameters": {
         "method": "POST",
-        "url": "https://firestore.googleapis.com/v1/projects/YOUR_PROJECT_ID/databases/(default)/documents/Notifications",
+        "url": "https://firestore.googleapis.com/v1/projects/brawl-tcg-database/databases/(default)/documents/Notifications",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"fields\": {\n    \"date\":    { \"timestampValue\": \"{{ new Date().toISOString() }}\" },\n    \"mensaje\": { \"stringValue\": \"Torneo {{ $json.eventGame }} encontrado en {{ $json.eventCity }}: {{ $json.eventTitle }}\" },\n    \"type\":    { \"stringValue\": \"discovered_event\" },\n    \"userID\":  { \"referenceValue\": \"projects/YOUR_PROJECT_ID/databases/(default)/documents/User/{{ $json.uid }}\" },\n    \"link\":    { \"stringValue\": \"{{ $json.sourceUrl }}\" }\n  }\n}",
+        "jsonBody": "={\n  \"fields\": {\n    \"date\":    { \"timestampValue\": \"{{ new Date().toISOString() }}\" },\n    \"mensaje\": { \"stringValue\": \"Torneo {{ $json.eventGame }} encontrado en {{ $json.eventCity }}: {{ JSON.stringify($json.eventTitle).slice(1,-1) }}\" },\n    \"type\":    { \"stringValue\": \"discovered_event\" },\n    \"userID\":  { \"referenceValue\": \"projects/brawl-tcg-database/databases/(default)/documents/User/{{ $json.uid }}\" },\n    \"link\":    { \"stringValue\": \"{{ $json.sourceUrl }}\" }\n  }\n}",
         "options": {}
       },
       "credentials": {
@@ -391,7 +422,7 @@
       "position": [4600, 240],
       "parameters": {
         "method": "POST",
-        "url": "https://fcm.googleapis.com/v1/projects/YOUR_PROJECT_ID/messages:send",
+        "url": "https://fcm.googleapis.com/v1/projects/brawl-tcg-database/messages:send",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
@@ -402,7 +433,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"message\": {\n    \"token\": \"{{ $json.fcmToken }}\",\n    \"notification\": {\n      \"title\": \"Torneo {{ $json.eventGame }} en {{ $json.eventCity }}\",\n      \"body\":  \"{{ $json.eventTitle }}\"\n    },\n    \"data\": {\n      \"type\":     \"discovered_event\",\n      \"link\":     \"{{ $json.sourceUrl }}\",\n      \"platform\": \"{{ $json.platform }}\",\n      \"city\":     \"{{ $json.eventCity }}\"\n    },\n    \"android\": {\n      \"notification\": {\n        \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\"\n      }\n    }\n  }\n}",
+        "jsonBody": "={\n  \"message\": {\n    \"token\": \"{{ $json.fcmToken }}\",\n    \"notification\": {\n      \"title\": \"Torneo {{ $json.eventGame }} en {{ $json.eventCity }}\",\n      \"body\":  \"{{ JSON.stringify($json.eventTitle).slice(1,-1) }}\"\n    },\n    \"data\": {\n      \"type\":     \"discovered_event\",\n      \"link\":     \"{{ $json.sourceUrl }}\",\n      \"platform\": \"{{ $json.platform }}\",\n      \"city\":     \"{{ $json.eventCity }}\"\n    },\n    \"android\": {\n      \"notification\": {\n        \"click_action\": \"FLUTTER_NOTIFICATION_CLICK\"\n      }\n    }\n  }\n}",
         "options": {}
       },
       "credentials": {
@@ -450,8 +481,17 @@
     },
     "Tiene Imagen": {
       "main": [
+        [{ "node": "Imagen a Base64", "type": "main", "index": 0 }],
+        [{ "node": "Inferir del Texto", "type": "main", "index": 0 }]
+      ]
+    },
+    "Imagen a Base64": {
+      "main": [[{ "node": "Vision Body Listo", "type": "main", "index": 0 }]]
+    },
+    "Vision Body Listo": {
+      "main": [
         [{ "node": "Analizar Imagen con Google Vision", "type": "main", "index": 0 }],
-        [{ "node": "Inferir del Texto",                 "type": "main", "index": 0 }]
+        [{ "node": "Inferir del Texto", "type": "main", "index": 0 }]
       ]
     },
     "Analizar Imagen con Google Vision": {

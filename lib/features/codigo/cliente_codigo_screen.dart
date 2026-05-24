@@ -1,12 +1,10 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
-import 'package:brawl_tcg/features/notificaciones/services/notificaciones_service.dart';
+import 'viewmodels/codigo_viewmodel.dart';
 
 class ClienteCodigoScreen extends StatefulWidget {
   const ClienteCodigoScreen({super.key});
@@ -21,13 +19,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
   final _focus = FocusNode();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnim;
-
-  bool _searching = false;
-  bool _enrolling = false;
-  String _code = '';
-
-  DocumentSnapshot<Map<String, dynamic>>? _tournamentDoc;
-  String? _errorMsg;
+  final _vm = CodigoViewModel();
 
   @override
   void initState() {
@@ -36,8 +28,13 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
         vsync: this, duration: const Duration(milliseconds: 1000))
       ..repeat(reverse: true);
     _pulseAnim = Tween(begin: 0.25, end: 0.8).animate(_pulseController);
+    _vm.addListener(_onVmUpdate);
     _controller.addListener(_onInput);
     WidgetsBinding.instance.addPostFrameCallback((_) => _focus.requestFocus());
+  }
+
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
   }
 
   void _onInput() {
@@ -51,70 +48,11 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
       );
       return;
     }
-    if (trimmed != _code) {
-      setState(() {
-        _code = trimmed;
-        _tournamentDoc = null;
-        _errorMsg = null;
-      });
-      if (trimmed.length == 6 && !_searching) _searchTournament(trimmed);
-    }
-  }
-
-  static String _parseFormat(String? ruleSet) {
-    if (ruleSet == null) return '';
-    final dot = ruleSet.indexOf('.');
-    if (dot >= 0 && dot < ruleSet.length - 1) {
-      return ruleSet.substring(dot + 1).trim();
-    }
-    return ruleSet.trim();
-  }
-
-  static bool _requiresDeck(String? ruleSet) {
-    final format = _parseFormat(ruleSet).toLowerCase();
-    return !['draft', 'sealed', 'sealed battle'].contains(format);
-  }
-
-  static String _gameCodeFromRuleSet(String? ruleSet) {
-    final s = (ruleSet ?? '').toLowerCase();
-    if (s.contains('magic') || s.contains('mtg')) return 'MTG';
-    if (s.contains('pokémon') || s.contains('pokemon')) return 'POK';
-    if (s.contains('yu-gi-oh') || s.contains('yugioh') || s.contains('ygo')) return 'YGO';
-    if (s.contains('lorcana') || s.contains('disney')) return 'LRC';
-    if (s.contains('flesh') || s.contains('blood')) return 'FAB';
-    if (s.contains('one piece')) return 'ONE';
-    if (s.contains('dragon ball')) return 'DBS';
-    return 'MTG';
-  }
-
-  Future<void> _searchTournament(String code) async {
-    setState(() => _searching = true);
-    HapticFeedback.mediumImpact();
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collection('Tournaments')
-          .where('accessCode', isEqualTo: code)
-          .limit(1)
-          .get();
-
-      if (!mounted) return;
-      if (snap.docs.isEmpty) {
-        setState(() {
-          _errorMsg = L10n.t('Código no encontrado');
-          _searching = false;
-        });
-      } else {
-        setState(() {
-          _tournamentDoc = snap.docs.first;
-          _searching = false;
-        });
+    if (trimmed != _vm.code) {
+      _vm.updateCode(trimmed);
+      if (trimmed.length == 6 && !_vm.searching) {
+        _vm.searchTournament(trimmed);
       }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _errorMsg = L10n.t('Error al buscar el torneo');
-        _searching = false;
-      });
     }
   }
 
@@ -137,15 +75,13 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
           children: [
             Text(
               L10n.t('Pega el enlace de tu lista en Moxfield, Limitless, etc.'),
-              style: GoogleFonts.rubik(
-                  fontSize: 12, color: AppColors.textDim),
+              style: GoogleFonts.rubik(fontSize: 12, color: AppColors.textDim),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: deckController,
               autofocus: true,
-              style: GoogleFonts.rubik(
-                  fontSize: 13, color: AppColors.text),
+              style: GoogleFonts.rubik(fontSize: 13, color: AppColors.text),
               cursorColor: AppColors.cyan,
               decoration: InputDecoration(
                 hintText: 'https://moxfield.com/...',
@@ -157,8 +93,8 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 10),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
             ),
           ],
@@ -184,103 +120,29 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
     );
     deckController.dispose();
     if (deckUrl == null) return;
-    _enroll(deckUrl);
+    _doEnroll(deckUrl);
   }
 
-  Future<void> _enroll(String deckUrl) async {
-    final doc = _tournamentDoc;
-    if (doc == null) return;
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) return;
-
-    setState(() => _enrolling = true);
-    try {
-      final db = FirebaseFirestore.instance;
-      final userRef = db.collection('User').doc(user.uid);
-      final orgRef = doc.data()?['organizerId'] as DocumentReference?;
-
-      // Primero compruebo si el usuario ya está apuntado a este torneo
-      final existing = await doc.reference
-          .collection('registration')
-          .where('userId', isEqualTo: userRef)
-          .limit(1)
-          .get();
-
-      if (!mounted) return;
-      if (existing.docs.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(L10n.t('Ya estás inscrito en este torneo'))),
-        );
-        setState(() => _enrolling = false);
-        return;
-      }
-
-      final userSnap = await userRef.get();
-      final userName = userSnap.data()?['name'] as String? ??
-          userSnap.data()?['nombre'] as String? ??
-          user.email?.split('@').first ??
-          'Jugador';
-      final tournamentName = doc.data()?['name'] as String? ?? 'Torneo';
-
-      // Guardo la inscripción en la subcolección del torneo
-      await doc.reference.collection('registration').add({
-        'userId': userRef,
-        'status': 'Pending',
-        'player_name': userName,
-        'deck': deckUrl,
-        'points': 0,
-        'creadoEn': FieldValue.serverTimestamp(),
-      });
-
-      // Incremento pendingCount para disparar el stream de KPIs (silencioso si falla)
-      doc.reference
-          .update({'pendingCount': FieldValue.increment(1)})
-          .catchError((_) {});
-
-      // Notificación in-app al organizador; si falla no bloquea la inscripción
-      if (orgRef != null) {
-        try {
-          await NotificacionesService.notifyOrganizer(
-            organizerRef: orgRef,
-            playerName: userName,
-            tournamentName: tournamentName,
-            tournamentId: doc.id,
-          );
-        } catch (e) {
-          debugPrint('Error al enviar notificación al organizador: $e');
-        }
-      }
-
-      if (!mounted) return;
-      HapticFeedback.heavyImpact();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(L10n.t('¡Inscripción enviada! Espera confirmación del organizador.'))),
-      );
+  Future<void> _doEnroll(String deckUrl) async {
+    HapticFeedback.heavyImpact();
+    final error = await _vm.enroll(deckUrl);
+    if (!mounted) return;
+    if (error != null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(L10n.t(
+              '¡Inscripción enviada! Espera confirmación del organizador.'))));
       Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(L10n.fmt('Error al inscribirse: {e}', {'e': '$e'}))),
-      );
-    } finally {
-      if (mounted) setState(() => _enrolling = false);
     }
-  }
-
-  void _reset() {
-    _controller.clear();
-    setState(() {
-      _code = '';
-      _tournamentDoc = null;
-      _errorMsg = null;
-    });
-    _focus.requestFocus();
   }
 
   @override
   void dispose() {
     _pulseController.dispose();
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
     _controller.dispose();
     _focus.dispose();
     super.dispose();
@@ -288,13 +150,14 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
 
   @override
   Widget build(BuildContext context) {
-    final found = _tournamentDoc != null;
-    final data = _tournamentDoc?.data();
+    final found = _vm.tournamentDoc != null;
+    final data = _vm.tournamentDoc?.data();
     final ruleSet = data?['rule_set'] as String?;
-    final gameCode = _gameCodeFromRuleSet(ruleSet);
+    final gameCode = CodigoViewModel.gameCodeFromRuleSet(ruleSet);
     final tournamentName = data?['name'] as String? ?? '';
-    final location = data?['city'] as String? ?? data?['location'] as String? ?? '';
-    final needsDeck = _requiresDeck(ruleSet);
+    final location =
+        data?['city'] as String? ?? data?['location'] as String? ?? '';
+    final needsDeck = CodigoViewModel.requiresDeck(ruleSet);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -379,8 +242,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                   child: ShaderMask(
                                     shaderCallback: (bounds) =>
                                         const LinearGradient(
-                                                colors:
-                                                    AppColors.clienteGradient)
+                                                colors: AppColors.clienteGradient)
                                             .createShader(bounds),
                                     blendMode: BlendMode.srcIn,
                                     child: Text(L10n.t('código del torneo'),
@@ -406,19 +268,22 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: List.generate(6, (i) {
-                              final filled = i < _code.length;
-                              final isCursor = i == _code.length && !found;
+                              final filled = i < _vm.code.length;
+                              final isCursor =
+                                  i == _vm.code.length && !found;
                               return Padding(
                                 padding:
                                     const EdgeInsets.symmetric(horizontal: 4),
                                 child: AnimatedContainer(
-                                  duration: const Duration(milliseconds: 150),
+                                  duration:
+                                      const Duration(milliseconds: 150),
                                   width: 44,
                                   height: 56,
                                   decoration: BoxDecoration(
                                     color: found
-                                        ? AppColors.cyan.withValues(alpha: 0.15)
-                                        : _errorMsg != null
+                                        ? AppColors.cyan
+                                            .withValues(alpha: 0.15)
+                                        : _vm.errorMsg != null
                                             ? AppColors.pink
                                                 .withValues(alpha: 0.1)
                                             : filled
@@ -428,7 +293,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                     border: Border.all(
                                       color: found
                                           ? AppColors.cyan
-                                          : _errorMsg != null
+                                          : _vm.errorMsg != null
                                               ? AppColors.pink
                                               : isCursor
                                                   ? AppColors.cyan
@@ -451,7 +316,9 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                             ),
                                           )
                                         : Text(
-                                            i < _code.length ? _code[i] : '',
+                                            i < _vm.code.length
+                                                ? _vm.code[i]
+                                                : '',
                                             style: GoogleFonts.rubikMonoOne(
                                                 fontSize: 24,
                                                 color: AppColors.text),
@@ -471,7 +338,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                     icon: '✓',
                                     text: L10n.t('¡Torneo encontrado!'),
                                   )
-                                : _searching
+                                : _vm.searching
                                     ? AnimatedBuilder(
                                         key: const ValueKey('searching'),
                                         animation: _pulseAnim,
@@ -482,12 +349,12 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                           text: L10n.t('Buscando torneo…'),
                                         ),
                                       )
-                                    : _errorMsg != null
+                                    : _vm.errorMsg != null
                                         ? _StatusRow(
                                             key: const ValueKey('error'),
                                             color: AppColors.pink,
                                             icon: '✕',
-                                            text: _errorMsg!,
+                                            text: _vm.errorMsg!,
                                           )
                                         : const SizedBox.shrink(
                                             key: ValueKey('idle')),
@@ -500,8 +367,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                   padding: const EdgeInsets.all(16),
                                   radius: 20,
                                   tint: AppColors.cyan.withValues(alpha: 0.08),
-                                  border:
-                                      AppColors.cyan.withValues(alpha: 0.25),
+                                  border: AppColors.cyan.withValues(alpha: 0.25),
                                   child: Row(
                                     children: [
                                       GameBadge(game: gameCode, size: 40),
@@ -530,7 +396,11 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                 Row(
                                   children: [
                                     GestureDetector(
-                                      onTap: _reset,
+                                      onTap: () {
+                                        _vm.reset();
+                                        _controller.clear();
+                                        _focus.requestFocus();
+                                      },
                                       child: Container(
                                         height: 50,
                                         padding: const EdgeInsets.symmetric(
@@ -553,7 +423,7 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
-                                      child: _enrolling
+                                      child: _vm.enrolling
                                           ? const Center(
                                               child: CircularProgressIndicator(
                                                   color: AppColors.cyan),
@@ -563,9 +433,9 @@ class _ClienteCodigoScreenState extends State<ClienteCodigoScreen>
                                               width: double.infinity,
                                               onTap: needsDeck
                                                   ? _showDeckDialog
-                                                  : () => _enroll(''),
-                                              child:
-                                                  Text(L10n.t('Inscribirme ✓')),
+                                                  : () => _doEnroll(''),
+                                              child: Text(
+                                                  L10n.t('Inscribirme ✓')),
                                             ),
                                     ),
                                   ],

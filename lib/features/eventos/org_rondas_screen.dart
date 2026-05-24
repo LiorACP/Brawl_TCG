@@ -7,6 +7,7 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'data/tournament.dart';
 import 'services/torneo_live_service.dart';
+import 'viewmodels/org_rondas_viewmodel.dart';
 
 class OrgRondasScreen extends StatefulWidget {
   final Tournament tournament;
@@ -19,8 +20,7 @@ class OrgRondasScreen extends StatefulWidget {
 class _OrgRondasScreenState extends State<OrgRondasScreen> {
   final Map<String, TextEditingController> _p1Ctrl = {};
   final Map<String, TextEditingController> _p2Ctrl = {};
-  final Map<String, bool> _saving = {};
-  bool _startingNext = false;
+  final _vm = OrgRondasViewModel();
 
   String get _uid =>
       FirebaseAuth.instance.currentUser?.uid ?? '';
@@ -37,7 +37,19 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
       _p2Ctrl.putIfAbsent(id, TextEditingController.new);
 
   @override
+  void initState() {
+    super.initState();
+    _vm.addListener(_onVmUpdate);
+  }
+
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
+  }
+
+  @override
   void dispose() {
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
     for (final c in [..._p1Ctrl.values, ..._p2Ctrl.values]) {
       c.dispose();
     }
@@ -47,43 +59,35 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
   Future<void> _save(RoundMatch match) async {
     final p1 = int.tryParse(_c1(match.id).text.trim()) ?? 0;
     final p2 = int.tryParse(_c2(match.id).text.trim()) ?? 0;
-    setState(() => _saving[match.id] = true);
     try {
-      await TorneoLiveService.scoreMatch(
+      await _vm.scoreMatch(
         tournamentId: widget.tournament.id,
-        matchId: match.id,
+        match: match,
+        p1Points: p1,
+        p2Points: p2,
         roundNum: _round,
-        player1Uid: match.player1Uid,
-        player2Uid: match.player2Uid,
-        player1Points: p1,
-        player2Points: p2,
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text('Error: $e')));
       }
-    } finally {
-      if (mounted) setState(() => _saving.remove(match.id));
     }
   }
 
   Future<void> _nextRound() async {
-    setState(() => _startingNext = true);
-    try {
-      await TorneoLiveService.nextRound(
-        tournamentId: widget.tournament.id,
-        tournamentName: widget.tournament.name,
-        organizerId: _orgId,
-        currentRound: _round,
-      );
-      if (mounted) Navigator.pop(context);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Error: $e')));
-        setState(() => _startingNext = false);
-      }
+    final ok = await _vm.nextRound(
+      tournamentId: widget.tournament.id,
+      tournamentName: widget.tournament.name,
+      organizerId: _orgId,
+      currentRound: _round,
+    );
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context);
+    } else {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Error al iniciar ronda')));
     }
   }
 
@@ -140,7 +144,6 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
 
           return Column(
             children: [
-              // Barra de estado
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
                 child: Row(
@@ -170,8 +173,6 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
                   ],
                 ),
               ),
-
-              // Lista de enfrentamientos
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
@@ -181,17 +182,15 @@ class _OrgRondasScreenState extends State<OrgRondasScreen> {
                     match: matches[i],
                     p1Ctrl: _c1(matches[i].id),
                     p2Ctrl: _c2(matches[i].id),
-                    saving: _saving[matches[i].id] ?? false,
+                    saving: _vm.saving[matches[i].id] ?? false,
                     onSave: () => _save(matches[i]),
                   ),
                 ),
               ),
-
-              // Botón siguiente ronda
               if (allScored)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
-                  child: _startingNext
+                  child: _vm.startingNext
                       ? const Center(
                           child: CircularProgressIndicator(
                               color: AppColors.orange))
