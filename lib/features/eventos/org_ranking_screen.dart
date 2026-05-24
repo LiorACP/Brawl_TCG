@@ -7,6 +7,7 @@ import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'data/tournament.dart';
 import 'org_rondas_screen.dart';
 import 'player_profile_sheet.dart';
+import 'viewmodels/org_ranking_viewmodel.dart';
 
 class OrgRankingScreen extends StatelessWidget {
   final Tournament tournament;
@@ -14,6 +15,7 @@ class OrgRankingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vm = OrgRankingViewModel();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -73,13 +75,8 @@ class OrgRankingScreen extends StatelessWidget {
             ),
         ],
       ),
-      body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('Tournaments')
-            .doc(tournament.id)
-            .collection('registration')
-            .where('status', isEqualTo: 'Accepted')
-            .snapshots(),
+      body: StreamBuilder<List<QueryDocumentSnapshot<Map<String, dynamic>>>>(
+        stream: vm.watchRanking(tournament.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -87,15 +84,7 @@ class OrgRankingScreen extends StatelessWidget {
             );
           }
 
-          final docs = snapshot.data?.docs ?? [];
-
-          // Ordenar por puntos descendente en cliente
-          final sorted = [...docs]
-            ..sort((a, b) {
-              final pa = (a.data()['points'] as num?)?.toInt() ?? 0;
-              final pb = (b.data()['points'] as num?)?.toInt() ?? 0;
-              return pb.compareTo(pa);
-            });
+          final sorted = snapshot.data ?? [];
 
           if (sorted.isEmpty) {
             return Center(

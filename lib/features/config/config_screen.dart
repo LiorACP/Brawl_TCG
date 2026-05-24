@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +6,7 @@ import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/state/app_prefs_notifier.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
+import 'viewmodels/config_viewmodel.dart';
 import 'widgets/datos_personales_screen.dart';
 import 'widgets/contrasena_seguridad_screen.dart';
 import 'widgets/juegos_favoritos_screen.dart';
@@ -15,8 +15,6 @@ import 'widgets/apariencia_screen.dart';
 import 'widgets/unidades_screen.dart';
 import 'widgets/politica_privacidad_screen.dart';
 import 'widgets/terminos_condiciones_screen.dart';
-import '../eventos/services/eventos_service.dart';
-import '../notificaciones/services/notificaciones_service.dart';
 
 class SharedConfigScreen extends StatefulWidget {
   final bool isOrg;
@@ -28,269 +26,31 @@ class SharedConfigScreen extends StatefulWidget {
 
 class _SharedConfigScreenState extends State<SharedConfigScreen> {
   late bool _isOrg;
-
-  Map<String, bool> _toggles = {};
-  Map<String, bool> _ciudadToggles = {};
-  bool _loadingCiudades = true;
-
-  String _nombre = '';
-  String _email = '';
-  String _telefono = '';
-  String _localidad = '';
-  String _joinYear = '';
-  Set<String> _selectedGames = {'MTG', 'POK', 'YGO'};
+  final _vm = ConfigViewModel();
 
   @override
   void initState() {
     super.initState();
     _isOrg = widget.isOrg;
-    // Inicializar toggles desde el notifier (ya cargados en main)
-    _toggles = Map<String, bool>.from(AppPrefsNotifier.instance.notifToggles);
-    _loadUser();
+    _vm.addListener(_onVmUpdate);
+    _vm.init();
   }
 
-  String get _idioma => AppPrefsNotifier.instance.idioma;
-  String get _apariencia => AppPrefsNotifier.instance.tema;
-  String get _distancia => AppPrefsNotifier.instance.distancia;
-  String get _hora => AppPrefsNotifier.instance.hora;
-
-  Future<void> _loadUser() async {
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) {
-      if (mounted) setState(() => _loadingCiudades = false);
-      return;
-    }
-
-    final creationTime = FirebaseAuth.instance.currentUser?.metadata.creationTime;
-    final authEmail = FirebaseAuth.instance.currentUser?.email ?? '';
-
-    try {
-      final doc =
-          await FirebaseFirestore.instance.collection('User').doc(uid).get();
-      final data = doc.data();
-      if (!mounted) return;
-
-      final localidad = data?['localidad'] as String? ?? '';
-      final savedNotifCiudades =
-          data?['notifCiudades'] as Map<String, dynamic>? ?? {};
-
-      // Leer notifPrefs del documento (por si el notifier aún no los tiene)
-      final notifPrefs = data?['notifPrefs'] as Map<String, dynamic>? ?? {};
-      final freshToggles = {
-        'Torneos próximos': notifPrefs['Torneos próximos'] as bool? ?? true,
-        'Nuevos eventos cerca':
-            notifPrefs['Nuevos eventos cerca'] as bool? ?? true,
-        'Resultados y emparejamiento':
-            notifPrefs['Resultados y emparejamiento'] as bool? ?? true,
-        'Promociones de tiendas':
-            notifPrefs['Promociones de tiendas'] as bool? ?? false,
-      };
-
-      setState(() {
-        _nombre = data?['name'] as String? ?? '';
-        _email = data?['email'] as String? ?? authEmail;
-        _telefono = data?['telefono'] as String? ?? '';
-        _joinYear =
-            creationTime != null ? creationTime.year.toString() : '';
-        _localidad = localidad;
-        _toggles = freshToggles;
-      });
-
-      _loadCiudadesNotif(uid, localidad, savedNotifCiudades);
-
-      // Acciones automáticas al cargar según los toggles activos
-      if (freshToggles['Torneos próximos'] == true) {
-        _checkUpcomingTorneos(uid);
-      }
-      if (freshToggles['Nuevos eventos cerca'] == true) {
-        _checkEventosCerca(uid);
-      }
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _email = authEmail;
-        _joinYear =
-            creationTime != null ? creationTime.year.toString() : '';
-        _loadingCiudades = false;
-      });
-    }
+  void _onVmUpdate() {
+    if (mounted) setState(() {});
   }
 
-  Future<void> _loadCiudadesNotif(
-      String uid, String localidad, Map<String, dynamic> savedPrefs) async {
-    try {
-      final cities = await EventosService.fetchUserCities(uid);
-      if (localidad.isNotEmpty) cities.add(localidad);
-
-      final toggles = <String, bool>{};
-      for (final city in cities) {
-        toggles[city] = savedPrefs[city] as bool? ?? true;
-      }
-
-      if (!mounted) return;
-      setState(() {
-        _ciudadToggles = toggles;
-        _loadingCiudades = false;
-      });
-    } catch (_) {
-      if (!mounted) return;
-      final toggles = <String, bool>{};
-      if (_localidad.isNotEmpty) {
-        toggles[_localidad] = savedPrefs[_localidad] as bool? ?? true;
-      }
-      setState(() {
-        _ciudadToggles = toggles;
-        _loadingCiudades = false;
-      });
-    }
-  }
-
-  // Comprueba torneos inscritos que empiezan en menos de 2h y crea notificaciones
-  Future<void> _checkUpcomingTorneos(String uid) async {
-    final userRef =
-        FirebaseFirestore.instance.collection('User').doc(uid);
-    final now = DateTime.now();
-    final twoHoursLater = now.add(const Duration(hours: 2));
-
-    try {
-      final snap = await FirebaseFirestore.instance
-          .collectionGroup('registration')
-          .where('userId', isEqualTo: userRef)
-          .where('status', isEqualTo: 'Accepted')
-          .get();
-
-      for (final regDoc in snap.docs) {
-        final tournamentId =
-            regDoc.reference.parent.parent?.id;
-        if (tournamentId == null) continue;
-
-        final tDoc = await FirebaseFirestore.instance
-            .collection('Tournaments')
-            .doc(tournamentId)
-            .get();
-        if (!tDoc.exists) continue;
-
-        final dateTs = tDoc.data()?['date'] as Timestamp?;
-        if (dateTs == null) continue;
-        final date = dateTs.toDate();
-
-        if (date.isAfter(now) && date.isBefore(twoHoursLater)) {
-          final existing = await FirebaseFirestore.instance
-              .collection('Notifications')
-              .where('userID', isEqualTo: userRef)
-              .where('tournamentId', isEqualTo: tournamentId)
-              .where('type', isEqualTo: 'torneo_pronto')
-              .get();
-
-          if (existing.docs.isEmpty) {
-            final name =
-                tDoc.data()?['name'] as String? ?? 'tu torneo';
-            await NotificacionesService.notifyTorneoProximo(
-              userRef: userRef,
-              tournamentName: name,
-              tournamentId: tournamentId,
-            );
-          }
-        }
-      }
-    } catch (_) {}
-  }
-
-  // Busca torneos abiertos en las ciudades habilitadas creados en las últimas 24h
-  Future<void> _checkEventosCerca(String uid) async {
-    final enabledCities = _ciudadToggles.entries
-        .where((e) => e.value)
-        .map((e) => e.key)
-        .toList();
-    if (enabledCities.isEmpty) return;
-
-    final userRef =
-        FirebaseFirestore.instance.collection('User').doc(uid);
-    final since =
-        Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 24)));
-
-    for (final city in enabledCities) {
-      try {
-        final snap = await FirebaseFirestore.instance
-            .collection('Tournaments')
-            .where('localidad', isEqualTo: city)
-            .where('status', isEqualTo: 'open')
-            .where('createdAt', isGreaterThan: since)
-            .get();
-
-        for (final tDoc in snap.docs) {
-          final existing = await FirebaseFirestore.instance
-              .collection('Notifications')
-              .where('userID', isEqualTo: userRef)
-              .where('tournamentId', isEqualTo: tDoc.id)
-              .where('type', isEqualTo: 'discovered_event')
-              .get();
-
-          if (existing.docs.isEmpty) {
-            final name = tDoc.data()['name'] as String? ?? 'Nuevo torneo';
-            await FirebaseFirestore.instance.collection('Notifications').add({
-              'userID': userRef,
-              'date': FieldValue.serverTimestamp(),
-              'type': 'discovered_event',
-              'title': 'Nuevo torneo en $city',
-              'mensaje': '$name disponible cerca de ti',
-              'icon': '🔍',
-              'isRead': false,
-              'tournamentId': tDoc.id,
-            });
-          }
-        }
-      } catch (_) {}
-    }
-  }
-
-  Future<void> _saveCiudadToggle(String city, bool value) async {
-    setState(() => _ciudadToggles[city] = value);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    await FirebaseFirestore.instance
-        .collection('User')
-        .doc(uid)
-        .update({'notifCiudades.$city': value});
-  }
-
-  Future<void> _onNotifToggle(String key, bool value) async {
-    setState(() => _toggles[key] = value);
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    await AppPrefsNotifier.instance.setNotifToggle(uid, key, value);
-
-    // Ejecutar acción inmediata al activar
-    if (value && uid.isNotEmpty) {
-      if (key == 'Torneos próximos') _checkUpcomingTorneos(uid);
-      if (key == 'Nuevos eventos cerca') _checkEventosCerca(uid);
-    }
-  }
-
-  Future<void> _savePersonalData(
-      String nombre, String email, String telefono) async {
-    setState(() {
-      _nombre = nombre;
-      _email = email;
-      _telefono = telefono;
-    });
-    final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
-    await FirebaseFirestore.instance.collection('User').doc(uid).update({
-      'name': nombre,
-      'email': email,
-      if (telefono.isNotEmpty) 'telefono': telefono,
-    });
-  }
-
-  Future<void> _logout() async {
-    await FirebaseAuth.instance.signOut();
+  @override
+  void dispose() {
+    _vm.removeListener(_onVmUpdate);
+    _vm.dispose();
+    super.dispose();
   }
 
   String get _idiomaLabel =>
-      _idioma == 'es' ? L10n.t('Español (España)') : L10n.t('English (UK)');
+      _vm.idioma == 'es' ? L10n.t('Español (España)') : L10n.t('English (UK)');
   String get _aparienciaLabel =>
-      _apariencia == 'dark' ? L10n.t('Oscuro') : L10n.t('Claro');
+      _vm.apariencia == 'dark' ? L10n.t('Oscuro') : L10n.t('Claro');
 
   @override
   Widget build(BuildContext context) {
@@ -347,7 +107,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(_nombre,
+                                  Text(_vm.nombre,
                                       style: GoogleFonts.rubik(
                                           fontSize: 17,
                                           fontWeight: FontWeight.w700,
@@ -355,11 +115,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                       [
-                                        if (_nombre.isNotEmpty)
-                                          '@${_nombre.split(' ').first.toLowerCase()}',
-                                        if (_joinYear.isNotEmpty)
+                                        if (_vm.nombre.isNotEmpty)
+                                          '@${_vm.nombre.split(' ').first.toLowerCase()}',
+                                        if (_vm.joinYear.isNotEmpty)
                                           L10n.fmt('desde {year}',
-                                              {'year': _joinYear}),
+                                              {'year': _vm.joinYear}),
                                       ].join(' · '),
                                       style: GoogleFonts.rubik(
                                           fontSize: 12,
@@ -376,11 +136,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               onTap: () => Navigator.push(
                                 context,
                                 slideRoute(DatosPersonalesScreen(
-                                  nombre: _nombre,
-                                  email: _email,
-                                  telefono: _telefono,
+                                  nombre: _vm.nombre,
+                                  email: _vm.email,
+                                  telefono: _vm.telefono,
                                   accent: accent,
-                                  onSave: _savePersonalData,
+                                  onSave: _vm.savePersonalData,
                                 )),
                               ),
                               child: Container(
@@ -409,17 +169,17 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                         items: [
                           _SettingsItem(
                             title: L10n.t('Datos personales'),
-                            sub: '$_nombre · $_email',
+                            sub: '${_vm.nombre} · ${_vm.email}',
                             color: AppColors.cyan,
                             icon: 'i',
                             onTap: () => Navigator.push(
                               context,
                               slideRoute(DatosPersonalesScreen(
-                                nombre: _nombre,
-                                email: _email,
-                                telefono: _telefono,
+                                nombre: _vm.nombre,
+                                email: _vm.email,
+                                telefono: _vm.telefono,
                                 accent: accent,
-                                onSave: _savePersonalData,
+                                onSave: _vm.savePersonalData,
                               )),
                             ),
                           ),
@@ -431,22 +191,22 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             onTap: () => Navigator.push(
                               context,
                               slideRoute(ContrasenaSeguridadScreen(
-                                  accent: accent, email: _email)),
+                                  accent: accent, email: _vm.email)),
                             ),
                           ),
                           _SettingsItem(
                             title: L10n.t('Mis juegos favoritos'),
                             sub: L10n.fmt('{n} seleccionados',
-                                {'n': '${_selectedGames.length}'}),
+                                {'n': '${_vm.selectedGames.length}'}),
                             color: AppColors.pink,
                             icon: '♥',
                             onTap: () => Navigator.push(
                               context,
                               slideRoute(JuegosFavoritosScreen(
-                                selected: _selectedGames,
+                                selected: _vm.selectedGames,
                                 accent: accent,
                                 onSave: (games) =>
-                                    setState(() => _selectedGames = games),
+                                    setState(() => _vm.selectedGames = games),
                               )),
                             ),
                           ),
@@ -483,19 +243,19 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               icon: '✦',
                               key: 'Promociones de tiendas'),
                         ],
-                        toggles: _toggles,
-                        onToggle: _onNotifToggle,
+                        toggles: _vm.toggles,
+                        onToggle: _vm.onNotifToggle,
                         accent: accent,
                       ),
                       const SizedBox(height: 18),
 
                       // Notificaciones por ciudad
-                      if (_loadingCiudades)
+                      if (_vm.loadingCiudades)
                         _CiudadLoadingSection(accent: accent)
-                      else if (_ciudadToggles.isNotEmpty)
+                      else if (_vm.ciudadToggles.isNotEmpty)
                         _ToggleSection(
                           header: L10n.t('Notificaciones por ciudad'),
-                          items: _ciudadToggles.keys
+                          items: _vm.ciudadToggles.keys
                               .map((city) => _ToggleItem(
                                     title: city,
                                     sub: L10n.fmt(
@@ -505,8 +265,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                                     color: AppColors.orange,
                                   ))
                               .toList(),
-                          toggles: _ciudadToggles,
-                          onToggle: _saveCiudadToggle,
+                          toggles: _vm.ciudadToggles,
+                          onToggle: _vm.saveCiudadToggle,
                           accent: accent,
                         ),
                       const SizedBox(height: 18),
@@ -521,12 +281,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             color: AppColors.violet,
                             icon: '🌐',
                             onTap: () async {
-                              final uid = FirebaseAuth
-                                  .instance.currentUser?.uid;
+                              final uid = _getUid();
                               await Navigator.push(
                                 context,
                                 slideRoute(IdiomaScreen(
-                                  selected: _idioma,
+                                  selected: _vm.idioma,
                                   accent: accent,
                                   onSave: (lang) async {
                                     if (uid != null) {
@@ -546,12 +305,11 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             color: AppColors.blue,
                             icon: '◐',
                             onTap: () async {
-                              final uid = FirebaseAuth
-                                  .instance.currentUser?.uid;
+                              final uid = await _getUid();
                               await Navigator.push(
                                 context,
                                 slideRoute(AparienciaScreen(
-                                  selected: _apariencia,
+                                  selected: _vm.apariencia,
                                   accent: accent,
                                   onSave: (a) async {
                                     if (uid != null) {
@@ -567,17 +325,16 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                           ),
                           _SettingsItem(
                             title: L10n.t('Unidades'),
-                            sub: '$_distancia · $_hora',
+                            sub: '${_vm.distancia} · ${_vm.hora}',
                             color: AppColors.cyan,
                             icon: '△',
                             onTap: () async {
-                              final uid = FirebaseAuth
-                                  .instance.currentUser?.uid;
+                              final uid = await _getUid();
                               await Navigator.push(
                                 context,
                                 slideRoute(UnidadesScreen(
-                                  distancia: _distancia,
-                                  hora: _hora,
+                                  distancia: _vm.distancia,
+                                  hora: _vm.hora,
                                   accent: accent,
                                   onSave: (d, h) async {
                                     if (uid != null) {
@@ -624,7 +381,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                             color: AppColors.pink,
                             icon: '⎋',
                             danger: true,
-                            onTap: _logout,
+                            onTap: _vm.logout,
                           ),
                         ],
                       ),
@@ -645,6 +402,8 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
       ),
     );
   }
+
+  String? _getUid() => FirebaseAuth.instance.currentUser?.uid;
 }
 
 // ─── Modelos de fila ─────────────────────────────────────────────────────────

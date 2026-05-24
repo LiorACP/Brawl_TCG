@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'data/tournament.dart';
 import 'player_profile_sheet.dart';
+import 'viewmodels/org_participantes_viewmodel.dart';
 
 class OrgParticipantesScreen extends StatelessWidget {
   final Tournament tournament;
@@ -11,6 +12,7 @@ class OrgParticipantesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final vm = OrgParticipantesViewModel();
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -40,13 +42,7 @@ class OrgParticipantesScreen extends StatelessWidget {
         ),
       ),
       body: StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-        stream: FirebaseFirestore.instance
-            .collection('Tournaments')
-            .doc(tournament.id)
-            .collection('registration')
-            .where('status', isEqualTo: 'Accepted')
-            .orderBy('creadoEn', descending: false)
-            .snapshots(),
+        stream: vm.watchAcceptedParticipants(tournament.id),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
@@ -127,6 +123,7 @@ class OrgParticipantesScreen extends StatelessWidget {
                         (data['tableNumber'] as num?)?.toInt();
 
                     return _ParticipantCard(
+                      vm: vm,
                       index: i,
                       regId: doc.id,
                       tournamentId: tournament.id,
@@ -148,6 +145,7 @@ class OrgParticipantesScreen extends StatelessWidget {
 }
 
 class _ParticipantCard extends StatefulWidget {
+  final OrgParticipantesViewModel vm;
   final int index;
   final String regId;
   final String tournamentId;
@@ -158,6 +156,7 @@ class _ParticipantCard extends StatefulWidget {
   final int? tableNumber;
 
   const _ParticipantCard({
+    required this.vm,
     required this.index,
     required this.regId,
     required this.tournamentId,
@@ -217,33 +216,12 @@ class _ParticipantCardState extends State<_ParticipantCard> {
     setState(() => _loading = true);
 
     try {
-      final db = FirebaseFirestore.instance;
-      final regRef = db
-          .collection('Tournaments')
-          .doc(widget.tournamentId)
-          .collection('registration')
-          .doc(widget.regId);
-
-      await regRef.update({'status': 'Removed'});
-
-      await db
-          .collection('Tournaments')
-          .doc(widget.tournamentId)
-          .update({'enrolledCount': FieldValue.increment(-1)});
-
-      if (widget.playerRef != null) {
-        await db.collection('Notifications').add({
-          'userID': widget.playerRef,
-          'date': FieldValue.serverTimestamp(),
-          'type': 'desapuntado',
-          'title': 'Has sido desapuntado',
-          'mensaje':
-              'El organizador te ha eliminado del torneo "${widget.tournamentName}".',
-          'icon': '⚠',
-          'isRead': false,
-          'tournamentId': widget.tournamentId,
-        });
-      }
+      await widget.vm.removePlayer(
+        tournamentId: widget.tournamentId,
+        tournamentName: widget.tournamentName,
+        regId: widget.regId,
+        playerRef: widget.playerRef,
+      );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -265,7 +243,6 @@ class _ParticipantCardState extends State<_ParticipantCard> {
       ),
       child: Row(
         children: [
-          // Número de orden
           SizedBox(
             width: 24,
             child: Text(
@@ -275,7 +252,6 @@ class _ParticipantCardState extends State<_ParticipantCard> {
             ),
           ),
           const SizedBox(width: 10),
-          // Avatar + Nombre (tappable → perfil)
           Expanded(
             child: GestureDetector(
               onTap: () => showPlayerProfileSheet(
@@ -323,7 +299,6 @@ class _ParticipantCardState extends State<_ParticipantCard> {
               ),
             ),
           ),
-          // Mesa o puntos
           if (widget.tableNumber != null)
             _InfoChip(
                 label: 'Mesa ${widget.tableNumber}',
@@ -332,7 +307,6 @@ class _ParticipantCardState extends State<_ParticipantCard> {
             _InfoChip(
                 label: '${widget.position} pts', color: AppColors.cyan),
           const SizedBox(width: 8),
-          // Botón eliminar o spinner
           if (_loading)
             const SizedBox(
               width: 28,

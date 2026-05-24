@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:brawl_tcg/core/l10n/app_l10n.dart';
 import 'package:brawl_tcg/core/theme/app_colors.dart';
 import 'package:brawl_tcg/core/widgets/brawl_widgets.dart';
 import 'package:brawl_tcg/core/navigation/transitions.dart';
 import 'package:brawl_tcg/features/notificaciones/shared_notis_screen.dart';
+import 'viewmodels/mapa_viewmodel.dart';
 
 class ClienteMapaScreen extends StatefulWidget {
   const ClienteMapaScreen({super.key});
@@ -17,6 +17,7 @@ class ClienteMapaScreen extends StatefulWidget {
 class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
   String _activeFilter = 'Todos';
   final _cityController = TextEditingController(text: 'Barcelona');
+  final _vm = MapaViewModel();
 
   final _filters = const ['Todos', 'MTG', 'Pokémon', 'YuGiOh', '< 5 km'];
 
@@ -30,29 +31,12 @@ class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
       Navigator.push(context, fadeSlideRoute(const SharedNotisScreen()));
 
   Future<void> _launchMaps() async {
-    final city = _cityController.text.trim().isEmpty
-        ? 'mi ubicación'
-        : _cityController.text.trim();
-    const gameNames = {
-      'MTG': 'Magic the Gathering',
-      'Pokémon': 'Pokemon TCG',
-      'YuGiOh': 'Yu-Gi-Oh',
-    };
-    final gameName = gameNames[_activeFilter];
-    final query = gameName != null
-        ? 'tiendas $gameName en $city'
-        : _activeFilter == '< 5 km'
-            ? 'tiendas TCG cerca de $city'
-            : 'tiendas TCG en $city';
-
-    final uri = Uri.parse(
-        'https://www.google.com/maps/search/${Uri.encodeComponent(query)}');
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(L10n.t('No se pudo abrir Google Maps'))),
-        );
-      }
+    final launched =
+        await _vm.launchMaps(_cityController.text, _activeFilter);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(L10n.t('No se pudo abrir Google Maps'))),
+      );
     }
   }
 
@@ -155,12 +139,13 @@ class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
                                 children: _filters.map((f) {
                                   final active = f == _activeFilter;
                                   return Padding(
-                                    padding: const EdgeInsets.only(right: 8),
+                                    padding:
+                                        const EdgeInsets.only(right: 8),
                                     child: GestureDetector(
-                                      onTap: () =>
-                                          setState(() => _activeFilter = f),
-                                      child:
-                                          _FilterChip(label: f, active: active),
+                                      onTap: () => setState(
+                                          () => _activeFilter = f),
+                                      child: _FilterChip(
+                                          label: f, active: active),
                                     ),
                                   );
                                 }).toList(),
