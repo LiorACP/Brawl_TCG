@@ -32,19 +32,245 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
   void initState() {
     super.initState();
     _isOrg = widget.isOrg;
-    _vm.addListener(_onVmUpdate);
-    _vm.init();
+    // Inicializar toggles desde el notifier (ya cargados en main)
+    _toggles = Map<String, bool>.from(AppPrefsNotifier.instance.notifToggles);
+    _loadUser();
   }
 
-  void _onVmUpdate() {
-    if (mounted) setState(() {});
+  String get _idioma => AppPrefsNotifier.instance.idioma;
+  String get _apariencia => AppPrefsNotifier.instance.tema;
+  String get _distancia => AppPrefsNotifier.instance.distancia;
+  String get _hora => AppPrefsNotifier.instance.hora;
+
+  Future<void> _loadUser() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      if (mounted) setState(() => _loadingCiudades = false);
+      return;
+    }
+
+    final creationTime = FirebaseAuth.instance.currentUser?.metadata.creationTime;
+    final authEmail = FirebaseAuth.instance.currentUser?.email ?? '';
+
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('User').doc(uid).get();
+      final data = doc.data();
+      if (!mounted) return;
+
+      final localidad = data?['localidad'] as String? ?? '';
+      final savedNotifCiudades =
+          data?['notifCiudades'] as Map<String, dynamic>? ?? {};
+
+      // Leer notifPrefs del documento (por si el notifier aún no los tiene)
+      final notifPrefs = data?['notifPrefs'] as Map<String, dynamic>? ?? {};
+      final freshToggles = {
+        'Torneos próximos': notifPrefs['Torneos próximos'] as bool? ?? true,
+        'Nuevos eventos cerca':
+            notifPrefs['Nuevos eventos cerca'] as bool? ?? true,
+        'Resultados y emparejamiento':
+            notifPrefs['Resultados y emparejamiento'] as bool? ?? true,
+      };
+
+      setState(() {
+        _nombre = data?['name'] as String? ?? '';
+        _email = data?['email'] as String? ?? authEmail;
+        _telefono = data?['telefono'] as String? ?? '';
+        _joinYear =
+            creationTime != null ? creationTime.year.toString() : '';
+        _localidad = localidad;
+        _toggles = freshToggles;
+      });
+
+      _loadCiudadesNotif(uid, localidad, savedNotifCiudades);
+
+      // Acciones automáticas al cargar según los toggles activos
+      if (freshToggles['Torneos próximos'] == true) {
+        _checkUpcomingTorneos(uid);
+      }
+      if (freshToggles['Nuevos eventos cerca'] == true) {
+        _checkEventosCerca(uid);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _email = authEmail;
+        _joinYear =
+            creationTime != null ? creationTime.year.toString() : '';
+        _loadingCiudades = false;
+      });
+    }
   }
 
-  @override
-  void dispose() {
-    _vm.removeListener(_onVmUpdate);
-    _vm.dispose();
-    super.dispose();
+  Future<void> _loadCiudadesNotif(
+      String uid, String localidad, Map<String, dynamic> savedPrefs) async {
+    try {
+      final cities = await EventosService.fetchUserCities(uid);
+      if (localidad.isNotEmpty) cities.add(localidad);
+
+      final toggles = <String, bool>{};
+      for (final city in cities) {
+        toggles[city] = savedPrefs[city] as bool? ?? true;
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _ciudadToggles = toggles;
+        _loadingCiudades = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      final toggles = <String, bool>{};
+      if (_localidad.isNotEmpty) {
+        toggles[_localidad] = savedPrefs[_localidad] as bool? ?? true;
+      }
+      setState(() {
+        _ciudadToggles = toggles;
+        _loadingCiudades = false;
+      });
+    }
+  }
+
+  // Comprueba torneos inscritos que empiezan en menos de 2h y crea notificaciones
+  Future<void> _checkUpcomingTorneos(String uid) async {
+    final userRef =
+        FirebaseFirestore.instance.collection('User').doc(uid);
+    final now = DateTime.now();
+    final twoHoursLater = now.add(const Duration(hours: 2));
+
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collectionGroup('registration')
+          .where('userId', isEqualTo: userRef)
+          .where('status', isEqualTo: 'Accepted')
+          .get();
+
+      for (final regDoc in snap.docs) {
+        final tournamentId =
+            regDoc.reference.parent.parent?.id;
+        if (tournamentId == null) continue;
+
+        final tDoc = await FirebaseFirestore.instance
+            .collection('Tournaments')
+            .doc(tournamentId)
+            .get();
+        if (!tDoc.exists) continue;
+
+        final dateTs = tDoc.data()?['date'] as Timestamp?;
+        if (dateTs == null) continue;
+        final date = dateTs.toDate();
+
+        if (date.isAfter(now) && date.isBefore(twoHoursLater)) {
+          final existing = await FirebaseFirestore.instance
+              .collection('Notifications')
+              .where('userID', isEqualTo: userRef)
+              .where('tournamentId', isEqualTo: tournamentId)
+              .where('type', isEqualTo: 'torneo_pronto')
+              .get();
+
+          if (existing.docs.isEmpty) {
+            final name =
+                tDoc.data()?['name'] as String? ?? 'tu torneo';
+            await NotificacionesService.notifyTorneoProximo(
+              userRef: userRef,
+              tournamentName: name,
+              tournamentId: tournamentId,
+            );
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Busca torneos abiertos en las ciudades habilitadas creados en las últimas 24h
+  Future<void> _checkEventosCerca(String uid) async {
+    final enabledCities = _ciudadToggles.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+    if (enabledCities.isEmpty) return;
+
+    final userRef =
+        FirebaseFirestore.instance.collection('User').doc(uid);
+    final since =
+        Timestamp.fromDate(DateTime.now().subtract(const Duration(hours: 24)));
+
+    for (final city in enabledCities) {
+      try {
+        final snap = await FirebaseFirestore.instance
+            .collection('Tournaments')
+            .where('localidad', isEqualTo: city)
+            .where('status', isEqualTo: 'open')
+            .where('createdAt', isGreaterThan: since)
+            .get();
+
+        for (final tDoc in snap.docs) {
+          final existing = await FirebaseFirestore.instance
+              .collection('Notifications')
+              .where('userID', isEqualTo: userRef)
+              .where('tournamentId', isEqualTo: tDoc.id)
+              .where('type', isEqualTo: 'discovered_event')
+              .get();
+
+          if (existing.docs.isEmpty) {
+            final name = tDoc.data()['name'] as String? ?? 'Nuevo torneo';
+            await FirebaseFirestore.instance.collection('Notifications').add({
+              'userID': userRef,
+              'date': FieldValue.serverTimestamp(),
+              'type': 'discovered_event',
+              'title': 'Nuevo torneo en $city',
+              'mensaje': '$name disponible cerca de ti',
+              'icon': '🔍',
+              'isRead': false,
+              'tournamentId': tDoc.id,
+            });
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _saveCiudadToggle(String city, bool value) async {
+    setState(() => _ciudadToggles[city] = value);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await FirebaseFirestore.instance
+        .collection('User')
+        .doc(uid)
+        .update({'notifCiudades.$city': value});
+  }
+
+  Future<void> _onNotifToggle(String key, bool value) async {
+    setState(() => _toggles[key] = value);
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await AppPrefsNotifier.instance.setNotifToggle(uid, key, value);
+
+    // Ejecutar acción inmediata al activar
+    if (value && uid.isNotEmpty) {
+      if (key == 'Torneos próximos') _checkUpcomingTorneos(uid);
+      if (key == 'Nuevos eventos cerca') _checkEventosCerca(uid);
+    }
+  }
+
+  Future<void> _savePersonalData(
+      String nombre, String email, String telefono) async {
+    setState(() {
+      _nombre = nombre;
+      _email = email;
+      _telefono = telefono;
+    });
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+    await FirebaseFirestore.instance.collection('User').doc(uid).update({
+      'name': nombre,
+      'email': email,
+      if (telefono.isNotEmpty) 'telefono': telefono,
+    });
+  }
+
+  Future<void> _logout() async {
+    await FirebaseAuth.instance.signOut();
   }
 
   String get _idiomaLabel =>
