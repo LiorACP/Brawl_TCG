@@ -82,8 +82,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
             notifPrefs['Nuevos eventos cerca'] as bool? ?? true,
         'Resultados y emparejamiento':
             notifPrefs['Resultados y emparejamiento'] as bool? ?? true,
-        'Promociones de tiendas':
-            notifPrefs['Promociones de tiendas'] as bool? ?? false,
       };
 
       setState(() {
@@ -476,12 +474,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               color: AppColors.pink,
                               icon: '⚔',
                               key: 'Resultados y emparejamiento'),
-                          _ToggleItem(
-                              title: L10n.t('Promociones de tiendas'),
-                              sub: L10n.t('Semanal'),
-                              color: AppColors.yellow,
-                              icon: '✦',
-                              key: 'Promociones de tiendas'),
                         ],
                         toggles: _toggles,
                         onToggle: _onNotifToggle,
