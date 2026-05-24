@@ -45,7 +45,6 @@ class ConfigViewModel extends ChangeNotifier {
         'Torneos próximos': notifPrefs['Torneos próximos'] as bool? ?? true,
         'Nuevos eventos cerca': notifPrefs['Nuevos eventos cerca'] as bool? ?? true,
         'Resultados y emparejamiento': notifPrefs['Resultados y emparejamiento'] as bool? ?? true,
-        'Promociones de tiendas': notifPrefs['Promociones de tiendas'] as bool? ?? false,
       };
       nombre = data?['name'] as String? ?? '';
       email = data?['email'] as String? ?? authEmail;

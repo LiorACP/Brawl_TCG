@@ -14,7 +14,6 @@ class AppPrefsNotifier extends ChangeNotifier {
     'Torneos próximos': true,
     'Nuevos eventos cerca': true,
     'Resultados y emparejamiento': true,
-    'Promociones de tiendas': false,
   };
 
   String get tema => _tema;
@@ -44,8 +43,6 @@ class AppPrefsNotifier extends ChangeNotifier {
             notifPrefs['Nuevos eventos cerca'] as bool? ?? true,
         'Resultados y emparejamiento':
             notifPrefs['Resultados y emparejamiento'] as bool? ?? true,
-        'Promociones de tiendas':
-            notifPrefs['Promociones de tiendas'] as bool? ?? false,
       };
 
       AppColors.setTheme(_tema);

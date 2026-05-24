@@ -49,7 +49,6 @@ class L10n {
     'Radio 10 km': '10 km radius',
     'Resultados y emparejamiento': 'Results & matchmaking',
     'En tiempo real': 'Real time',
-    'Promociones de tiendas': 'Store promotions',
     'Semanal': 'Weekly',
     'Notificaciones por ciudad': 'Notifications by city',
     'Eventos en {city}': 'Events in {city}',

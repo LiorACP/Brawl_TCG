@@ -236,12 +236,6 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                               color: AppColors.pink,
                               icon: '⚔',
                               key: 'Resultados y emparejamiento'),
-                          _ToggleItem(
-                              title: L10n.t('Promociones de tiendas'),
-                              sub: L10n.t('Semanal'),
-                              color: AppColors.yellow,
-                              icon: '✦',
-                              key: 'Promociones de tiendas'),
                         ],
                         toggles: _vm.toggles,
                         onToggle: _vm.onNotifToggle,
