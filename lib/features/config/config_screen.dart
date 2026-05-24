@@ -326,7 +326,7 @@ class _SharedConfigScreenState extends State<SharedConfigScreen> {
                       BrawlCard(
                         padding: const EdgeInsets.all(18),
                         radius: 24,
-                        tint: const Color(0xFF0F0C1A),
+                        tint: AppColors.bgDeep,
                         border: Colors.transparent,
                         child: Row(
                           children: [

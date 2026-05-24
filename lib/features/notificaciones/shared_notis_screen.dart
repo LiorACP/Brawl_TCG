@@ -183,7 +183,9 @@ class _NotisBodyState extends State<_NotisBody> {
                                 style: GoogleFonts.rubik(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.white,
+                                  color: _filter == key
+                                      ? Colors.white
+                                      : AppColors.text,
                                 ),
                               ),
                             ),

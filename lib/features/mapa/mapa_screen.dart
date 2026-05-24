@@ -113,7 +113,7 @@ class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
                                       controller: _cityController,
                                       style: GoogleFonts.rubik(
                                         fontSize: 14,
-                                        color: AppColors.text,
+                                        color: Colors.white,
                                       ),
                                       decoration: InputDecoration(
                                         isDense: true,
@@ -121,7 +121,7 @@ class _ClienteMapaScreenState extends State<ClienteMapaScreen> {
                                         hintText: L10n.t('Ciudad...'),
                                         hintStyle: GoogleFonts.rubik(
                                           fontSize: 14,
-                                          color: AppColors.textDim,
+                                          color: Colors.white54,
                                         ),
                                       ),
                                     ),
@@ -429,7 +429,7 @@ class _FilterChip extends StatelessWidget {
         style: GoogleFonts.rubik(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: Colors.white,
+          color: active ? Colors.white : AppColors.text,
         ),
       ),
     );

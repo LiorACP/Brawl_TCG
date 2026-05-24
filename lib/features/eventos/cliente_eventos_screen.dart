@@ -287,7 +287,7 @@ class _TabPill extends StatelessWidget {
               style: GoogleFonts.rubik(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: Colors.white,
+                color: active ? Colors.white : AppColors.text,
               ),
             ),
           ),
@@ -311,7 +311,7 @@ class _ApuntadosTab extends StatelessWidget {
           BrawlCard(
             padding: const EdgeInsets.all(16),
             radius: 22,
-            tint: const Color(0xFF0F0C1A),
+            tint: AppColors.bgDeep,
             border: Colors.transparent,
             child: Row(
               children: [
